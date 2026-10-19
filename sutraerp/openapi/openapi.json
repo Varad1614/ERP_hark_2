@@ -60009,6 +60009,53 @@
         ]
       }
     },
+    "/api/v1/finance/charges/{id}/tax-document": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "The tax invoice / bill of supply of a charge, printable (`finance.read`); 404 when the\ncharge is outside the GST documents.",
+        "operationId": "finance_gst_charge_document",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstTaxDocument"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/charges/{id}/validate": {
       "post": {
         "tags": [
@@ -62804,6 +62851,53 @@
         }
       }
     },
+    "/api/v1/finance/gst-documents/{id}": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "One GST document (credit notes included), printable (`finance.read`).",
+        "operationId": "finance_gst_document_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstTaxDocument"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/institutions/{id}/adjustments": {
       "get": {
         "tags": [
@@ -65363,6 +65457,493 @@
         ]
       }
     },
+    "/api/v1/finance/institutions/{id}/gst-documents": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "GST documents issued in a period, newest first (`finance.read`).",
+        "operationId": "finance_gst_document_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "path",
+            "description": "First day (default: the 1st of this month, institution time).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "description": "Last day (default: today).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GstDocumentItem"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gst-fee-heads": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "Every fee head of the institution with its GST setup (`finance.read`); the system GST heads\nare left out.",
+        "operationId": "finance_gst_fee_head_list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GstFeeHead"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gst-fee-heads/{feeHeadId}": {
+      "put": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "Sets a fee head's GST: SAC / HSN, rate, exempt (rate 0) with its note, tax-inclusive pricing\n(`finance.config.manage`). Applies to charges raised from now on.",
+        "operationId": "finance_gst_fee_head_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "feeHeadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GstFeeHeadTaxInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstFeeHead"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "Removes a fee head's GST setup (`finance.config.manage`): its charges are outside the GST\ndocuments from now on.",
+        "operationId": "finance_gst_fee_head_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "feeHeadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gst-profile": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "The institution's GST profile (`finance.read`); defaults until it saves one.",
+        "operationId": "finance_gst_profile_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstProfileView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "Saves the GST profile (`finance.config.manage`). The GSTIN is checked with its check\ncharacter and must be registered in the profile's state.",
+        "operationId": "finance_gst_profile_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GstProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstProfileView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gst-summary": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "GSTR-1 friendly summary of a period: B2B invoices, B2C by place of supply and rate, HSN / SAC\nsummary, nil / exempt / non-GST, credit notes and documents issued (`finance.read`).",
+        "operationId": "finance_gst_summary_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "path",
+            "description": "First day (default: the 1st of this month, institution time).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "description": "Last day (default: today).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstSummaryView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/institutions/{id}/gst-summary/csv": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "The same summary as one CSV, a section per GSTR-1 table (`finance.read`).",
+        "operationId": "finance_gst_summary_csv",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "path",
+            "description": "First day (default: the 1st of this month, institution time).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "description": "Last day (default: today).",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/finance/institutions/{id}/journal-entries": {
       "get": {
         "tags": [
@@ -67276,6 +67857,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChargeDetailList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/me/charges/{id}/tax-document": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "The student's own tax invoice / bill of supply of one of their charges (`finance.self`).",
+        "operationId": "finance_gst_self_charge_document",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstTaxDocument"
                 }
               }
             }
@@ -69410,6 +70038,108 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChargeList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/finance/student-accounts/{id}/gst-details": {
+      "get": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "The payer's place of supply and GSTIN (`finance.read`).",
+        "operationId": "finance_gst_party_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstPartyView"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "finance-gst"
+        ],
+        "summary": "Sets the payer's place of supply and, for a registered payer, its GSTIN (`charge.manage`).\nApplies to charges raised from now on.",
+        "operationId": "finance_gst_party_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GstPartyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GstPartyView"
                 }
               }
             }
@@ -175813,6 +176543,1095 @@
           }
         }
       },
+      "GstAmounts": {
+        "type": "object",
+        "description": "Money columns of a summary row.",
+        "required": [
+          "taxableValue",
+          "cgst",
+          "sgst",
+          "igst",
+          "totalTax"
+        ],
+        "properties": {
+          "cgst": {
+            "type": "string"
+          },
+          "igst": {
+            "type": "string"
+          },
+          "sgst": {
+            "type": "string"
+          },
+          "taxableValue": {
+            "type": "string"
+          },
+          "totalTax": {
+            "type": "string"
+          }
+        }
+      },
+      "GstB2bRow": {
+        "type": "object",
+        "required": [
+          "recipientGstin",
+          "recipientName",
+          "number",
+          "date",
+          "invoiceValue",
+          "placeOfSupply",
+          "rate",
+          "amounts"
+        ],
+        "properties": {
+          "amounts": {
+            "$ref": "#/components/schemas/GstAmounts"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "invoiceValue": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "placeOfSupply": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "recipientGstin": {
+            "type": "string"
+          },
+          "recipientName": {
+            "type": "string"
+          }
+        }
+      },
+      "GstB2cRow": {
+        "type": "object",
+        "required": [
+          "placeOfSupply",
+          "interState",
+          "rate",
+          "amounts"
+        ],
+        "properties": {
+          "amounts": {
+            "$ref": "#/components/schemas/GstAmounts"
+          },
+          "interState": {
+            "type": "boolean"
+          },
+          "placeOfSupply": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          }
+        }
+      },
+      "GstComponent": {
+        "type": "string",
+        "description": "A tax component.",
+        "enum": [
+          "cgst",
+          "sgst",
+          "igst"
+        ]
+      },
+      "GstCreditNoteRow": {
+        "type": "object",
+        "required": [
+          "registered",
+          "recipientName",
+          "number",
+          "date",
+          "placeOfSupply",
+          "noteValue",
+          "amounts"
+        ],
+        "properties": {
+          "amounts": {
+            "$ref": "#/components/schemas/GstAmounts"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "noteValue": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "originalDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "originalNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "placeOfSupply": {
+            "type": "string"
+          },
+          "recipientGstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "registered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GstDocIssueRow": {
+        "type": "object",
+        "required": [
+          "kind",
+          "from",
+          "to",
+          "total",
+          "cancelled"
+        ],
+        "properties": {
+          "cancelled": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "from": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GstDocKind"
+          },
+          "to": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "GstDocKind": {
+        "type": "string",
+        "description": "The kind of GST document a charge carries.",
+        "enum": [
+          "tax_invoice",
+          "bill_of_supply",
+          "credit_note"
+        ]
+      },
+      "GstDocLine": {
+        "type": "object",
+        "description": "One supply line of a tax document.",
+        "required": [
+          "lineNo",
+          "description",
+          "treatment",
+          "gstRate",
+          "taxableValue",
+          "cgst",
+          "sgst",
+          "igst",
+          "total"
+        ],
+        "properties": {
+          "cgst": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "gstRate": {
+            "type": "string"
+          },
+          "igst": {
+            "type": "string"
+          },
+          "lineNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sac": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sgst": {
+            "type": "string"
+          },
+          "taxableValue": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "treatment": {
+            "$ref": "#/components/schemas/Treatment"
+          }
+        }
+      },
+      "GstDocOriginal": {
+        "type": "object",
+        "description": "The invoice a credit note reduces.",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "GstDocRecipient": {
+        "type": "object",
+        "description": "Recipient block of a tax document.",
+        "required": [
+          "name",
+          "stateCode"
+        ],
+        "properties": {
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "stateCode": {
+            "type": "string"
+          },
+          "stateName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studentNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "GstDocSupplier": {
+        "type": "object",
+        "description": "Supplier block of a tax document.",
+        "required": [
+          "legalName",
+          "tradeName",
+          "address",
+          "stateCode"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "stateCode": {
+            "type": "string"
+          },
+          "stateName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tradeName": {
+            "type": "string"
+          }
+        }
+      },
+      "GstDocTax": {
+        "type": "object",
+        "description": "One tax row (`CGST @ 9%`).",
+        "required": [
+          "component",
+          "label",
+          "rate",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "component": {
+            "$ref": "#/components/schemas/GstComponent"
+          },
+          "label": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          }
+        }
+      },
+      "GstDocumentItem": {
+        "type": "object",
+        "description": "A GST document in a list.",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "chargeId",
+          "chargeNumber",
+          "recipientName",
+          "taxableValue",
+          "totalTax",
+          "total"
+        ],
+        "properties": {
+          "chargeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chargeNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GstDocKind"
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recipientGstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "taxableValue": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "totalTax": {
+            "type": "string"
+          }
+        }
+      },
+      "GstExemptRow": {
+        "type": "object",
+        "required": [
+          "intraNil",
+          "intraExempt",
+          "intraNonGst",
+          "interNil",
+          "interExempt",
+          "interNonGst"
+        ],
+        "properties": {
+          "interExempt": {
+            "type": "string"
+          },
+          "interNil": {
+            "type": "string"
+          },
+          "interNonGst": {
+            "type": "string"
+          },
+          "intraExempt": {
+            "type": "string"
+          },
+          "intraNil": {
+            "type": "string"
+          },
+          "intraNonGst": {
+            "type": "string"
+          }
+        }
+      },
+      "GstFeeHead": {
+        "type": "object",
+        "description": "A fee head with its GST setup (`null` until it is set up).",
+        "required": [
+          "feeHeadId",
+          "code",
+          "name",
+          "category",
+          "status"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "feeHeadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tax": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GstFeeHeadTax"
+              }
+            ]
+          }
+        }
+      },
+      "GstFeeHeadTax": {
+        "type": "object",
+        "description": "SAC / HSN, rate and pricing of a fee head.",
+        "required": [
+          "sac",
+          "gstRate",
+          "exempt",
+          "treatment",
+          "taxNote",
+          "taxInclusive",
+          "version"
+        ],
+        "properties": {
+          "exempt": {
+            "type": "boolean"
+          },
+          "gstRate": {
+            "type": "string",
+            "description": "Percent: 0, 5, 12, 18, 28 or 40.",
+            "example": "18"
+          },
+          "sac": {
+            "type": "string"
+          },
+          "taxInclusive": {
+            "type": "boolean"
+          },
+          "taxNote": {
+            "type": "string"
+          },
+          "treatment": {
+            "$ref": "#/components/schemas/Treatment"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "GstFeeHeadTaxInput": {
+        "type": "object",
+        "description": "New tax setup of a fee head.",
+        "required": [
+          "sac",
+          "gstRate"
+        ],
+        "properties": {
+          "exempt": {
+            "type": "boolean"
+          },
+          "gstRate": {
+            "type": "string",
+            "example": "18"
+          },
+          "sac": {
+            "type": "string"
+          },
+          "taxInclusive": {
+            "type": "boolean"
+          },
+          "taxNote": {
+            "type": "string"
+          }
+        }
+      },
+      "GstHsnRow": {
+        "type": "object",
+        "required": [
+          "sac",
+          "rate",
+          "count",
+          "amounts"
+        ],
+        "properties": {
+          "amounts": {
+            "$ref": "#/components/schemas/GstAmounts"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "sac": {
+            "type": "string"
+          }
+        }
+      },
+      "GstPartyInput": {
+        "type": "object",
+        "properties": {
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "stateCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to the GSTIN's state."
+          }
+        }
+      },
+      "GstPartyView": {
+        "type": "object",
+        "description": "The payer's place of supply and GST identity.",
+        "required": [
+          "studentAccountId",
+          "configured",
+          "legalName",
+          "version"
+        ],
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "stateCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Place of supply (defaults to the institution's state)."
+          },
+          "stateName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "studentAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "GstProfileInput": {
+        "type": "object",
+        "description": "A new GST profile (the whole set).",
+        "required": [
+          "registrationType",
+          "legalName"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "billPrefix": {
+            "type": "string"
+          },
+          "creditNotePrefix": {
+            "type": "string"
+          },
+          "defaultTaxNote": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invoicePrefix": {
+            "type": "string"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "registrationType": {
+            "$ref": "#/components/schemas/GstRegistrationType"
+          },
+          "stateCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to the GSTIN's state."
+          },
+          "tradeName": {
+            "type": "string"
+          }
+        }
+      },
+      "GstProfileView": {
+        "type": "object",
+        "description": "The institution's GST profile (defaults with `configured: false` until it saves one).",
+        "required": [
+          "institutionId",
+          "configured",
+          "registrationType",
+          "legalName",
+          "tradeName",
+          "address",
+          "stateCode",
+          "defaultTaxNote",
+          "invoicePrefix",
+          "billPrefix",
+          "creditNotePrefix",
+          "sampleNumbers",
+          "enabled",
+          "version",
+          "presets",
+          "rates",
+          "states"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "billPrefix": {
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "creditNotePrefix": {
+            "type": "string"
+          },
+          "defaultTaxNote": {
+            "type": "string",
+            "description": "'' nothing, `preset:…` a shipped sentence, anything else printed verbatim."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoicePrefix": {
+            "type": "string",
+            "description": "`TI/{FY}/` — `{FY}` is the financial year (`26-27`)."
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "presets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstTaxNotePreset"
+            }
+          },
+          "rates": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            },
+            "description": "Allowed GST rates (percent)."
+          },
+          "registrationType": {
+            "$ref": "#/components/schemas/GstRegistrationType"
+          },
+          "sampleNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the next numbers look like this financial year."
+          },
+          "stateCode": {
+            "type": "string"
+          },
+          "stateName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "states": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstState"
+            }
+          },
+          "tradeName": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "GstRegistrationType": {
+        "type": "string",
+        "description": "The institution's GST registration.",
+        "enum": [
+          "regular",
+          "composition",
+          "unregistered"
+        ]
+      },
+      "GstState": {
+        "type": "object",
+        "description": "A GST state / union territory.",
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "GstSummaryView": {
+        "type": "object",
+        "description": "GSTR-1 friendly summary of a period.",
+        "required": [
+          "institutionId",
+          "from",
+          "to",
+          "b2b",
+          "b2c",
+          "hsn",
+          "exempt",
+          "creditNotes",
+          "documents",
+          "net"
+        ],
+        "properties": {
+          "b2b": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstB2bRow"
+            }
+          },
+          "b2c": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstB2cRow"
+            }
+          },
+          "creditNotes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstCreditNoteRow"
+            }
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstDocIssueRow"
+            }
+          },
+          "exempt": {
+            "$ref": "#/components/schemas/GstExemptRow"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "gstin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hsn": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstHsnRow"
+            }
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "net": {
+            "$ref": "#/components/schemas/GstAmounts",
+            "description": "Outward taxable supplies net of credit notes."
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "GstTaxDocument": {
+        "type": "object",
+        "description": "A printable tax invoice, bill of supply or credit note.",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "status",
+          "chargeId",
+          "chargeNumber",
+          "supplier",
+          "recipient",
+          "placeOfSupply",
+          "interState",
+          "reverseCharge",
+          "lines",
+          "taxes",
+          "taxableValue",
+          "cgst",
+          "sgst",
+          "igst",
+          "totalTax",
+          "total",
+          "totalDisplay",
+          "amountInWords",
+          "taxNote"
+        ],
+        "properties": {
+          "adjustmentNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "amountInWords": {
+            "type": "string"
+          },
+          "cgst": {
+            "type": "string"
+          },
+          "chargeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chargeNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "dateDisplay": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`17-10-2026`."
+          },
+          "financialYear": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`2026-27`."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "igst": {
+            "type": "string"
+          },
+          "interState": {
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/GstDocKind"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstDocLine"
+            }
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "original": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GstDocOriginal"
+              }
+            ]
+          },
+          "placeOfSupply": {
+            "type": "string",
+            "description": "`27-Maharashtra`."
+          },
+          "recipient": {
+            "$ref": "#/components/schemas/GstDocRecipient"
+          },
+          "reverseCharge": {
+            "type": "boolean"
+          },
+          "sgst": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` (numbered when the charge is published), `issued` or `cancelled`."
+          },
+          "supplier": {
+            "$ref": "#/components/schemas/GstDocSupplier"
+          },
+          "taxNote": {
+            "type": "string",
+            "description": "The zero-tax sentence (exempt / nil / composition), '' when everything is taxed."
+          },
+          "taxableValue": {
+            "type": "string"
+          },
+          "taxes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GstDocTax"
+            }
+          },
+          "title": {
+            "type": "string",
+            "description": "`Tax Invoice`, `Bill of Supply` or `Credit Note`."
+          },
+          "total": {
+            "type": "string"
+          },
+          "totalDisplay": {
+            "type": "string",
+            "description": "`₹11,800.00`."
+          },
+          "totalTax": {
+            "type": "string"
+          }
+        }
+      },
+      "GstTaxNotePreset": {
+        "type": "object",
+        "description": "A shipped tax-note sentence (Indianised wording; Everything's ids where they carry over).",
+        "required": [
+          "id",
+          "label",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "Guardian": {
         "type": "object",
         "required": [
@@ -220676,6 +222495,16 @@
           }
         }
       },
+      "Treatment": {
+        "type": "string",
+        "description": "How a supply is taxed.",
+        "enum": [
+          "taxable",
+          "nil",
+          "exempt",
+          "non_gst"
+        ]
+      },
       "TrialBalanceRow": {
         "type": "object",
         "description": "One account row of the trial balance.",
@@ -224331,6 +226160,10 @@
     {
       "name": "finance-treasury",
       "description": "F Finance: bank accounts, bank execution, statements and reconciliation, cash position, fund transfers, failed bank transactions"
+    },
+    {
+      "name": "finance-gst",
+      "description": "F Finance: GST profile, fee-head tax setup (SAC / rate / exempt), tax invoices, bills of supply, GST credit notes and the GSTR-1 friendly summary (ERP_EXTENSIONS 5D)"
     },
     {
       "name": "people-directory",

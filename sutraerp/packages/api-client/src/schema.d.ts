@@ -13338,6 +13338,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/charges/{id}/tax-document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The tax invoice / bill of supply of a charge, printable (`finance.read`); 404 when the
+         *     charge is outside the GST documents.
+         */
+        get: operations["finance_gst_charge_document"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/charges/{id}/validate": {
         parameters: {
             query?: never;
@@ -14035,6 +14055,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/gst-documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One GST document (credit notes included), printable (`finance.read`). */
+        get: operations["finance_gst_document_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/institutions/{id}/adjustments": {
         parameters: {
             query?: never;
@@ -14551,6 +14588,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/institutions/{id}/gst-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GST documents issued in a period, newest first (`finance.read`). */
+        get: operations["finance_gst_document_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gst-fee-heads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every fee head of the institution with its GST setup (`finance.read`); the system GST heads
+         *     are left out.
+         */
+        get: operations["finance_gst_fee_head_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gst-fee-heads/{feeHeadId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets a fee head's GST: SAC / HSN, rate, exempt (rate 0) with its note, tax-inclusive pricing
+         *     (`finance.config.manage`). Applies to charges raised from now on.
+         */
+        put: operations["finance_gst_fee_head_put"];
+        post?: never;
+        /**
+         * Removes a fee head's GST setup (`finance.config.manage`): its charges are outside the GST
+         *     documents from now on.
+         */
+        delete: operations["finance_gst_fee_head_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gst-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The institution's GST profile (`finance.read`); defaults until it saves one. */
+        get: operations["finance_gst_profile_get"];
+        /**
+         * Saves the GST profile (`finance.config.manage`). The GSTIN is checked with its check
+         *     character and must be registered in the profile's state.
+         */
+        put: operations["finance_gst_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gst-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GSTR-1 friendly summary of a period: B2B invoices, B2C by place of supply and rate, HSN / SAC
+         *     summary, nil / exempt / non-GST, credit notes and documents issued (`finance.read`).
+         */
+        get: operations["finance_gst_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/institutions/{id}/gst-summary/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The same summary as one CSV, a section per GSTR-1 table (`finance.read`). */
+        get: operations["finance_gst_summary_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/institutions/{id}/journal-entries": {
         parameters: {
             query?: never;
@@ -14975,6 +15131,23 @@ export interface paths {
         };
         /** The caller's own visible charges with lines and due schedules (`finance.self`). */
         get: operations["finance_charge_self_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/me/charges/{id}/tax-document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The student's own tax invoice / bill of supply of one of their charges (`finance.self`). */
+        get: operations["finance_gst_self_charge_document"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15545,6 +15718,27 @@ export interface paths {
         /** Charges of one party account (`finance.read`). */
         get: operations["finance_charge_list_of_account"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/student-accounts/{id}/gst-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The payer's place of supply and GSTIN (`finance.read`). */
+        get: operations["finance_gst_party_get"];
+        /**
+         * Sets the payer's place of supply and, for a registered payer, its GSTIN (`charge.manage`).
+         *     Applies to charges raised from now on.
+         */
+        put: operations["finance_gst_party_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -40228,6 +40422,316 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /** @description Money columns of a summary row. */
+        GstAmounts: {
+            cgst: string;
+            igst: string;
+            sgst: string;
+            taxableValue: string;
+            totalTax: string;
+        };
+        GstB2bRow: {
+            amounts: components["schemas"]["GstAmounts"];
+            /** Format: date */
+            date: string;
+            invoiceValue: string;
+            number: string;
+            placeOfSupply: string;
+            rate: string;
+            recipientGstin: string;
+            recipientName: string;
+        };
+        GstB2cRow: {
+            amounts: components["schemas"]["GstAmounts"];
+            interState: boolean;
+            placeOfSupply: string;
+            rate: string;
+        };
+        /**
+         * @description A tax component.
+         * @enum {string}
+         */
+        GstComponent: "cgst" | "sgst" | "igst";
+        GstCreditNoteRow: {
+            amounts: components["schemas"]["GstAmounts"];
+            /** Format: date */
+            date: string;
+            noteValue: string;
+            number: string;
+            /** Format: date */
+            originalDate?: string | null;
+            originalNumber?: string | null;
+            placeOfSupply: string;
+            recipientGstin?: string | null;
+            recipientName: string;
+            registered: boolean;
+        };
+        GstDocIssueRow: {
+            /** Format: int64 */
+            cancelled: number;
+            from: string;
+            kind: components["schemas"]["GstDocKind"];
+            to: string;
+            /** Format: int64 */
+            total: number;
+        };
+        /**
+         * @description The kind of GST document a charge carries.
+         * @enum {string}
+         */
+        GstDocKind: "tax_invoice" | "bill_of_supply" | "credit_note";
+        /** @description One supply line of a tax document. */
+        GstDocLine: {
+            cgst: string;
+            description: string;
+            gstRate: string;
+            igst: string;
+            /** Format: int32 */
+            lineNo: number;
+            sac?: string | null;
+            sgst: string;
+            taxableValue: string;
+            total: string;
+            treatment: components["schemas"]["Treatment"];
+        };
+        /** @description The invoice a credit note reduces. */
+        GstDocOriginal: {
+            /** Format: date */
+            date?: string | null;
+            /** Format: uuid */
+            id: string;
+            number?: string | null;
+        };
+        /** @description Recipient block of a tax document. */
+        GstDocRecipient: {
+            gstin?: string | null;
+            name: string;
+            stateCode: string;
+            stateName?: string | null;
+            studentNumber?: string | null;
+        };
+        /** @description Supplier block of a tax document. */
+        GstDocSupplier: {
+            address: string;
+            gstin?: string | null;
+            legalName: string;
+            stateCode: string;
+            stateName?: string | null;
+            tradeName: string;
+        };
+        /** @description One tax row (`CGST @ 9%`). */
+        GstDocTax: {
+            amount: string;
+            component: components["schemas"]["GstComponent"];
+            label: string;
+            rate: string;
+        };
+        /** @description A GST document in a list. */
+        GstDocumentItem: {
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: date */
+            date?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["GstDocKind"];
+            number?: string | null;
+            recipientGstin?: string | null;
+            recipientName: string;
+            status: string;
+            taxableValue: string;
+            total: string;
+            totalTax: string;
+        };
+        GstExemptRow: {
+            interExempt: string;
+            interNil: string;
+            interNonGst: string;
+            intraExempt: string;
+            intraNil: string;
+            intraNonGst: string;
+        };
+        /** @description A fee head with its GST setup (`null` until it is set up). */
+        GstFeeHead: {
+            category: string;
+            code: string;
+            /** Format: uuid */
+            feeHeadId: string;
+            name: string;
+            status: string;
+            tax?: null | components["schemas"]["GstFeeHeadTax"];
+        };
+        /** @description SAC / HSN, rate and pricing of a fee head. */
+        GstFeeHeadTax: {
+            exempt: boolean;
+            /**
+             * @description Percent: 0, 5, 12, 18, 28 or 40.
+             * @example 18
+             */
+            gstRate: string;
+            sac: string;
+            taxInclusive: boolean;
+            taxNote: string;
+            treatment: components["schemas"]["Treatment"];
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description New tax setup of a fee head. */
+        GstFeeHeadTaxInput: {
+            exempt?: boolean;
+            /** @example 18 */
+            gstRate: string;
+            sac: string;
+            taxInclusive?: boolean;
+            taxNote?: string;
+        };
+        GstHsnRow: {
+            amounts: components["schemas"]["GstAmounts"];
+            /** Format: int64 */
+            count: number;
+            rate: string;
+            sac: string;
+        };
+        GstPartyInput: {
+            gstin?: string | null;
+            legalName?: string;
+            /** @description Defaults to the GSTIN's state. */
+            stateCode?: string | null;
+        };
+        /** @description The payer's place of supply and GST identity. */
+        GstPartyView: {
+            configured: boolean;
+            gstin?: string | null;
+            legalName: string;
+            /** @description Place of supply (defaults to the institution's state). */
+            stateCode?: string | null;
+            stateName?: string | null;
+            /** Format: uuid */
+            studentAccountId: string;
+            /** Format: int64 */
+            version: number;
+        };
+        /** @description A new GST profile (the whole set). */
+        GstProfileInput: {
+            address?: string;
+            billPrefix?: string;
+            creditNotePrefix?: string;
+            defaultTaxNote?: string;
+            enabled?: boolean;
+            gstin?: string | null;
+            invoicePrefix?: string;
+            legalName: string;
+            registrationType: components["schemas"]["GstRegistrationType"];
+            /** @description Defaults to the GSTIN's state. */
+            stateCode?: string | null;
+            tradeName?: string;
+        };
+        /** @description The institution's GST profile (defaults with `configured: false` until it saves one). */
+        GstProfileView: {
+            address: string;
+            billPrefix: string;
+            configured: boolean;
+            creditNotePrefix: string;
+            /** @description '' nothing, `preset:…` a shipped sentence, anything else printed verbatim. */
+            defaultTaxNote: string;
+            enabled: boolean;
+            gstin?: string | null;
+            /** Format: uuid */
+            institutionId: string;
+            /** @description `TI/{FY}/` — `{FY}` is the financial year (`26-27`). */
+            invoicePrefix: string;
+            legalName: string;
+            presets: components["schemas"]["GstTaxNotePreset"][];
+            /** @description Allowed GST rates (percent). */
+            rates: number[];
+            registrationType: components["schemas"]["GstRegistrationType"];
+            /** @description What the next numbers look like this financial year. */
+            sampleNumbers: string[];
+            stateCode: string;
+            stateName?: string | null;
+            states: components["schemas"]["GstState"][];
+            tradeName: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** Format: int64 */
+            version: number;
+        };
+        /**
+         * @description The institution's GST registration.
+         * @enum {string}
+         */
+        GstRegistrationType: "regular" | "composition" | "unregistered";
+        /** @description A GST state / union territory. */
+        GstState: {
+            code: string;
+            name: string;
+        };
+        /** @description GSTR-1 friendly summary of a period. */
+        GstSummaryView: {
+            b2b: components["schemas"]["GstB2bRow"][];
+            b2c: components["schemas"]["GstB2cRow"][];
+            creditNotes: components["schemas"]["GstCreditNoteRow"][];
+            documents: components["schemas"]["GstDocIssueRow"][];
+            exempt: components["schemas"]["GstExemptRow"];
+            /** Format: date */
+            from: string;
+            gstin?: string | null;
+            hsn: components["schemas"]["GstHsnRow"][];
+            /** Format: uuid */
+            institutionId: string;
+            /** @description Outward taxable supplies net of credit notes. */
+            net: components["schemas"]["GstAmounts"];
+            /** Format: date */
+            to: string;
+        };
+        /** @description A printable tax invoice, bill of supply or credit note. */
+        GstTaxDocument: {
+            adjustmentNumber?: string | null;
+            amountInWords: string;
+            cgst: string;
+            /** Format: uuid */
+            chargeId: string;
+            chargeNumber: string;
+            /** Format: date */
+            date?: string | null;
+            /** @description `17-10-2026`. */
+            dateDisplay?: string | null;
+            /** @description `2026-27`. */
+            financialYear?: string | null;
+            /** Format: uuid */
+            id: string;
+            igst: string;
+            interState: boolean;
+            kind: components["schemas"]["GstDocKind"];
+            lines: components["schemas"]["GstDocLine"][];
+            number?: string | null;
+            original?: null | components["schemas"]["GstDocOriginal"];
+            /** @description `27-Maharashtra`. */
+            placeOfSupply: string;
+            recipient: components["schemas"]["GstDocRecipient"];
+            reverseCharge: boolean;
+            sgst: string;
+            /** @description `pending` (numbered when the charge is published), `issued` or `cancelled`. */
+            status: string;
+            supplier: components["schemas"]["GstDocSupplier"];
+            /** @description The zero-tax sentence (exempt / nil / composition), '' when everything is taxed. */
+            taxNote: string;
+            taxableValue: string;
+            taxes: components["schemas"]["GstDocTax"][];
+            /** @description `Tax Invoice`, `Bill of Supply` or `Credit Note`. */
+            title: string;
+            total: string;
+            /** @description `₹11,800.00`. */
+            totalDisplay: string;
+            totalTax: string;
+        };
+        /** @description A shipped tax-note sentence (Indianised wording; Everything's ids where they carry over). */
+        GstTaxNotePreset: {
+            id: string;
+            label: string;
+            text: string;
+        };
         Guardian: {
             address?: string | null;
             /** Format: date-time */
@@ -54677,6 +55181,11 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        /**
+         * @description How a supply is taxed.
+         * @enum {string}
+         */
+        Treatment: "taxable" | "nil" | "exempt" | "non_gst";
         /** @description One account row of the trial balance. */
         TrialBalanceRow: {
             accountType: components["schemas"]["LedgerAccountType"];
@@ -87684,6 +88193,35 @@ export interface operations {
             };
         };
     };
+    finance_gst_charge_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstTaxDocument"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_charge_validate: {
         parameters: {
             query?: never;
@@ -89100,6 +89638,35 @@ export interface operations {
             };
         };
     };
+    finance_gst_document_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstTaxDocument"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_adjustment_list: {
         parameters: {
             query?: never;
@@ -90419,6 +90986,258 @@ export interface operations {
             };
         };
     };
+    finance_gst_document_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description First day (default: the 1st of this month, institution time). */
+                from: string | null;
+                /** @description Last day (default: today). */
+                to: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstDocumentItem"][];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_fee_head_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstFeeHead"][];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_fee_head_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                feeHeadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GstFeeHeadTaxInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstFeeHead"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_fee_head_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                feeHeadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_profile_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GstProfileInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstProfileView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description First day (default: the 1st of this month, institution time). */
+                from: string | null;
+                /** @description Last day (default: today). */
+                to: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstSummaryView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_summary_csv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                /** @description First day (default: the 1st of this month, institution time). */
+                from: string | null;
+                /** @description Last day (default: today). */
+                to: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     finance_journal_list: {
         parameters: {
             query?: never;
@@ -91397,6 +92216,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChargeDetailList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_self_charge_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstTaxDocument"];
                 };
             };
             "4XX": {
@@ -92494,6 +93342,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChargeList"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_party_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstPartyView"];
+                };
+            };
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finance_gst_party_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GstPartyInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GstPartyView"];
                 };
             };
             "4XX": {
