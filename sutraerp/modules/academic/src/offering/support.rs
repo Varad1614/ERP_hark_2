@@ -150,9 +150,28 @@ pub fn check_delivery_mode(raw: &str) -> Result<String, KernelError> {
     }
 }
 
+/// Validated identity text (course / offering titles): [`check_text`] plus no markup or control
+/// characters (audit 2026-10 A2, SEC-1 / VAL-1).
+pub fn check_title(field: &str, raw: &str, max: usize) -> Result<String, KernelError> {
+    let t = check_text(field, raw, max)?;
+    match sutra_kernel::text::identity_chars(field, &t) {
+        Some(x) => Err(KernelError::Validation(vec![x])),
+        None => Ok(t),
+    }
+}
+
+/// Most seats an offering or section may declare (audit 2026-10 A2, VAL-4).
+pub const MAX_SEATS: i32 = 10_000;
+
+/// Seat capacity: omitted = unlimited, otherwise 1 to [`MAX_SEATS`] (a 0-seat course cannot be
+/// enrolled in; audit 2026-10 A2, VAL-4).
 pub fn check_capacity(field: &str, c: Option<i32>) -> Result<Option<i32>, KernelError> {
-    if c.is_some_and(|c| !(0..=100_000).contains(&c)) {
-        return Err(invalid(field, "out_of_range", "0 to 100000"));
+    if c.is_some_and(|c| !(1..=MAX_SEATS).contains(&c)) {
+        return Err(invalid(
+            field,
+            "out_of_range",
+            format!("1 to {MAX_SEATS} seats"),
+        ));
     }
     Ok(c)
 }
@@ -604,6 +623,12 @@ mod tests {
             Some("ok".into())
         );
         assert!(check_capacity("c", Some(-1)).is_err());
+        assert!(check_capacity("c", Some(0)).is_err());
+        assert!(check_capacity("c", Some(10_001)).is_err());
+        assert_eq!(check_capacity("c", Some(1)).ok(), Some(Some(1)));
+        assert_eq!(check_capacity("c", None).ok(), Some(None));
+        assert!(check_title("title", "<img src=x onerror=alert(1)>", 200).is_err());
+        assert!(check_title("title", "Data Structures & Algorithms", 200).is_ok());
         assert!(check_delivery_mode("hybrid").is_ok());
         assert!(check_delivery_mode("x").is_err());
         assert!(check_text("t", "", 10).is_err());

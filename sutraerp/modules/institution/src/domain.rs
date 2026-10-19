@@ -69,17 +69,10 @@ pub struct RenameInstitution {
     pub name: String,
 }
 
+/// Institution names are identity text (audit 2026-10 A2, SEC-1): trimmed, 1-200 characters,
+/// single line, no control characters and no `<` / `>`.
 fn validate_name(name: &str, v: &mut Vec<FieldViolation>) {
-    let len = name.trim().chars().count();
-    if len == 0 {
-        v.push(FieldViolation::new("name", "required", "name is required"));
-    } else if len > 200 {
-        v.push(FieldViolation::new(
-            "name",
-            "too-long",
-            "name must be at most 200 characters",
-        ));
-    }
+    sutra_kernel::text::identity("name", name, 200, true, v);
 }
 
 impl RegisterInstitution {
@@ -195,5 +188,13 @@ mod tests {
         .validate()
         .is_err());
         assert!(RenameInstitution { name: "New".into() }.validate().is_ok());
+        // SEC-1: markup and control characters are refused, field-level.
+        for bad in ["<img src=x onerror=alert(1)>", "Sutra\u{0}", "a\nb"] {
+            let Err(KernelError::Validation(v)) = RenameInstitution { name: bad.into() }.validate()
+            else {
+                panic!("{bad} accepted");
+            };
+            assert_eq!(v[0].field, "name");
+        }
     }
 }

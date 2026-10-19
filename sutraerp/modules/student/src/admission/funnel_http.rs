@@ -20,8 +20,8 @@ use super::funnel::{
 };
 use crate::record::refs;
 use crate::record::support::{
-    check_version, expect_version, finish, invalid, next_number, norm, validate_email,
-    validate_opt_text, validate_phone, validate_text, CommandErrors, CreateErrors, ReadErrors,
+    check_version, expect_version, finish, invalid, next_number, norm, validate_opt_text,
+    CommandErrors, CreateErrors, ReadErrors,
 };
 use crate::shared::guard::require_institution_writable;
 use crate::shared::http::{actor, with_etag};
@@ -589,16 +589,34 @@ fn validate_person(
     notes: Option<&str>,
     v: &mut Vec<FieldViolation>,
 ) {
-    validate_text("givenName", given, 100, v);
-    validate_opt_text("familyName", family, 100, v);
-    validate_email("email", email, v);
-    validate_phone("phone", phone, v);
-    validate_opt_text("guardianName", guardian, 120, v);
-    validate_phone("guardianPhone", guardian_phone, v);
-    validate_opt_text("city", city, 80, v);
+    // Audit 2026-10 A2 (VAL-1 / VAL-3 / H-2): names are identity text (no markup or control
+    // characters), e-mail well formed, phones Indian mobiles (10 digits from 6-9, optional +91).
+    use sutra_kernel::text;
+    text::identity("givenName", given, 100, true, v);
+    text::opt_identity("familyName", family, 100, v);
+    text::check_email("email", email, v);
+    text::check_indian_mobile("phone", phone, v);
+    text::opt_identity("guardianName", guardian, 120, v);
+    text::check_indian_mobile("guardianPhone", guardian_phone, v);
+    text::opt_identity("city", city, 80, v);
     validate_opt_text("campaign", campaign, 120, v);
     validate_opt_text("ownerRef", owner, 120, v);
     validate_opt_text("notes", notes, 2000, v);
+    if let Some(x) = notes.and_then(|n| text::free_text_chars("notes", n)) {
+        v.push(x);
+    }
+}
+
+/// A new enquiry must be reachable: a phone or an e-mail (audit 2026-10 A2, VAL-3 / H-2).
+fn require_contact(email: Option<&str>, phone: Option<&str>, v: &mut Vec<FieldViolation>) {
+    let blank = |x: Option<&str>| x.is_none_or(|s| s.trim().is_empty());
+    if blank(email) && blank(phone) {
+        v.push(FieldViolation::new(
+            "phone",
+            "contact-required",
+            "give a mobile number or an e-mail address",
+        ));
+    }
 }
 
 /// Record a new enquiry (`admission.manage`).
@@ -637,6 +655,7 @@ pub async fn create_enquiry(
         cmd.notes.as_deref(),
         &mut v,
     );
+    require_contact(cmd.email.as_deref(), cmd.phone.as_deref(), &mut v);
     validate_source(cmd.source.as_deref(), &mut v);
     validate_intake("intake", cmd.intake.as_deref(), &mut v);
     validate_confidence(cmd.confidence, &mut v);

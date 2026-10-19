@@ -14,7 +14,9 @@ use sutra_kernel::scope::{InstitutionId, TenantId};
 use sutra_persistence::map_db_error;
 use uuid::Uuid;
 
-/// Parses a positive wire amount (`"1250.00"`) → 422 on the field otherwise.
+/// Parses a positive wire amount (`"1250.00"`) of at most
+/// [`crate::shared::money::MAX_TRANSACTION_AMOUNT`] → 422 on the field otherwise (payments,
+/// receipts, refunds, receivable actions; audit 2026-10 A2, VAL-2 / H-2).
 pub fn parse_amount(field: &str, raw: &str) -> Result<Decimal, KernelError> {
     let d = Decimal::from_str(raw.trim()).map_err(|_| {
         KernelError::Validation(vec![FieldViolation::new(
@@ -23,7 +25,7 @@ pub fn parse_amount(field: &str, raw: &str) -> Result<Decimal, KernelError> {
             "must be a decimal string such as \"1250.00\"",
         )])
     })?;
-    require_positive(field, d)
+    crate::shared::money::require_within_transaction_cap(field, require_positive(field, d)?)
 }
 
 /// 422 when a free-text reason is blank.
@@ -175,6 +177,9 @@ mod tests {
         assert!(parse_amount("amount", "abc").is_err());
         assert!(parse_amount("amount", "-1").is_err());
         assert!(parse_amount("amount", "1.001").is_err());
+        assert!(parse_amount("amount", "0").is_err());
+        assert!(parse_amount("amount", "99999999999").is_err());
+        assert!(parse_amount("amount", "10000000.00").is_ok());
         assert!(require_text("reason", Some("  ")).is_err());
         assert_eq!(
             require_text("reason", Some(" ok ")).ok().as_deref(),

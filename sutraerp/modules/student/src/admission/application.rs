@@ -8,9 +8,8 @@ use super::duplicates;
 use super::flow::{self as adm, history as admission_history};
 use crate::record::refs;
 use crate::record::support::{
-    check_version, expect_version, finish, invalid, norm, status_changed, validate_email,
-    validate_key, validate_opt_text, validate_phone, validate_text, CommandBody, CommandErrors,
-    CreateErrors, ReadErrors,
+    check_version, expect_version, finish, invalid, norm, status_changed, validate_key,
+    validate_opt_text, CommandBody, CommandErrors, CreateErrors, ReadErrors,
 };
 use crate::shared::guard::require_institution_writable;
 use crate::shared::http::{actor, with_etag};
@@ -191,6 +190,10 @@ pub struct ApplicationListQuery {
     pub status: Option<AdmissionApplicationStatus>,
 }
 
+/// Applicant rules (audit 2026-10 A2, VAL-3 / H-2): names are identity text (no markup or
+/// control characters), e-mail must be well formed, phone an Indian mobile (10 digits starting
+/// 6-9, optional +91), and the date of birth — required at intake — not in the future with an
+/// age of 3-100 years on the institution's business date.
 #[allow(clippy::too_many_arguments)]
 fn validate_applicant(
     given: &str,
@@ -202,17 +205,34 @@ fn validate_applicant(
     subject: Option<&str>,
     prior: Option<&str>,
     notes: Option<&str>,
+    dob: Option<NaiveDate>,
+    dob_required: bool,
+    today: NaiveDate,
 ) -> Result<(), KernelError> {
+    use sutra_kernel::text;
     let mut v = vec![];
-    validate_text("givenName", given, 100, &mut v);
-    validate_opt_text("middleName", middle, 100, &mut v);
-    validate_opt_text("familyName", family, 100, &mut v);
+    text::identity("givenName", given, 100, true, &mut v);
+    text::opt_identity("middleName", middle, 100, &mut v);
+    text::opt_identity("familyName", family, 100, &mut v);
     validate_opt_text("gender", gender, 40, &mut v);
-    validate_email("email", email, &mut v);
-    validate_phone("phone", phone, &mut v);
+    text::check_email("email", email, &mut v);
+    text::check_indian_mobile("phone", phone, &mut v);
     validate_opt_text("subjectRef", subject, 200, &mut v);
     validate_opt_text("priorQualification", prior, 500, &mut v);
     validate_opt_text("notes", notes, 2000, &mut v);
+    for (field, value) in [("priorQualification", prior), ("notes", notes)] {
+        if let Some(x) = value.and_then(|s| text::free_text_chars(field, s)) {
+            v.push(x);
+        }
+    }
+    text::check_birth_date(
+        "dateOfBirth",
+        dob,
+        today,
+        dob_required,
+        (text::MIN_APPLICANT_AGE, text::MAX_APPLICANT_AGE),
+        &mut v,
+    );
     finish(v)
 }
 
@@ -280,6 +300,7 @@ pub async fn create(
     require_idempotency_key(&headers)?;
     let scope = institution_scope(ctx, id);
     require_institution_writable(&st, &scope, id).await?;
+    let today = business_today(&st, &scope, id).await?;
     validate_applicant(
         &cmd.given_name,
         cmd.middle_name.as_deref(),
@@ -290,6 +311,9 @@ pub async fn create(
         cmd.subject_ref.as_deref(),
         cmd.prior_qualification.as_deref(),
         cmd.notes.as_deref(),
+        cmd.date_of_birth,
+        true,
+        today,
     )?;
     let year = validate_refs(
         &st,
@@ -514,6 +538,9 @@ pub async fn update(
         subject.as_deref(),
         prior.as_deref(),
         notes.as_deref(),
+        cmd.date_of_birth.or(cur.date_of_birth),
+        false,
+        business_today(&st, &scope, cur.institution_id).await?,
     )?;
     let programme = cmd.programme_id.unwrap_or(cur.programme_id);
     let cv = cmd.curriculum_version_id.or(cur.curriculum_version_id);

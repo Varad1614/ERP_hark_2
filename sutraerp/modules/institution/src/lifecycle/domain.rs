@@ -240,6 +240,22 @@ impl ReviseProfile {
         text_ok(&mut v, "registrationNumber", &self.registration_number, 100);
         text_ok(&mut v, "address", &self.address, 500);
         text_ok(&mut v, "defaultLanguage", &self.default_language, 35);
+        // Audit 2026-10 A2 (SEC-1 / VAL-1): identity text refuses markup and control characters.
+        for (field, value) in [
+            ("shortName", &self.short_name),
+            ("affiliatedUniversity", &self.affiliated_university),
+            ("registrationNumber", &self.registration_number),
+        ] {
+            if let Some(x) = norm(value).and_then(|s| sutra_kernel::text::identity_chars(field, &s))
+            {
+                v.push(x);
+            }
+        }
+        if let Some(x) =
+            norm(&self.address).and_then(|s| sutra_kernel::text::free_text_chars("address", &s))
+        {
+            v.push(x);
+        }
         for (field, value) in [
             ("officialEmail", &self.official_email),
             ("administratorEmail", &self.administrator_email),

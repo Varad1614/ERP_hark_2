@@ -705,7 +705,18 @@ pub async fn simulation_create(
     if cmd.change_kind == "section_cancellation" && cmd.section_id.is_none() {
         return Err(invalid("sectionId", "required", "name the section").into());
     }
-    check_capacity("proposedCapacity", cmd.proposed_capacity)?;
+    // A what-if may model closing the offering (0 seats); real capacities stay 1..=MAX_SEATS.
+    if cmd
+        .proposed_capacity
+        .is_some_and(|c| !(0..=MAX_SEATS).contains(&c))
+    {
+        return Err(invalid(
+            "proposedCapacity",
+            "out_of_range",
+            format!("0 to {MAX_SEATS} seats"),
+        )
+        .into());
+    }
     let criteria = clean_reason(cmd.criteria.clone(), false)?;
     let t = tenant(ctx);
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;

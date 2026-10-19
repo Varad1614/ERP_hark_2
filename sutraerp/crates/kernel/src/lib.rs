@@ -17,6 +17,8 @@
 //! * [`cache`] – advisory, scope-namespaced `Cache` port (ADR-L5-0037)
 //! * [`audit`] – audit entry + sink port
 //! * [`idempotency`] – idempotency store port (ADR-L5-0034 §3.6)
+//! * [`text`] – server-side text policy: identity names refuse markup / control characters,
+//!   Indian mobile, e-mail and date-of-birth rules (audit 2026-10 A2)
 //! * [`india`] – Indian statutory identifier formats (GSTIN check character, GST state codes)
 //! * [`mail`] – outbound e-mail port (notification e-mail channel)
 //! * [`health`] – readiness probe port (ADR-L5-0044)
@@ -47,6 +49,7 @@ pub mod money;
 pub mod scope;
 pub mod secret;
 pub mod signal; // Part 2 S5-monitor: security / integration signals → Prometheus
+pub mod text; // Audit 2026-10 A2: identity-text / contact / birth-date policy (SEC-1, VAL-1..3)
 pub mod tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE extra trusted roots
 pub mod weblink;
 

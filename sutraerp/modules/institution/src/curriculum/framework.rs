@@ -356,6 +356,10 @@ impl CurriculumVersionContent {
                 ));
             }
             required_text(&f("title"), &c.title, 200, &mut v);
+            // Course titles are identity text (audit 2026-10 A2, VAL-1): no markup / controls.
+            if let Some(x) = sutra_kernel::text::identity_chars(&f("title"), c.title.trim()) {
+                v.push(x);
+            }
             if c.term_no < 1 || c.term_no > self.term_count {
                 v.push(violation(
                     &f("termNo"),

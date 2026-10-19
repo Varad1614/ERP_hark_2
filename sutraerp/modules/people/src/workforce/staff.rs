@@ -222,12 +222,20 @@ impl Profile {
         if self.display_name.trim().is_empty() || d > 200 {
             return Err(invalid("displayName", "required", "1 to 200 characters"));
         }
-        if let Some(e) = &self.work_email {
-            let parts: Vec<&str> = e.split('@').collect();
-            if parts.len() != 2
-                || parts.iter().any(|p| p.is_empty())
-                || e.contains(char::is_whitespace)
+        // Staff names are identity text (audit 2026-10 A2, SEC-1 / VAL-1): no markup or control
+        // characters.
+        for (field, value) in [
+            ("givenName", Some(self.given_name.as_str())),
+            ("familyName", self.family_name.as_deref()),
+            ("displayName", Some(self.display_name.as_str())),
+        ] {
+            if let Some(x) = value.and_then(|s| sutra_kernel::text::identity_chars(field, s.trim()))
             {
+                return Err(KernelError::Validation(vec![x]));
+            }
+        }
+        if let Some(e) = &self.work_email {
+            if !sutra_kernel::text::email_ok(e.trim()) {
                 return Err(invalid(
                     "workEmail",
                     "invalid_email",
@@ -1156,6 +1164,12 @@ mod tests {
         assert!(bad.validate().is_err());
         bad = p();
         bad.gender = Some("x".into());
+        assert!(bad.validate().is_err());
+        bad = p();
+        bad.given_name = "<img src=x onerror=alert(1)>".into();
+        assert!(bad.validate().is_err());
+        bad = p();
+        bad.display_name = "Meera\u{7}Shah".into();
         assert!(bad.validate().is_err());
         let mut after = p();
         after.family_name = None;

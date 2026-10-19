@@ -383,7 +383,7 @@ pub async fn create_offering(
     )
     .await?;
     let title = match cmd.title.as_deref() {
-        Some(t) => check_text("title", t, 200)?,
+        Some(t) => check_title("title", t, 200)?,
         None => refs.component.title.clone(),
     };
     let a = actor(ctx);
@@ -517,7 +517,7 @@ pub async fn update(
         None => c.o.offering_code.clone(),
     };
     let title = match &cmd.title {
-        Some(x) => check_text("title", x, 200)?,
+        Some(x) => check_title("title", x, 200)?,
         None => c.o.title.clone(),
     };
     let mode = match &cmd.delivery_mode {

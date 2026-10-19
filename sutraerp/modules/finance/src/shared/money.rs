@@ -24,6 +24,30 @@ pub fn require_positive(field: &str, amount: Decimal) -> Result<Decimal, KernelE
     }
 }
 
+/// Largest amount one payment / receipt / refund may carry: ₹1 crore (audit 2026-10 A2, VAL-2 /
+/// H-2). A typo such as `99999999999` is refused instead of being receipted. Raise it here if an
+/// institution genuinely takes larger single transfers.
+pub const MAX_TRANSACTION_AMOUNT: Decimal = Decimal::from_parts(1_000_000_000, 0, 0, false, 2);
+
+/// 422 on `field` when `amount` exceeds [`MAX_TRANSACTION_AMOUNT`].
+pub fn require_within_transaction_cap(
+    field: &str,
+    amount: Decimal,
+) -> Result<Decimal, KernelError> {
+    if amount > MAX_TRANSACTION_AMOUNT {
+        Err(KernelError::Validation(vec![FieldViolation::new(
+            field,
+            "amount_too_large",
+            format!(
+                "must be at most {} per transaction",
+                display_inr(MAX_TRANSACTION_AMOUNT)
+            ),
+        )]))
+    } else {
+        Ok(amount)
+    }
+}
+
 /// Validates a currency (Batch 5 accepts only INR) → 422 on `field` otherwise.
 pub fn require_inr(field: &str, currency: &str) -> Result<CurrencyCode, KernelError> {
     if currency == INR.as_str() {
@@ -80,6 +104,14 @@ mod tests {
 
     fn d(s: &str) -> Decimal {
         Decimal::from_str(s).unwrap_or_default()
+    }
+
+    #[test]
+    fn transaction_cap_is_one_crore() {
+        assert_eq!(MAX_TRANSACTION_AMOUNT, d("10000000.00"));
+        assert!(require_within_transaction_cap("amount", d("10000000.00")).is_ok());
+        assert!(require_within_transaction_cap("amount", d("10000000.01")).is_err());
+        assert!(require_within_transaction_cap("amount", d("99999999999")).is_err());
     }
 
     #[test]
