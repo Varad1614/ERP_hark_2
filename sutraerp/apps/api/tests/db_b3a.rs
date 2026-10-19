@@ -453,7 +453,7 @@ async fn admission_to_active_student() {
         &admin,
         "POST",
         &path,
-        json!({"programmeId": uuid::Uuid::now_v7(), "givenName": "X"}),
+        json!({"programmeId": uuid::Uuid::now_v7(), "givenName": "X", "dateOfBirth": "2007-01-01"}),
         None,
     )
     .await;
@@ -1261,7 +1261,7 @@ async fn cancellation_withdrawal_and_offer_expiry() {
         &admin,
         "POST",
         &format!("{API}/institutions/{inst}/admission-applications"),
-        json!({"programmeId": setup.programme_id, "givenName": "Neel"}),
+        json!({"programmeId": setup.programme_id, "givenName": "Neel", "dateOfBirth": "2007-06-15"}),
         None,
         StatusCode::CREATED,
     )
