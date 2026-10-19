@@ -1,0 +1,57 @@
+# Gitleaks configuration (Batch 9 · slice 9D, docs/security/findings.md SEC-9D-007).
+# Scanned in CI over the FULL git history: `gitleaks git --config sutraerp/.gitleaks.toml .`
+# (job `Security (cargo-deny · cargo-audit · pnpm audit · gitleaks)` in
+# .github/workflows/sutraerp-quality.yml). The default rule set stays on; the allow-list below names
+# only documented, non-production material — every entry is listed in docs/security/findings.md.
+title = "SutraERP gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Throwaway RSA keys used only by the OIDC ID-token validation unit tests (never deployed)"
+paths = [
+  '''^sutraerp/modules/platform/tests/fixtures/oidc-test-key-[ab]\.pem$''',
+]
+
+[[allowlists]]
+description = "False positives in architecture prose (the word lists 'authenticated shell, Institution/academic …' and 'APIs, idempotency/retries …' match generic-api-key)"
+paths = [
+  '''^architecture/L6_UI_UX_Architecture/README\.md$''',
+  '''^architecture/L3_Business_Scenario_Architecture/05_Phase5_Parallel_Authoring_and_Verification/01_Scenario_Documents/section-d/L3-D-039_[^/]+\.md$''',
+]
+
+[[allowlists]]
+description = "Documented local-development defaults (docker-compose.yml, README, e2e harness): never valid outside a developer machine or a CI job"
+regexTarget = "match"
+regexes = [
+  '''dev-only-change-me''',
+  '''sutra-api-dev-only''',
+]
+
+[[allowlists]]
+description = "Part 1 Stage 3 (S3-config): fake production-config fixtures of the config unit tests, committed in 2f630ac7/97009e63 and replaced by low-entropy 'unit-test-only-*' values; never a real credential (docs/readiness/security/config.md SEC-P1-CONFIG-010)"
+regexTarget = "match"
+regexes = [
+  '''Kc7tY2mQ9vR4xL8pW1sN6bZ3''',
+  '''Fw9pL2xR7tQ4mZ8vN3bK''',
+]
+
+[[allowlists]]
+description = "Part 2 S4-pay: Razorpay HTTP contract-stub fixture 'stub-key-secret-…' committed once in 7fc92f45 (test-only stub key, never a Razorpay credential) and replaced by a per-run generated value; commit, path and literal must all match (docs/security/findings.md SEC-P2-PAY-001)"
+condition = "AND"
+commits = ["7fc92f4534c00efe9cdfeaffeed44d09ad0fe9d6"]
+paths = ['''^sutraerp/crates/infra/src/razorpay\.rs$''']
+regexTarget = "match"
+regexes = ['''stub-key-secret-0123456789abcdef''']
+
+[[allowlists]]
+description = "Part 2 S5-monitor (branch part2/s5-monitor, commit 2e7c2761): the drill script's Grafana basic auth is a shell variable reference ('admin:${SUTRA_GRAFANA_ADMIN_PASSWORD}'), not a credential; gitleaks scans every ref, so every branch's gate sees it. Path AND the variable-reference literal must both match (docs/security/findings.md SEC-P2-ENT-001)"
+condition = "AND"
+paths = ['''^sutraerp/deploy/monitoring/drill/run-drill\.sh$''']
+regexTarget = "match"
+regexes = ['''admin:\$\{SUTRA_GRAFANA_ADMIN_PASSWORD(:\?)?\}''']
+
+[[allowlists]]
+description = "ERP_EXTENSIONS 5A: generated golden vectors of the hiring-offers port (tools/golden/specs/hiring-offers.mjs, commit 365beef onwards). Their follow-up / stage `key` fields ('followup-f00-2026-02-16', 'interview', …) match generic-api-key; the file is deterministic test data with no credentials (docs/security/findings.md SEC-EXT-5A-001)"
+paths = ['''^sutraerp/modules/people/tests/golden/hiring_offers\.json$''']

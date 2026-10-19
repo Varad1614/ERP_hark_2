@@ -1,0 +1,180 @@
+{
+  "uid": "sutra-audit-chain",
+  "title": "SutraERP · Audit chain",
+  "description": "Tamper-evident audit chain: sealing backlog, anchors and verification (contract §4).",
+  "tags": [
+    "sutraerp",
+    "batch9"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "DS_LOKI",
+        "label": "Loki",
+        "type": "datasource",
+        "query": "loki",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "DS_TEMPO",
+        "label": "Tempo",
+        "type": "datasource",
+        "query": "tempo",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Unsealed audit rows",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max(sutra_audit_unsealed)",
+          "legendFormat": "unsealed"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Verification failures (24 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_audit_chain_verify_failures_total[24h]))",
+          "legendFormat": "failures"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Sealer runs",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_job_runs_total{job=\"audit_seal\",outcome=\"ok\"}[1h]))",
+          "legendFormat": "seal runs / h"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Seal / anchor job outcomes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (job, outcome) (increase(sutra_job_runs_total{job=~\"audit_seal|audit_anchor\"}[15m]))",
+          "legendFormat": "{{job}} {{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Verification log",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "expr": "{service_name=\"sutra-api\"} |= \"audit chain\""
+        }
+      ]
+    }
+  ]
+}

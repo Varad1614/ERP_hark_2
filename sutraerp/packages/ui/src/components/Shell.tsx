@@ -4,12 +4,16 @@ export interface NavItem {
   id: string;
   label: string;
   to: string;
+  /** Extra path prefixes that mark this pill active (screens reached from its page). */
+  match?: string[];
 }
 
 export interface NavLinkLikeProps {
   to: string;
   className?: string | ((state: { isActive: boolean }) => string);
   end?: boolean;
+  /** Extra path prefixes that count as active (see `NavItem.match`). */
+  match?: string[];
   children: ReactNode;
 }
 
@@ -37,7 +41,7 @@ export function PillNav({ nav, linkComponent: Link }: Pick<ShellProps, "nav" | "
   return (
     <nav className="sb-pills" aria-label="Main">
       {nav.map((n) => (
-        <Link key={n.id} to={n.to} end={n.to === "/"} className={({ isActive }) => (isActive ? "on" : "")}>
+        <Link key={n.id} to={n.to} end={n.to === "/"} match={n.match} className={({ isActive }) => (isActive ? "on" : "")}>
           {n.label}
         </Link>
       ))}

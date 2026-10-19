@@ -11,6 +11,20 @@
 
 pub mod app;
 pub mod config;
+pub mod config_b9;
+pub mod config_docs; // Part 2 · S4-docs: document storage settings + production gate
+pub mod config_entitlement; // Part 2 · S7-entitle: module entitlement settings
+pub mod config_http; // Part 1 · Stage 3: transport settings + production start-up gate
+pub mod config_idp; // Part 2 · S4-idp: identity provisioning settings
+pub mod config_tls; // Part 2 · S5-capacity: SUTRA_TLS_CA_FILE (internal CA roots)
+pub mod entitlement_ports; // Part 2 · S7-entitle: Finance ports aware of the `fees` entitlement
+pub mod idp_wiring; // Part 2 · S4-idp: identity provisioning composition
+pub mod institution_guard; // Audit A3 (SEC-5): foreign / unknown institution -> 404
+pub mod metrics; // 9A
+pub mod metrics_bridge; // INT: 9C `metrics` facade → 9A registry
 pub mod openapi;
+pub mod payment_gateway; // Part 2 S4-pay: Razorpay adapter of the finance gateway port
 pub mod shutdown;
+pub mod startup_checks; // Audit A3 (M5): fail-closed runtime-role probe
+pub mod storage; // Part 2 · S4-docs: object storage adapter, document vault, upload body limit
 pub mod telemetry;

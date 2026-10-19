@@ -1,0 +1,63 @@
+# Audit 2026-10 (A1): the public demo with REAL sign-in — sutra-api in Keycloak (OIDC) mode, the web
+# image built with VITE_AUTH_MODE=oidc, Keycloak reachable by the browser on the SAME origin under
+# /auth (proxied by the web nginx, because only the web port is public). No dev authenticator, no
+# persona picker, no shared password in the bundle. Steps: docs/readiness/AUDIT_REMEDIATION_2026-10.md.
+#
+#   export SUTRA_DEMO_PUBLIC_URL=https://3000-agqu5j43qriz5zozupkslqwlju.instabox.tech   # no trailing /
+#   export SUTRA_DEMO_OIDC_CLIENT_SECRET=$(openssl rand -hex 24)
+#   export SUTRA_DEMO_USER_PASSWORD='<password for the three demo users, >= 12 chars>'
+#   export SUTRA_DEMO_KC_ADMIN_PASSWORD=$(openssl rand -hex 24)                     # master admin (never proxied)
+#   docker compose -f docker-compose.yml -f docker-compose.oidc-demo.yml --profile app up -d --build
+#
+# Realm: deploy/keycloak/realm-sutra-demo.json (realm `sutra-demo`, users admin@sutra.dev /
+# meera.shah@sutra.dev / aarav.desai@sutra.dev with fixed ids = the API's login subjects, tenant via
+# the tenant group's `tenant_id` attribute). It is imported at the first start of a Keycloak database
+# that has no `sutra-demo` realm; an existing `sutra` dev realm is left alone and never proxied.
+services:
+  keycloak:
+    build:
+      context: .
+      dockerfile: deploy/docker/keycloak.Dockerfile
+      args: { REALM_FILE: deploy/keycloak/realm-sutra-demo.json }
+    image: sutraerp-keycloak:oidc-demo
+    environment:
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${SUTRA_DEMO_KC_ADMIN_PASSWORD:?set SUTRA_DEMO_KC_ADMIN_PASSWORD}
+      # Served under /auth on the public origin (web nginx → keycloak:8180/auth); the API's back
+      # channel keeps using http://keycloak:8180/auth (KC_HOSTNAME_BACKCHANNEL_DYNAMIC, base file).
+      KC_HTTP_RELATIVE_PATH: /auth
+      # Health stays on :9000/health/ready, so the base healthcheck still applies.
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
+      KC_HOSTNAME: ${SUTRA_DEMO_PUBLIC_URL:?set SUTRA_DEMO_PUBLIC_URL}/auth
+      KC_PROXY_HEADERS: xforwarded
+      # Placeholders resolved by the realm import (realm-sutra-demo.json).
+      SUTRA_DEMO_PUBLIC_URL: ${SUTRA_DEMO_PUBLIC_URL}
+      SUTRA_DEMO_OIDC_CLIENT_SECRET: ${SUTRA_DEMO_OIDC_CLIENT_SECRET:?set SUTRA_DEMO_OIDC_CLIENT_SECRET}
+      SUTRA_DEMO_USER_PASSWORD: ${SUTRA_DEMO_USER_PASSWORD:?set SUTRA_DEMO_USER_PASSWORD}
+      # `external` (default) needs the TLS edge to send X-Forwarded-Proto: https; set `none` only if
+      # the edge does not and Keycloak answers "HTTPS required" (TLS still ends at the edge).
+      SUTRA_DEMO_KC_SSL_REQUIRED: ${SUTRA_DEMO_KC_SSL_REQUIRED:-external}
+
+  api:
+    environment:
+      SUTRA_AUTH_MODE: keycloak
+      SUTRA_DEV_AUTH_PASSWORD: ""
+      SUTRA_OIDC_ISSUER: ${SUTRA_DEMO_PUBLIC_URL}/auth/realms/sutra-demo
+      SUTRA_OIDC_BACKCHANNEL_URL: http://keycloak:8180/auth/realms/sutra-demo
+      SUTRA_OIDC_CLIENT_ID: sutra-web
+      SUTRA_OIDC_CLIENT_SECRET: ${SUTRA_DEMO_OIDC_CLIENT_SECRET}
+      SUTRA_OIDC_REDIRECT_URI: ${SUTRA_DEMO_PUBLIC_URL}/api/v1/auth/oidc/callback
+      SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI: ${SUTRA_DEMO_PUBLIC_URL}/sign-in
+      SUTRA_PUBLIC_URL: ${SUTRA_DEMO_PUBLIC_URL}
+      # TLS ends at the edge: the browser's Origin is the public URL.
+      SUTRA_ALLOWED_ORIGINS: ${SUTRA_DEMO_PUBLIC_URL}
+    depends_on:
+      keycloak: { condition: service_healthy }
+
+  web:
+    build:
+      args:
+        VITE_AUTH_MODE: oidc
+        VITE_DEV_PERSONAS: "false"
+        SUTRA_WEB_KEYCLOAK_PROXY: "1"
+    image: sutraerp-web:oidc-demo
+    depends_on: [api, keycloak]

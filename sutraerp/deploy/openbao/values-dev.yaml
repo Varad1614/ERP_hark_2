@@ -1,0 +1,45 @@
+# OpenBao for the kind CI cluster ONLY (9B, docs/batch9-contracts.md §5). Chart openbao/openbao
+# 0.30.3 (app v2.7.1), dev mode (in-memory, auto-unsealed, root token passed with
+# --set server.dev.devRootToken=$(openssl rand -hex 16) by deploy/kind/up.sh) + the agent injector.
+#   helm repo add openbao https://openbao.github.io/openbao-helm
+#   helm upgrade --install openbao openbao/openbao --version 0.30.3 -n openbao --create-namespace \
+#     -f deploy/openbao/values-dev.yaml --set server.dev.devRootToken=… --wait
+# The injector is the upstream hashicorp/vault-k8s (1.7.6) running the OpenBao agent image, so pod
+# annotations use the `vault.hashicorp.com/*` prefix (chart value secrets.openbao.annotationPrefix).
+# Production: an operator-run OpenBao (HA, raft, TLS, auto-unseal) with the same kv paths, policy and
+# kubernetes-auth role; see docs/runbooks/deploy.md.
+global:
+  tlsDisable: true
+server:
+  image:
+    tag: "2.7.1"
+  dev:
+    enabled: true
+  dataStorage:
+    enabled: false
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  affinity: ""
+injector:
+  enabled: true
+  replicas: 1
+  leaderElector:
+    enabled: false
+  image:
+    tag: "1.7.6"
+  agentImage:
+    tag: "2.7.1"
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { memory: 128Mi }
+  affinity: ""
+  webhook:
+    # Only the release namespace is mutated, and a pod is refused (retried by its controller) rather
+    # than started without its secrets file.
+    failurePolicy: Fail
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: sutraerp
+ui:
+  enabled: false

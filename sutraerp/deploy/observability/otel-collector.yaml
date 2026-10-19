@@ -1,0 +1,82 @@
+# Production OpenTelemetry Collector (contrib) configuration for SutraERP (slice 9A,
+# docs/batch9-contracts.md §3). The API exports traces + logs over OTLP gRPC to
+# `otel-collector.observability.svc:4317` (OTEL_EXPORTER_OTLP_ENDPOINT); metrics are pulled by
+# Prometheus from the API's separate /metrics listener (ServiceMonitor), not pushed here.
+#
+#   traces → Tempo (OTLP gRPC)      logs → Loki (native OTLP endpoint)
+#
+# Deployed with the upstream `open-telemetry/opentelemetry-collector` chart
+# (deploy/observability/helm/otel-collector.values.yaml embeds this file).
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  # Never ship credentials or personal data: drop request headers that could carry them.
+  attributes/scrub:
+    actions:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: user.email
+        action: delete
+  resource:
+    attributes:
+      - key: k8s.cluster.name
+        value: ${env:CLUSTER_NAME}
+        action: upsert
+  batch:
+    send_batch_size: 8192
+    timeout: 5s
+  # Keep every error and slow trace, sample the rest (the API already samples by
+  # OTEL_TRACES_SAMPLER_ARG; this is the collector-side safety net).
+  tail_sampling:
+    decision_wait: 10s
+    policies:
+      - name: errors
+        type: status_code
+        status_code: { status_codes: [ERROR] }
+      - name: slow
+        type: latency
+        latency: { threshold_ms: 1000 }
+      - name: rest
+        type: probabilistic
+        probabilistic: { sampling_percentage: 25 }
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo.observability.svc:4317
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: http://loki-gateway.observability.svc/otlp
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      level: normal
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/scrub, resource, tail_sampling, batch]
+      exporters: [otlp/tempo]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/scrub, resource, batch]
+      exporters: [otlphttp/loki]

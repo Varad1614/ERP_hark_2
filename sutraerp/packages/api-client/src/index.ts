@@ -20,12 +20,73 @@ export type LoginResponse = Schemas["LoginResponse"];
 export type SessionInfo = Schemas["SessionInfo"];
 export type ModuleDescriptor = Schemas["ModuleDescriptor"];
 export type Problem = Schemas["Problem"];
+export type MfaLevel = Schemas["MfaLevel"];
+export type MfaMethod = Schemas["MfaMethod"];
+export type CsrfTokenResponse = Schemas["CsrfTokenResponse"];
+export type TotpEnrolmentResponse = Schemas["TotpEnrolmentResponse"];
+export type LogoutResponse = Schemas["LogoutResponse"];
+// Batch 1D
+export type Notification = Schemas["Notification"];
+export type NotificationPage = Schemas["NotificationPage"];
+export type NotificationCategory = Schemas["NotificationCategory"];
+export type Severity = Schemas["Severity"];
+export type Notice = Schemas["Notice"];
+export type NoticeList = Schemas["NoticeList"];
+export type NoticeState = Schemas["NoticeState"];
+export type NewNotice = Schemas["NewNotice"];
+export type UpdateNotice = Schemas["UpdateNotice"];
+export type Todo = Schemas["Todo"];
+export type TodoPage = Schemas["TodoPage"];
+export type TodoStatus = Schemas["TodoStatus"];
+export type NewTodo = Schemas["NewTodo"];
+export type Profile = Schemas["Profile"];
+export type UpdateProfile = Schemas["UpdateProfile"];
+export type CategoryPreference = Schemas["CategoryPreference"];
+export type MfaStatus = Schemas["MfaStatus"];
+export type PasskeyInfo = Schemas["PasskeyInfo"];
+export type SessionView = Schemas["SessionView"];
+export type WebauthnCeremony = Schemas["WebauthnCeremony"];
+export type WebauthnChallengeResponse = Schemas["WebauthnChallengeResponse"];
+// Part 2 · S7-entitle: module entitlements + licence state
+export type EffectiveEntitlement = Schemas["EffectiveEntitlement"];
+export type LicenceStatus = Schemas["LicenceStatus"];
+export type EntitlementOrigin = Schemas["EntitlementOrigin"];
+export type EntitlementCatalogue = Schemas["EntitlementCatalogue"];
+export type EntitlementRequestView = Schemas["EntitlementRequestView"];
 
 export interface ClientOptions {
   /** Origin of the API; empty string = same origin (default, via dev proxy / ingress). */
   baseUrl?: string;
-  /** Tenant/Institution scope headers (dev header mode, ADR-L5-0004). */
-  scope?: () => { tenantId?: string; institutionId?: string } | undefined;
+  /**
+   * Current CSRF token, sent as `X-CSRF-Token` on every unsafe request: before sign-in the
+   * pre-session token from `GET /api/v1/auth/csrf` (login + MFA verify), afterwards the
+   * session's synchronizer token (from login or `GET /api/v1/auth/session`). Tenant/institution
+   * scope is never sent: the server takes it from the session (ADR-L5-0004).
+   */
+  csrfToken?: () => string | undefined;
+}
+
+/** Header carrying the session's CSRF token (ADR-L5-0038). */
+export const CSRF_HEADER = "X-CSRF-Token";
+
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/** True for methods that change state and must carry the CSRF token. */
+export function isUnsafeMethod(method: string): boolean {
+  return UNSAFE_METHODS.has(method.toUpperCase());
+}
+
+/** Adds `X-CSRF-Token` to unsafe requests when a token is known. */
+export function csrfMiddleware(csrfToken: () => string | undefined): Middleware {
+  return {
+    onRequest({ request }) {
+      if (isUnsafeMethod(request.method)) {
+        const token = csrfToken();
+        if (token) request.headers.set(CSRF_HEADER, token);
+      }
+      return request;
+    },
+  };
 }
 
 /** Error thrown for RFC 9457 problem responses. */
@@ -47,15 +108,7 @@ export function newIdempotencyKey(): string {
 
 export function createSutraClient(options: ClientOptions = {}) {
   const client = createClient<paths>({ baseUrl: options.baseUrl ?? "", credentials: "include" });
-  const scopeMiddleware: Middleware = {
-    onRequest({ request }) {
-      const scope = options.scope?.();
-      if (scope?.tenantId) request.headers.set("X-Sutra-Tenant-Id", scope.tenantId);
-      if (scope?.institutionId) request.headers.set("X-Sutra-Institution-Id", scope.institutionId);
-      return request;
-    },
-  };
-  client.use(scopeMiddleware);
+  if (options.csrfToken) client.use(csrfMiddleware(options.csrfToken));
   return client;
 }
 

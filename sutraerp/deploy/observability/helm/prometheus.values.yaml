@@ -1,0 +1,20 @@
+# kube-prometheus-stack values for SutraERP (namespace observability).
+fullnameOverride: kps
+grafana:
+  enabled: false            # installed separately (grafana.values.yaml)
+alertmanager:
+  enabled: true
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    # Pick up the SutraERP chart's ServiceMonitor / PrometheusRule in any namespace.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+    enableFeatures: [native-histograms]
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources: { requests: { storage: 50Gi } }

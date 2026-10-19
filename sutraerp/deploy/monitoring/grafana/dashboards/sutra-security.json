@@ -1,0 +1,269 @@
+{
+  "uid": "sutra-security",
+  "title": "SutraERP · Security signals",
+  "description": "Failed / throttled sign-ins, MFA failures, privilege changes, cross-tenant denials, signature failures.",
+  "tags": [
+    "sutraerp",
+    "onprem"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Security events (per 10 m)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (event) (increase(sutra_security_events_total[10m]))",
+          "legendFormat": "{{event}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Failed sign-ins (1 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=\"login_failed\"}[1h]))",
+          "legendFormat": "failed"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Lockouts (1 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 8,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=~\"account_locked|login_throttled\"}[1h]))",
+          "legendFormat": "locked"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "MFA failures (1 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=~\"mfa_failed|mfa_locked\"}[1h]))",
+          "legendFormat": "mfa"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Privilege changes (24 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 8,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=\"privilege_changed\"}[24h]))",
+          "legendFormat": "changes"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Cross-tenant denials (24 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=\"cross_tenant_denied\"}[24h]))",
+          "legendFormat": "denied"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Webhook signature failures (24 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=\"webhook_signature_failed\"}[24h]))",
+          "legendFormat": "webhook"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Checkout signature failures (24 h)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(sutra_security_events_total{event=\"checkout_signature_failed\"}[24h]))",
+          "legendFormat": "checkout"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "401 / 403 / 429 responses",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (route) (rate(sutra_http_requests_total{status=\"4xx\"}[5m]))",
+          "legendFormat": "{{route}}"
+        }
+      ]
+    }
+  ]
+}

@@ -3,7 +3,7 @@ SHELL := /bin/bash
 CARGO ?= cargo
 PNPM ?= pnpm
 
-.PHONY: help setup up down api web migrate openapi check fmt fmt-check lint test test-db build web-check ci clean
+.PHONY: help setup up down api web migrate openapi check fmt fmt-check lint test test-db test-live build web-check ci clean
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -46,7 +46,11 @@ test: ## Rust + web unit tests (no database needed)
 	$(PNPM) -r test
 
 test-db: ## Integration tests against a live PostgreSQL (DATABASE_URL)
-	$(CARGO) test -p sutra-persistence --features db-tests
+	$(CARGO) test -p sutra-persistence -p sutra-platform -p sutra-api --features db-tests
+
+test-live: ## Live adapter tests: nats-server -js + valkey/redis on localhost (SUTRA_TEST_NATS_URL / SUTRA_TEST_VALKEY_URL)
+	$(CARGO) test -p sutra-infra --features nats-tests,valkey-tests
+	$(CARGO) test -p sutra-api --features db-tests,nats-tests --test live_relay
 
 build: ## Build API and web
 	$(CARGO) build --workspace

@@ -14,6 +14,8 @@ workspace = true
 sutra-kernel.workspace = true
 sutra-contracts.workspace = true
 sutra-web.workspace = true
+sutra-persistence.workspace = true
+sqlx.workspace = true
 axum.workspace = true
 http.workspace = true
 serde.workspace = true
@@ -25,8 +27,24 @@ utoipa-axum.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
 tokio.workspace = true
-getrandom.workspace = true
+reqwest.workspace = true
+jsonwebtoken.workspace = true
+ring.workspace = true
+base64.workspace = true
+thiserror.workspace = true
+webauthn-rs.workspace = true
+url.workspace = true
+# 9C: sutra_workflow_calls_total / sutra_search_projection_lag_seconds (metrics facade; 9A's exporter renders them)
+metrics.workspace = true
+# Part 2 · S4-import: import / export files and opening-balance totals
+zip.workspace = true
+rust_decimal.workspace = true
 
 [dev-dependencies]
+axum = { workspace = true, features = ["form"] }
 tower.workspace = true
 http-body-util.workspace = true
+
+[features]
+# Integration tests that need a live PostgreSQL 18 (set DATABASE_URL). Off by default.
+db-tests = []

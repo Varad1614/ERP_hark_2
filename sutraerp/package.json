@@ -11,8 +11,22 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "test": "pnpm -r test",
+    "golden": "node tools/golden/generate.mjs",
+    "golden:check": "node tools/golden/generate.mjs --check",
     "build": "pnpm -r build",
-    "dev": "pnpm --filter @sutra/web dev"
+    "dev": "pnpm --filter @sutra/web dev",
+    "e2e:passkey": "pnpm --filter @sutra/web e2e:passkey",
+    "e2e:student": "pnpm --filter @sutra/web e2e:student",
+    "e2e:academic": "pnpm --filter @sutra/web e2e:academic",
+    "e2e:finance": "pnpm --filter @sutra/web e2e:finance",
+    "e2e:ui": "pnpm --filter @sutra/web e2e:ui",
+    "e2e:exams": "pnpm --filter @sutra/web e2e:exams",
+    "e2e:people": "pnpm --filter @sutra/web e2e:people",
+    "e2e:campus": "pnpm --filter @sutra/web e2e:campus",
+    "e2e:reskin2": "pnpm --filter @sutra/web e2e:reskin2",
+    "e2e:imports": "pnpm --filter @sutra/web e2e:imports",
+    "e2e:uat-dryrun": "pnpm --filter @sutra/web e2e:uat-dryrun",
+    "e2e:extensions": "pnpm --filter @sutra/web e2e:extensions"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

@@ -1,0 +1,99 @@
+# SutraERP on-prem TLS edge (rendered by `sutra-onprem render` into /etc/sutraerp/edge/default.conf;
+# @ERP_HOST@ / @SSO_HOST@ are the college host names). TLS 1.2+ with the college certificate
+# (/etc/sutraerp/tls/server.crt = full chain, server.key). Plain http only redirects.
+resolver 127.0.0.11 valid=10s ipv6=off;
+server_tokens off;
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_session_cache shared:sutra_tls:10m;
+ssl_session_timeout 1d;
+map $http_upgrade $sutra_connection_upgrade {
+  default upgrade;
+  ""      close;
+}
+
+server {
+  listen 80 default_server;
+  server_name _;
+  location = /healthz { access_log off; return 200 "ok\n"; }
+  location / { return 301 https://$host$request_uri; }
+}
+
+# ERP: the web container (SPA + /api proxy). Request size: the document-upload / data-import
+# routes accept 11 MiB (web nginx + API enforce the exact per-route limits).
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name @ERP_HOST@;
+  ssl_certificate /etc/sutraerp/tls/server.crt;
+  ssl_certificate_key /etc/sutraerp/tls/server.key;
+  client_max_body_size 12m;
+  client_body_timeout 120s;
+  proxy_connect_timeout 5s;
+  proxy_send_timeout 125s;
+  proxy_read_timeout 125s;
+  set $sutra_web http://web:8080;
+  set $sutra_api http://api:8080;
+
+  # Readiness of the API (status only: production refuses SUTRA_HEALTH_DETAIL) for monitoring.
+  location ~ ^/health/(live|ready)$ {
+    access_log off;
+    proxy_pass $sutra_api;
+    proxy_set_header Host $host;
+  }
+  location / {
+    proxy_pass $sutra_web;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+  }
+}
+
+# SSO: Keycloak in production mode (KC_PROXY_HEADERS=xforwarded, KC_HOSTNAME=https://@SSO_HOST@).
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name @SSO_HOST@;
+  ssl_certificate /etc/sutraerp/tls/server.crt;
+  ssl_certificate_key /etc/sutraerp/tls/server.key;
+  proxy_buffer_size 128k;
+  proxy_buffers 4 256k;
+  proxy_busy_buffers_size 256k;
+  set $sutra_kc http://keycloak:8080;
+  location / {
+    proxy_pass $sutra_kc;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port 443;
+  }
+}
+
+# Any other name on 443: refuse.
+server {
+  listen 443 ssl default_server;
+  server_name _;
+  ssl_certificate /etc/sutraerp/tls/server.crt;
+  ssl_certificate_key /etc/sutraerp/tls/server.key;
+  return 444;
+}
+
+# Internal only (not published): Keycloak back channel for API releases that cannot trust a
+# private CA (before 2026.10.1 — SUTRA_OIDC_BACKCHANNEL_URL=http://edge:8081/realms/sutra). TLS is
+# terminated here for the host-internal Docker network; Keycloak sees the request as https.
+server {
+  listen 8081;
+  server_name _;
+  set $sutra_kc http://keycloak:8080;
+  location / {
+    proxy_pass $sutra_kc;
+    proxy_set_header Host @SSO_HOST@;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Host @SSO_HOST@;
+    proxy_set_header X-Forwarded-Port 443;
+  }
+}

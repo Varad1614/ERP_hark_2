@@ -1,0 +1,88 @@
+/* Re-skin v2 slice R3 — local styles for the Academics area and the teaching screens.
+   Ported from the prototype classes named in each comment; tokens from packages/ui. */
+
+/* dialog form body */
+.ac-ask { display: flex; flex-direction: column; gap: 14px; }
+.ac-ask > .sb-field-error { margin: 0; }
+.ac-ask-note { color: var(--sb-mute); font-size: 13.5px; margin: 0; }
+
+/* inline tile form (.x-lf) */
+.ac-inline-form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--sb-line); }
+.ac-form-title { font-size: 15px; font-weight: 700; }
+.ac-form-foot { display: flex; gap: 10px; }
+
+/* one pill + kebab in table cells */
+.ac-rowmenu { display: inline-flex; justify-content: flex-end; width: 100%; }
+
+/* institution picker in the area header */
+.ac-inst-pick { min-width: 220px; }
+.ac-inst-pick .sb-field { margin: 0; }
+
+/* tile head: title + muted count + right side (prototype .th) */
+.ac-th { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.ac-th h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.ac-th .ac-th-sub { color: var(--sb-mute); font-size: 13px; }
+.ac-th .ac-th-end { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.ac-th .ac-th-end .sb-search { margin: 0; }
+
+/* class pills (faculty attendance class switcher) */
+.ac-classes { grid-column: span 12; display: flex; gap: 10px; flex-wrap: wrap; }
+.ac-class-pill { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; background: var(--sb-surface); color: var(--sb-ink); font: inherit; font-size: 13.5px; font-weight: 700; box-shadow: 0 1px 2px rgba(28, 27, 34, 0.04); }
+.ac-class-pill small { font-weight: 500; color: var(--sb-mute); font-size: 12.5px; }
+.ac-class-pill svg { width: 16px; height: 16px; }
+.ac-class-pill.on { background: var(--sb-ink); color: var(--sb-surface); }
+.ac-class-pill.on small { color: rgba(255, 255, 255, 0.65); }
+
+/* segmented toggle (Quick grid / List) */
+.ac-seg { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--sb-bg); gap: 2px; }
+.ac-seg button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; color: var(--sb-mute); background: transparent; }
+.ac-seg button svg { width: 15px; height: 15px; }
+.ac-seg button.on { background: var(--sb-surface); color: var(--sb-ink); box-shadow: 0 1px 3px rgba(28, 27, 34, 0.08); }
+
+/* attendance tile foot */
+.ac-att-foot { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--sb-line); }
+.ac-att-foot span { color: var(--sb-mute); font-size: 13.5px; }
+.ac-att-foot .sb-btn { margin-left: auto; }
+
+/* list mode marks */
+.ac-marks { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.ac-mark { padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 600; background: var(--sb-bg); color: var(--sb-mute); }
+.ac-mark.on[data-mark="present"] { background: var(--tint-green-bg); color: var(--tint-green-fg); }
+.ac-mark.on[data-mark="absent"] { background: var(--tint-rose-bg); color: var(--tint-rose-fg); }
+.ac-mark.on[data-mark="late"] { background: var(--tint-amber-bg); color: var(--tint-amber-fg); }
+.ac-mark.on[data-mark="excused"] { background: var(--tint-blue-bg); color: var(--tint-blue-fg); }
+.ac-mark:disabled { opacity: 0.55; }
+
+/* side tiles text */
+.ac-muted { color: var(--sb-mute); font-size: 13.5px; }
+.ac-big { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.ac-stack { display: flex; flex-direction: column; gap: 12px; }
+.ac-stack > .sb-btn { align-self: flex-start; }
+
+/* key tag line under a detail title */
+.ac-sub-tag { display: inline-flex; gap: 6px; align-items: center; }
+
+/* timetable slot list in a panel */
+.ac-dl-note { color: var(--sb-mute); font-size: 13px; margin-top: 12px; }
+
+/* conflicts list */
+.ac-conflicts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.ac-conflicts li { display: flex; gap: 8px; align-items: center; font-size: 13.5px; }
+
+/* levels / slots row editors */
+.ac-rows { display: flex; flex-direction: column; gap: 10px; }
+.ac-row-edit { display: grid; gap: 10px; align-items: end; }
+.ac-row-edit .sb-icon-btn { width: 40px; height: 40px; }
+.ac-add-row { align-self: flex-start; }
+
+/* group heading in a list tile */
+.ac-group + .ac-group { margin-top: 18px; }
+
+/* programme tiles (prototype adm-academics cards) */
+.ac-prog { display: flex; flex-direction: column; gap: 6px; }
+.ac-prog-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.ac-prog h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.ac-prog small { color: var(--sb-mute); font-size: 12.5px; }
+.ac-prog-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 13px; color: var(--sb-mute); }
+.ac-prog-row b { font-size: 22px; font-weight: 800; color: var(--sb-ink); letter-spacing: -0.02em; margin-left: 4px; }
+.ac-prog .sb-bar { margin: 4px 0 2px; }

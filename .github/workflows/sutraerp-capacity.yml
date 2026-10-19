@@ -1,0 +1,185 @@
+# Part 2 · S5-capacity (sutraerp/docs/readiness/CAPACITY_TEST_REPORT.md, deploy/capacity/README.md).
+#
+# The production-mode SutraERP stack (TLS edge, Keycloak OIDC + TOTP, human approvals on
+# Flowable, NATS, Valkey, MinIO with SSE, PostgreSQL with TLS) on ONE GitHub-hosted runner treated
+# as a staging host; a 2,000-student college seeded through the API and the Stage 4 import; a k6
+# college day (staff + students) with a results-day and a fee-deadline spike; docker stats and
+# PostgreSQL evidence; deploy/capacity/thresholds.json enforced per phase and per endpoint.
+#
+# Every number this produces is "GitHub-hosted runner — NOT college hardware" (the runner's CPU
+# model is recorded). The college-server run is BLOCKED_EXTERNAL (no server).
+name: SutraERP Part 2 capacity (2,000 students)
+
+on:
+  # A push that touches the run marker starts a full run (a workflow that exists only on a
+  # feature branch cannot be dispatched through the API until it has run once).
+  push:
+    branches: ["part2/**"]
+    paths: ["sutraerp/deploy/capacity/RUN"]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "full = seed + load + report; seed = stop after seeding (seed debugging)"
+        type: choice
+        options: [full, seed]
+        default: full
+      students:
+        description: "Students to import (2000 = the target college)"
+        default: "2000"
+      scale:
+        description: "k6 time scale (1 = 21.5-minute day; 0.5 halves every stage)"
+        default: "1"
+      attendance_weeks:
+        description: "Weeks of attendance seeded per division"
+        default: "6"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sutraerp-capacity-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Audit 2026-10 (A1, D1/C1): the dev authenticator has no default password. CI-only value, used
+  # by every API started in dev auth mode, the E2E sign-in and the scripts that log in.
+  SUTRA_DEV_AUTH_PASSWORD: ci-only-dev-signin-6d2f9b
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  SQLX_OFFLINE: "true"
+  K6_VERSION: 1.8.2
+  MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  capacity:
+    name: Capacity — production stack, 2,000 students
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      CAP_DIR: ${{ github.workspace }}/capacity-run
+      CAP_OUT: ${{ github.workspace }}/capacity-out
+      CAP_STUDENTS: ${{ inputs.students || '2000' }}
+      CAP_SCALE: ${{ inputs.scale || '1' }}
+      CAP_ATTENDANCE_WEEKS: ${{ inputs.attendance_weeks || '6' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        working-directory: /
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - name: Runner (recorded with every number — NOT college hardware)
+        run: |
+          mkdir -p "$CAP_OUT"
+          model=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | xargs)
+          vcpu=$(nproc)
+          ram=$(awk '/MemTotal/ {printf "%.1f", $2/1048576}' /proc/meminfo)
+          os=$(. /etc/os-release; echo "$PRETTY_NAME")
+          label="GitHub-hosted runner ($model, $vcpu vCPU, $ram GiB RAM) — NOT college hardware"
+          jq -n --arg m "$model" --arg v "$vcpu" --arg r "$ram" --arg o "$os" --arg l "$label" --arg run "${{ github.run_id }}" --arg sha "${{ github.sha }}" \
+            '{cpuModel: $m, vcpus: ($v|tonumber), ramGiB: ($r|tonumber), os: $o, label: $l, runId: $run, sha: $sha}' > "$CAP_OUT/runner.json"
+          cat "$CAP_OUT/runner.json"
+          lscpu | grep -E '^(Model name|CPU\(s\)|Thread|Core|Socket|L3)' || true
+          free -m; df -h /
+          echo "### $label" >> "$GITHUB_STEP_SUMMARY"
+
+      # ---- build: release API (the production profile), MinIO from source, k6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: capacity-release
+          cache-on-failure: true
+      - name: Build sutra-api (release)
+        run: |
+          cargo build --release -p sutra-api --locked
+          mkdir -p deploy/docker/demo-bin
+          cp target/release/sutra-api deploy/docker/demo-bin/sutra-api
+          strip deploy/docker/demo-bin/sutra-api
+          ls -lh deploy/docker/demo-bin/sutra-api
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Build MinIO from source (${{ env.MINIO_TAG }})
+        run: |
+          OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+          cp "$HOME/.cache/sutra-minio/minio" deploy/docker/demo-bin/minio
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: grafana/setup-k6-action@43b9fc21641a76002687994433dd586f56e791b1 # v1.2.2
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+      - name: Tools
+        run: |
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          psql --version; k6 version; node --version; docker compose version
+          jq --arg k "$(k6 version | head -1)" '.k6 = $k' "$CAP_OUT/runner.json" > /tmp/r.json && mv /tmp/r.json "$CAP_OUT/runner.json"
+
+      # ---- stack
+      - name: Prepare (secrets, private CA, realm, host names, client addresses)
+        run: |
+          bash deploy/capacity/run.sh prepare
+          # Mask every generated secret in the log.
+          grep -v "^CAP_DOMAIN=" "$CAP_DIR/env" | cut -d= -f2- | while read -r v; do echo "::add-mask::$v"; done
+          jq -r '.office[].otp' "$CAP_DIR/staff.json" | while read -r v; do echo "::add-mask::$v"; done
+      - name: Stack up (production mode)
+        run: bash deploy/capacity/run.sh up
+      - name: Snapshot before seeding
+        run: |
+          set -a; . "$CAP_DIR/env"; set +a
+          PGURL="postgres://sutra:$POSTGRES_PASSWORD@127.0.0.1:5432/sutra?sslmode=require" bash deploy/capacity/collect.sh snapshot "$CAP_OUT" before-seed
+
+      # ---- seed + load
+      - name: Seed ${{ env.CAP_STUDENTS }} students (import, identities, academics, attendance, fees, exams, documents)
+        run: timeout 5400 bash deploy/capacity/run.sh seed
+      - name: Snapshot after seeding
+        if: always()
+        run: |
+          set -a; . "$CAP_DIR/env"; set +a
+          PGURL="postgres://sutra:$POSTGRES_PASSWORD@127.0.0.1:5432/sutra?sslmode=require" bash deploy/capacity/collect.sh snapshot "$CAP_OUT" after-seed || true
+      - name: Load — college day + results-day + fee-deadline spikes (k6)
+        if: inputs.stage != 'seed'
+        run: timeout 3000 bash deploy/capacity/run.sh load
+      - name: Report + thresholds (per phase, per endpoint)
+        if: always() && inputs.stage != 'seed'
+        run: |
+          set +e
+          bash deploy/capacity/run.sh report; status=$?
+          cat "$CAP_OUT/capacity-results.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null
+          k6s=$(cat "$CAP_OUT/k6.exit" 2>/dev/null || echo missing)
+          echo "k6 exit: $k6s · report exit: $status"
+          [ "$status" = 0 ] && [ "$k6s" = 0 ]
+      - name: Seed summary
+        if: always()
+        run: |
+          {
+            echo "### Seed phases"
+            jq -r '.phases[]? | "- \(.status) — \(.name) (\(.ms/1000|floor) s) \(.detail|tostring|.[0:240])"' "$CAP_OUT/seed-report.json" 2>/dev/null || echo "(no seed report)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---- evidence (never the secrets: CAP_DIR stays on the runner)
+      - name: Container logs
+        if: always()
+        run: bash deploy/capacity/run.sh logs || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capacity-evidence
+          path: ${{ github.workspace }}/capacity-out
+          retention-days: 30
+      - name: Tear down
+        if: always()
+        run: bash deploy/capacity/run.sh down || true

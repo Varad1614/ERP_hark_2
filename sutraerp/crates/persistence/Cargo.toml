@@ -18,10 +18,13 @@ uuid.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+getrandom.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
-tokio.workspace = true
+async-trait.workspace = true
 
 [features]
 # Integration tests that need a live PostgreSQL 18 (set DATABASE_URL). Off by default.

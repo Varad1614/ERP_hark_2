@@ -1,0 +1,50 @@
+{
+  "index_patterns": [
+    "*-students-v1"
+  ],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "id": {
+          "type": "keyword"
+        },
+        "tenantId": {
+          "type": "keyword"
+        },
+        "institutionId": {
+          "type": "keyword"
+        },
+        "number": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "displayName": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "programme": {
+          "type": "keyword"
+        },
+        "status": {
+          "type": "keyword"
+        }
+      }
+    }
+  },
+  "priority": 100
+}

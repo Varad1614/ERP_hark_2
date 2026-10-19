@@ -1,0 +1,172 @@
+/** Slice 7C web: mock API lifecycle, HTTP request shape, the admin Payroll tab and My payslips. */
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createHttpPayrollApi, PATHS } from "./api";
+import { runActions } from "./hooks";
+import { createMockPayrollApi } from "./mock";
+
+beforeEach(() => {
+  vi.resetModules();
+  window.sessionStorage.clear();
+});
+
+async function harness() {
+  return (await import("../../../test/harness")).renderScreen;
+}
+
+const institution = { id: "00000000-0000-7000-8000-0000000b7c00", name: "Mock University" } as never;
+
+describe("7C payroll API", () => {
+  it("moves a run through its lifecycle and refuses out-of-order commands (mock)", async () => {
+    const api = createMockPayrollApi();
+    const [run] = await api.runs("per-1");
+    expect(run?.status).toBe("calculated");
+    expect(run?.netPay).toBe("41800.00");
+    await expect(api.runCommand(run!.id, run!.version, "post")).rejects.toThrow();
+    await expect(api.runCommand(run!.id, run!.version + 1, "validate")).rejects.toThrow();
+    const validated = await api.runCommand(run!.id, run!.version, "validate");
+    expect(validated.status).toBe("validating");
+    await expect(api.createRun("per-1", "regular")).rejects.toThrow();
+    const retro = await api.createRun("per-1", "retro");
+    expect(retro.status).toBe("created");
+    expect(retro.number).toMatch(/^PR-\d{6}$/);
+  });
+
+  it("activates one configuration at a time (mock)", async () => {
+    const api = createMockPayrollApi();
+    const draft = await api.createConfig("inst-1", { name: "Payroll 2027", effectiveFrom: "2027-04-01", copyFrom: "cfg-1" });
+    expect(draft.status).toBe("draft");
+    await expect(api.configCommand(draft.id, draft.version, "activate")).rejects.toThrow();
+    const approved = await api.configCommand(draft.id, draft.version, "submit");
+    const active = await api.configCommand(approved.id, approved.version, "activate");
+    expect(active.status).toBe("active");
+    const all = await api.configs("inst-1");
+    expect(all.filter((c) => c.status === "active")).toHaveLength(1);
+    expect(all.find((c) => c.id === "cfg-1")?.status).toBe("superseded");
+  });
+
+  it("offers the next commands for a run status", () => {
+    expect(runActions("created")).toEqual(["calculate"]);
+    expect(runActions("pending_approval")).toEqual(["approve", "reject"]);
+    expect(runActions("finalized")).toEqual(["post", "issue"]);
+    expect(runActions("closed")).toEqual([]);
+  });
+
+  it("sends If-Match on commands and Idempotency-Key on creates", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl = async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify({ id: "r1", status: "approved", version: 4 }), { status: 200 });
+    };
+    const api = createHttpPayrollApi(fetchImpl, "");
+    await api.decideRun("r1", 3, "approve");
+    const headers = calls[0]?.init.headers as Record<string, string>;
+    expect(calls[0]?.url).toBe(PATHS.decision.replace("{id}", "r1"));
+    expect(headers["If-Match"]).toBe('"3"');
+    expect(JSON.parse(String(calls[0]?.init.body)).decision).toBe("approve");
+    await api.createRun("p1", "regular");
+    expect(calls[1]?.url).toBe(PATHS.runs.replace("{id}", "p1"));
+    expect((calls[1]?.init.headers as Record<string, string>)["Idempotency-Key"]).toBeTruthy();
+  });
+
+  it("disburses a posted run once: file first, then mark paid (mock, DEF-E-007)", async () => {
+    const api = createMockPayrollApi();
+    let [run] = await api.runs("per-1");
+    for (const cmd of ["validate", "submit", "finalise", "post"] as const) run = await api.runCommand(run!.id, run!.version, cmd);
+    expect(run?.status).toBe("posted");
+    const batch = await api.createDisbursement(run!.id, "net_pay");
+    expect(batch.totalAmount).toBe("41800.00");
+    expect(batch.bankSubmission).toBe("BLOCKED_EXTERNAL");
+    expect((await api.createDisbursement(run!.id, "net_pay")).id).toBe(batch.id);
+    await expect(api.markDisbursementPaid(batch.id, batch.version, "UTR1")).rejects.toThrow();
+    const file = await api.disbursementFile(batch.id);
+    expect(file.content.startsWith(`H,${batch.number},`)).toBe(true);
+    const paid = await api.markDisbursementPaid(batch.id, batch.version, "UTR1");
+    expect(paid.status).toBe("paid");
+    await expect(api.markDisbursementPaid(paid.id, paid.version, "UTR2")).rejects.toThrow();
+  });
+
+  it("downloads the bank file as text and marks paid with If-Match (HTTP)", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl = async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      if (url.endsWith("/file")) return new Response("H,PD-000001\r\n", { status: 200, headers: { "Content-Disposition": 'attachment; filename="PD-000001-neft.csv"' } });
+      return new Response(JSON.stringify({ id: "d1", status: "paid", version: 4 }), { status: 200 });
+    };
+    const api = createHttpPayrollApi(fetchImpl, "");
+    const f = await api.disbursementFile("d1");
+    expect(f).toEqual({ fileName: "PD-000001-neft.csv", content: "H,PD-000001\r\n" });
+    expect(calls[0]?.url).toBe(PATHS.disbursementFile.replace("{id}", "d1"));
+    await api.markDisbursementPaid("d1", 3, "UTR1");
+    expect(calls[1]?.url).toBe(PATHS.disbursementPaid.replace("{id}", "d1"));
+    expect((calls[1]?.init.headers as Record<string, string>)["If-Match"]).toBe('"3"');
+    expect(JSON.parse(String(calls[1]?.init.body)).reference).toBe("UTR1");
+    await api.createDisbursement("r1", "statutory_dues");
+    expect(calls[2]?.url).toBe(PATHS.runDisbursements.replace("{id}", "r1"));
+    expect((calls[2]?.init.headers as Record<string, string>)["Idempotency-Key"]).toBeTruthy();
+  });
+
+  it("turns a problem response into an error", async () => {
+    const fetchImpl = async () =>
+      new Response(JSON.stringify({ type: "about:blank", title: "Conflict", status: 409, errorCode: "conflict" }), { status: 409 });
+    const api = createHttpPayrollApi(fetchImpl, "");
+    await expect(api.runCommand("r1", 1, "post")).rejects.toThrow();
+  });
+});
+
+describe("7C screens (mock API)", () => {
+  it("renders the admin Payroll tab and validates the calculated run", async () => {
+    const renderScreen = await harness();
+    const { PayrollAdminTab } = await import("./index");
+    await renderScreen(<PayrollAdminTab institution={institution} />);
+    expect(document.querySelector("[data-slice='7C']")).toBeTruthy();
+    expect(await screen.findByText(/v1 · Payroll 2026/)).toBeTruthy();
+    expect((await screen.findAllByText(/PR-000001/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("₹41,800")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/EMP-000001 · Meera Shah/)).length).toBeGreaterThan(0);
+    const validate = await waitFor(() => {
+      const b = document.querySelector<HTMLButtonElement>("[data-action='run-validate']");
+      if (!b) throw new Error("no validate action");
+      return b;
+    });
+    fireEvent.click(validate);
+    await waitFor(() => expect(document.querySelector("[data-action='run-submit']")).toBeTruthy());
+  });
+
+  it("shows the disbursements tile with the BLOCKED_EXTERNAL bank submission note", async () => {
+    const renderScreen = await harness();
+    const { PayrollAdminTab } = await import("./index");
+    await renderScreen(<PayrollAdminTab institution={institution} />);
+    expect(await screen.findByText("No disbursements")).toBeTruthy();
+    expect(document.querySelector("[data-bank-submission='BLOCKED_EXTERNAL']")).toBeTruthy();
+  });
+
+  it("asks for an institution first", async () => {
+    const renderScreen = await harness();
+    const { PayrollAdminTab } = await import("./index");
+    await renderScreen(<PayrollAdminTab institution={null} />);
+    expect(await screen.findByText("No institution selected")).toBeTruthy();
+  });
+
+  it("shows the caller's own payslips in My HR", async () => {
+    const renderScreen = await harness();
+    const { MyPayslipsPanel } = await import("./index");
+    await renderScreen(<MyPayslipsPanel />, { path: "/", role: "faculty" });
+    expect(document.querySelector("[data-slice='7C']")).toBeTruthy();
+    expect(await screen.findByText("PS-000001")).toBeTruthy();
+    expect(screen.getAllByText("₹40,200").length).toBeGreaterThan(0);
+  });
+
+  it("shows an empty state when there are no payslips", async () => {
+    const renderScreen = await harness();
+    const { MyPayslipsPanel, PayrollApiProvider } = await import("./index");
+    const api = { ...createMockPayrollApi(), myPayslips: async () => [] };
+    await renderScreen(
+      <PayrollApiProvider api={api}>
+        <MyPayslipsPanel />
+      </PayrollApiProvider>,
+      { path: "/", role: "faculty" },
+    );
+    expect(await screen.findByText("No payslips yet")).toBeTruthy();
+  });
+});

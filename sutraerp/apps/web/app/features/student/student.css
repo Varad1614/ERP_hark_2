@@ -1,0 +1,21 @@
+/* R2 (Students) local styles — only what @sutra/ui does not cover yet (NEEDS-R0 candidates). */
+.st-inline-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.st-inline-form > .sb-field { flex: 1 1 220px; }
+.st-inline-form > .sb-field:nth-child(2) { flex: 2 1 320px; }
+.st-inline-form > .sb-btn { flex: none; }
+.st-name-link { color: inherit; text-decoration: none; display: inline-flex; }
+.st-name-link:hover { color: var(--act); }
+.st-count { font-size: 13px; color: var(--sb-mute-2); font-weight: 500; }
+.st-lrows { display: flex; flex-direction: column; gap: 2px; }
+.st-lrows > .sb-lrow + .sb-lrow { box-shadow: inset 0 1px 0 var(--sb-line); border-radius: 0; }
+.st-meta { color: var(--sb-mute); font-size: 14px; margin: 0; }
+.st-meta-inline { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.st-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.st-total b { font-size: 15px; }
+.st-strong { font-weight: 700; }
+.st-num { font-variant-numeric: tabular-nums; }
+.st-history { display: flex; flex-direction: column; gap: 2px; }
+.st-confirm.sb-dl { grid-template-columns: 160px 1fr; }
+/* Keep title, search, tabs and the primary action on one header row at 1440 (prototype .ph). */
+[data-screen="students"] .sb-area-side .sb-search { width: 210px; min-width: 0; }
+[data-screen="students"] .sb-area-side .sb-search input { min-width: 0; }

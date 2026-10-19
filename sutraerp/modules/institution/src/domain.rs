@@ -1,11 +1,12 @@
 //! Pure domain types and validation (no I/O).
 
 use chrono::{DateTime, Utc};
+use sutra_contracts::institution::status::InstitutionStatus;
 use sutra_kernel::concurrency::Version;
 use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_kernel::scope::{InstitutionId, TenantId};
 
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Institution {
     pub id: InstitutionId,
@@ -14,9 +15,40 @@ pub struct Institution {
     pub name: String,
     /// IANA timezone governing business-local dates for this institution.
     pub timezone: String,
+    /// Lifecycle state (L2-B01 §6).
+    pub status: InstitutionStatus,
+    pub status_changed_at: DateTime<Utc>,
+    /// Profile / master information (L2-B01 §7), revised through `PUT …/profile`.
+    pub profile: crate::lifecycle::domain::InstitutionProfile,
     pub version: Version,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// Allowed institution lifecycle transitions (L2-B01 §6 + activation-authority amendment):
+/// `draft → configured → pending_approval → {active | returned | rejected}`,
+/// `returned | rejected → configured` (a new request cycle; never directly active),
+/// `active ⇄ suspended`, `active | suspended → archived` (terminal).
+pub fn can_transition(from: InstitutionStatus, to: InstitutionStatus) -> bool {
+    use InstitutionStatus::*;
+    matches!(
+        (from, to),
+        (Draft | Returned | Rejected, Configured)
+            | (Configured, PendingApproval)
+            | (PendingApproval, Active | Returned | Rejected)
+            | (Active, Suspended)
+            | (Suspended, Active)
+            | (Active | Suspended, Archived)
+    )
+}
+
+/// 409 for a transition [`can_transition`] refuses.
+pub fn illegal_transition(
+    entity: &str,
+    from: impl std::fmt::Display,
+    to: impl std::fmt::Display,
+) -> KernelError {
+    KernelError::Conflict(format!("{entity} cannot move from `{from}` to `{to}`"))
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
@@ -37,17 +69,10 @@ pub struct RenameInstitution {
     pub name: String,
 }
 
+/// Institution names are identity text (audit 2026-10 A2, SEC-1): trimmed, 1-200 characters,
+/// single line, no control characters and no `<` / `>`.
 fn validate_name(name: &str, v: &mut Vec<FieldViolation>) {
-    let len = name.trim().chars().count();
-    if len == 0 {
-        v.push(FieldViolation::new("name", "required", "name is required"));
-    } else if len > 200 {
-        v.push(FieldViolation::new(
-            "name",
-            "too-long",
-            "name must be at most 200 characters",
-        ));
-    }
+    sutra_kernel::text::identity("name", name, 200, true, v);
 }
 
 impl RegisterInstitution {
@@ -67,7 +92,7 @@ impl RegisterInstitution {
         }
         validate_name(&self.name, &mut v);
         if let Some(tz) = &self.timezone {
-            if tz.trim().is_empty() || !tz.contains('/') {
+            if !crate::lifecycle::domain::timezone_format_ok(tz) {
                 v.push(FieldViolation::new(
                     "timezone",
                     "format",
@@ -120,6 +145,42 @@ mod tests {
     }
 
     #[test]
+    fn institution_lifecycle_transitions() {
+        use InstitutionStatus::*;
+        let allowed = [
+            (Draft, Configured),
+            (Returned, Configured),
+            (Rejected, Configured),
+            (Configured, PendingApproval),
+            (PendingApproval, Active),
+            (PendingApproval, Returned),
+            (PendingApproval, Rejected),
+            (Active, Suspended),
+            (Suspended, Active),
+            (Active, Archived),
+            (Suspended, Archived),
+        ];
+        for from in InstitutionStatus::ALL {
+            for to in InstitutionStatus::ALL {
+                assert_eq!(
+                    can_transition(*from, *to),
+                    allowed.contains(&(*from, *to)),
+                    "{from} -> {to}"
+                );
+            }
+        }
+        // L2-B01 rule 7: Rejected never goes straight to Active; Archived is terminal.
+        assert!(!can_transition(Rejected, Active));
+        assert!(InstitutionStatus::ALL
+            .iter()
+            .all(|t| !can_transition(Archived, *t)));
+        assert!(matches!(
+            illegal_transition("institution", Draft, Active),
+            KernelError::Conflict(_)
+        ));
+    }
+
+    #[test]
     fn validates_rename() {
         assert!(RenameInstitution {
             name: "x".repeat(201)
@@ -127,5 +188,13 @@ mod tests {
         .validate()
         .is_err());
         assert!(RenameInstitution { name: "New".into() }.validate().is_ok());
+        // SEC-1: markup and control characters are refused, field-level.
+        for bad in ["<img src=x onerror=alert(1)>", "Sutra\u{0}", "a\nb"] {
+            let Err(KernelError::Validation(v)) = RenameInstitution { name: bad.into() }.validate()
+            else {
+                panic!("{bad} accepted");
+            };
+            assert_eq!(v[0].field, "name");
+        }
     }
 }

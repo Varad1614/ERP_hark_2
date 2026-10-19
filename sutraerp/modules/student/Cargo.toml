@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "SutraERP domain module (student). Batch 0 scaffold."
+description = "SutraERP domain module (student lifecycle, Domain C). Batch 3."
 
 [lints]
 workspace = true
@@ -14,12 +14,20 @@ workspace = true
 sutra-kernel.workspace = true
 sutra-contracts.workspace = true
 sutra-web.workspace = true
+sutra-persistence.workspace = true
 axum.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 utoipa.workspace = true
 utoipa-axum.workspace = true
 async-trait.workspace = true
-
+# Part 2 · S4-import: historical result credits / marks
+rust_decimal.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+unicode-normalization.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

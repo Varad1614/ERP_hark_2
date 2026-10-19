@@ -1,0 +1,19 @@
+{{- /* 9A: Grafana dashboards as ConfigMaps (grafana sidecar label grafana_dashboard=1; the lgtm all-in-one mounts them). */ -}}
+{{- if and .Values.observability.enabled (or .Values.observability.grafanaDashboards.enabled .Values.observability.lgtm.enabled) }}
+{{- $root := . }}
+{{- range $name := splitList "," (include "sutraerp.observability.dashboards" .) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sutraerp.fullname" $root }}-dashboard-{{ trimPrefix "sutra-" $name }}
+  labels:
+    {{- include "sutraerp.labels" $root | nindent 4 }}
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: SutraERP
+data:
+  {{ $name }}.json: |-
+    {{- include (printf "sutraerp.observability.dashboard.%s" $name) $root | b64dec | nindent 4 }}
+{{- end }}
+{{- end }}

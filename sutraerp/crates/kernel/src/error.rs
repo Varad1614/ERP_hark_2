@@ -43,6 +43,10 @@ pub enum KernelError {
     Unauthenticated,
     #[error("forbidden: {0}")]
     Forbidden(String),
+    /// The permission is granted but needs a session that completed multi-factor authentication
+    /// (step-up, ADR-L5-0038 §3.8). Carries the permission name.
+    #[error("multi-factor step-up required for `{0}`")]
+    StepUpRequired(&'static str),
     /// Missing, ambiguous, mismatched or widened Tenant/Institution scope (ADR-L5-0004: fail closed).
     #[error("scope violation: {0}")]
     Scope(String),
@@ -64,6 +68,11 @@ pub enum KernelError {
     Unavailable(String),
     #[error("internal error")]
     Internal(#[source] Box<dyn std::error::Error + Send + Sync>),
+    /// Part 2 · S7-entitle: the tenant's licence does not cover the operation (`403`). `code` is
+    /// one of the stable `entitlement.*` codes of [`crate::entitlement`] (e.g.
+    /// `entitlement.module_inactive` when an import job targets a module that is not active).
+    #[error("not entitled: {detail}")]
+    Entitlement { code: &'static str, detail: String },
 }
 
 impl KernelError {
@@ -74,6 +83,7 @@ impl KernelError {
             Self::BadRequest(_) => "bad-request",
             Self::Unauthenticated => "unauthenticated",
             Self::Forbidden(_) => "forbidden",
+            Self::StepUpRequired(_) => "mfa-step-up-required",
             Self::Scope(_) => "scope-violation",
             Self::NotFound { .. } => "not-found",
             Self::VersionConflict { .. } => "version-conflict",
@@ -83,6 +93,7 @@ impl KernelError {
             Self::NotImplemented(_) => "not-implemented",
             Self::Unavailable(_) => "dependency-unavailable",
             Self::Internal(_) => "internal-error",
+            Self::Entitlement { code, .. } => code,
         }
     }
 
@@ -109,6 +120,7 @@ mod tests {
         let all = [
             KernelError::Validation(vec![]),
             KernelError::Unauthenticated,
+            KernelError::StepUpRequired("x"),
             KernelError::Scope("x".into()),
             KernelError::NotFound {
                 entity: "institution",

@@ -1,0 +1,440 @@
+# Batch 9 · owned by slice 9D (sutraerp/docs/batch9-contracts.md §2, §9, §10).
+# Quality gates: supply-chain + secret scanning, image CVE scans + DAST baseline, k6 performance
+# gates. Keep job names stable (the pinger and b9-ci.sh read them). Findings, accepted risks and
+# their expiry dates: sutraerp/docs/security/findings.md; triage SLA: docs/runbooks/security.md.
+# Third-party actions are pinned to commit SHAs, tools to exact versions.
+name: SutraERP quality gates (security · performance)
+
+on:
+  push:
+    branches: [ERP_EXTENSIONS, main, erp_merge, "batch9/**"]
+    tags: ["v*"]
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-quality.yml"]
+  workflow_dispatch:
+    inputs:
+      api_env:
+        description: "Capacity A/B only: extra KEY=value pairs (space separated) for the API under test, e.g. SUTRA_AUDIT_CHAIN=false"
+        required: false
+        default: ""
+  pull_request:
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-quality.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  # event_name keeps a manual capacity run from cancelling (or being cancelled by) a push run.
+  group: sutraerp-quality-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  # Audit 2026-10 (A1, D1/C1): the dev authenticator has no default password. CI-only value, used
+  # by every API started in dev auth mode, the E2E sign-in and the scripts that log in.
+  SUTRA_DEV_AUTH_PASSWORD: ci-only-dev-signin-6d2f9b
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  SQLX_OFFLINE: "true"
+  TRIVY_IMAGE: aquasec/trivy:0.75.0
+  GRYPE_IMAGE: anchore/grype:v0.120.1
+  ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:stable
+  GITLEAKS_VERSION: 8.30.1
+  GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+  K6_VERSION: 1.8.2
+  SEMGREP_IMAGE: semgrep/semgrep:1.181.0
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  # ---------------------------------------------------------------------------------------------
+  security:
+    name: Security (cargo-deny · cargo-audit · pnpm audit · gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # gitleaks scans the full history
+      - run: mkdir -p "$RUNNER_TEMP/security"
+      - name: cargo-deny (advisories · licenses · bans · sources) — sutraerp/deny.toml
+        id: deny
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: sutraerp/Cargo.toml
+          command: check
+          arguments: --all-features
+      - name: Install cargo-audit
+        if: success() || failure()
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
+        with:
+          tool: cargo-audit@0.22.2
+      - name: cargo-audit (RustSec) — ignores mirror deny.toml / findings.md
+        id: audit
+        if: success() || failure()
+        run: |
+          cargo-audit audit --file Cargo.lock --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2024-0436 \
+            --json > "$RUNNER_TEMP/security/cargo-audit.json" || true
+          cargo-audit audit --file Cargo.lock --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2024-0436
+      - uses: pnpm/action-setup@v4
+        if: success() || failure()
+        with:
+          package_json_file: sutraerp/package.json
+      - uses: actions/setup-node@v4
+        if: success() || failure()
+        with:
+          node-version: 22
+      - name: pnpm audit --prod --audit-level high
+        id: pnpm
+        if: success() || failure()
+        run: |
+          pnpm audit --prod --json > "$RUNNER_TEMP/security/pnpm-audit.json" || true
+          pnpm audit --prod --audit-level high
+      - name: gitleaks (full history) — sutraerp/.gitleaks.toml
+        id: gitleaks
+        if: success() || failure()
+        working-directory: .
+        run: |
+          curl -sSL -o /tmp/gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
+          tar xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks git --no-banner --redact --config sutraerp/.gitleaks.toml \
+            --report-format sarif --report-path "$RUNNER_TEMP/security/gitleaks.sarif" .
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Security (supply chain + secrets)"
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| cargo-deny (deny.toml) | ${{ steps.deny.outcome }} |"
+            echo "| cargo-audit (RustSec) | ${{ steps.audit.outcome }} |"
+            echo "| pnpm audit --prod (high) | ${{ steps.pnpm.outcome }} |"
+            echo "| gitleaks (full history) | ${{ steps.gitleaks.outcome }} |"
+            echo
+            echo "Accepted advisories (expiry in docs/security/findings.md): RUSTSEC-2023-0071, RUSTSEC-2024-0436."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: security-reports
+          path: ${{ runner.temp }}/security
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------------------------
+  # Part 1 · Stage 3 (appsec): static application security testing. Semgrep registry rule packs for
+  # Rust / TypeScript / React / JavaScript plus the repository's own rules (sutraerp/.semgrep.yml:
+  # no raw HTML sinks in the SPA, no SQL text built from request data). Any finding fails the job;
+  # an accepted exception carries an inline `nosemgrep: <rule-id>` with its reason and is listed in
+  # sutraerp/docs/readiness/security/appsec.md.
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Semgrep (p/rust · p/typescript · p/react · p/javascript · .semgrep.yml)
+        id: semgrep
+        working-directory: .
+        run: |
+          mkdir -p "$RUNNER_TEMP/sast"
+          docker run --rm -v "$PWD:/src" -v "$RUNNER_TEMP/sast:/out" -w /src "$SEMGREP_IMAGE" \
+            semgrep scan --metrics=off --disable-version-check \
+              --config p/rust --config p/typescript --config p/react --config p/javascript \
+              --config sutraerp/.semgrep.yml \
+              --exclude 'node_modules' --exclude 'schema.d.ts' --exclude 'e2e' --exclude 'tests' \
+              --exclude '*.test.ts' --exclude '*.test.tsx' \
+              --sarif-output /out/semgrep.sarif --json-output /out/semgrep.json \
+              --error sutraerp
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### SAST (Semgrep)"
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Semgrep (registry packs + .semgrep.yml) | ${{ steps.semgrep.outcome }} |"
+            if [ -f "$RUNNER_TEMP/sast/semgrep.json" ]; then
+              echo
+              echo "Findings: $(jq '.results | length' "$RUNNER_TEMP/sast/semgrep.json"), scan errors: $(jq '.errors | length' "$RUNNER_TEMP/sast/semgrep.json")"
+              jq -r '.results[] | "- `\(.check_id)` \(.path):\(.start.line)"' "$RUNNER_TEMP/sast/semgrep.json" | head -n 100
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: sast-reports
+          path: ${{ runner.temp }}/sast
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------------------------
+  images-scan:
+    name: Image scan + ZAP baseline (Trivy · Grype · ZAP)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build API image (no push)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: sutraerp
+          file: sutraerp/deploy/docker/api.Dockerfile
+          push: false
+          load: true
+          tags: sutraerp/api:scan
+          build-args: SUTRA_GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=quality-api
+          cache-to: type=gha,scope=quality-api,mode=max
+      - name: Build web image (no push)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: sutraerp
+          file: sutraerp/deploy/docker/web.Dockerfile
+          push: false
+          load: true
+          tags: sutraerp/web:scan
+          cache-from: type=gha,scope=quality-web
+          cache-to: type=gha,scope=quality-web,mode=max
+      - name: Trivy (CRITICAL,HIGH · ignore-unfixed · exit 1)
+        id: trivy
+        run: |
+          mkdir -p "$RUNNER_TEMP/scan" "$HOME/.cache/trivy"
+          trivy() { docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME/.cache/trivy:/root/.cache/trivy" \
+            -v "$PWD:/src:ro" -v "$RUNNER_TEMP/scan:/out" "$TRIVY_IMAGE" image --scanners vuln \
+            --severity CRITICAL,HIGH --ignore-unfixed --ignorefile /src/.trivyignore "$@"; }
+          rc=0
+          for img in api web; do
+            trivy --format sarif --output "/out/trivy-$img.sarif" "sutraerp/$img:scan"
+            echo "::group::Trivy sutraerp/$img"
+            trivy --format table --exit-code 1 "sutraerp/$img:scan" || rc=1
+            echo "::endgroup::"
+          done
+          exit $rc
+      - name: Grype (fail-on high · only-fixed)
+        id: grype
+        if: success() || failure()
+        run: |
+          mkdir -p "$HOME/.cache/grype" "$RUNNER_TEMP/scan"
+          rc=0
+          for img in api web; do
+            echo "::group::Grype sutraerp/$img"
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$HOME/.cache/grype:/grype-db" \
+              -e GRYPE_DB_CACHE_DIR=/grype-db -v "$RUNNER_TEMP/scan:/out" "$GRYPE_IMAGE" \
+              "docker:sutraerp/$img:scan" --only-fixed --fail-on high \
+              -o table -o "sarif=/out/grype-$img.sarif" || rc=1
+            echo "::endgroup::"
+          done
+          exit $rc
+      # ---- run the scanned images like `docker compose --profile app` (dev auth, throwaway DB)
+      - name: Start PostgreSQL → migrate → API → web (scanned images)
+        id: stack
+        if: success() || failure()
+        run: |
+          set -euo pipefail
+          docker network create sutra
+          docker run -d --name postgres --network sutra -e POSTGRES_USER=sutra -e POSTGRES_PASSWORD=sutra -e POSTGRES_DB=sutra \
+            -v "$PWD/deploy/postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro" postgres:18
+          for _ in $(seq 1 60); do docker exec postgres pg_isready -U sutra -d sutra >/dev/null 2>&1 && break; sleep 1; done
+          sleep 3
+          RUNTIME_PW="$(openssl rand -hex 16)"
+          docker run --rm --network sutra -e SUTRA_ENV=development -e SUTRA_LOG_FORMAT=json \
+            -e DATABASE_URL=postgres://sutra:sutra@postgres:5432/sutra \
+            -e SUTRA_MIGRATION_DATABASE_URL=postgres://sutra:sutra@postgres:5432/sutra \
+            -e SUTRA_DB_RUNTIME_USER=sutra_api -e SUTRA_DB_RUNTIME_PASSWORD="$RUNTIME_PW" \
+            sutraerp/api:scan migrate
+          docker run -d --name api --network sutra -p 8080:8080 -e SUTRA_ENV=development -e SUTRA_LOG_FORMAT=json \
+            -e DATABASE_URL="postgres://sutra_api:${RUNTIME_PW}@postgres:5432/sutra" \
+            -e SUTRA_AUTH_MODE=dev -e SUTRA_DEV_AUTH_PASSWORD -e SUTRA_DEV_MFA=false -e SUTRA_OUTBOX_RELAY=off -e SUTRA_CACHE=memory \
+            -e SUTRA_INBOX_CONSUMER=false -e SUTRA_PUBLIC_URL=http://localhost:3000 -e SUTRA_APPROVAL_MODE=auto \
+            -e SUTRA_WEBAUTHN_RP_ID=localhost -e SUTRA_WEBAUTHN_ORIGINS=http://localhost:3000 \
+            sutraerp/api:scan
+          for _ in $(seq 1 90); do curl -fsS http://localhost:8080/health/live >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://localhost:8080/health/live
+          docker run -d --name web --network sutra -p 3000:8080 sutraerp/web:scan
+          for _ in $(seq 1 30); do curl -fsS http://localhost:3000/ >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS -o /dev/null http://localhost:3000/
+          echo "ok stack"
+      - name: Security headers on the SPA, its assets and the proxied API (SEC-9D-009/010)
+        id: headers
+        if: always() && steps.stack.outcome == 'success'
+        run: |
+          set -uo pipefail
+          asset="$(curl -fsS http://localhost:3000/ | grep -o '/assets/[^"]*\.js' | head -n 1)"
+          echo "asset: $asset"
+          fail=0
+          for url in http://localhost:3000/ "http://localhost:3000${asset}" http://localhost:3000/students http://localhost:3000/api/v1/auth/csrf; do
+            h="$(curl -sS -D - -o /dev/null "$url" | tr -d '\r')"
+            for want in "x-frame-options: DENY" "x-content-type-options: nosniff" "content-security-policy: default-src 'self'" \
+                        "referrer-policy: strict-origin-when-cross-origin" "permissions-policy:" "cross-origin-opener-policy: same-origin"; do
+              if echo "$h" | grep -qi "^${want}"; then echo "ok $url ${want%%:*}"; else echo "✗ $url missing ${want}"; fail=1; fi
+            done
+            if echo "$h" | grep -qi '^server: nginx/'; then echo "✗ $url leaks the nginx version"; fail=1; fi
+          done
+          if curl -sS -D - -o /dev/null "http://localhost:3000${asset}" | grep -qi '^cache-control: public, max-age=31536000, immutable'; then echo "ok asset cache-control"; else echo "✗ asset cache-control"; fail=1; fi
+          if curl -sS -D - -o /dev/null http://localhost:3000/ | grep -qi '^cache-control: no-cache'; then echo "ok index cache-control"; else echo "✗ index cache-control"; fail=1; fi
+          exit $fail
+      - name: ZAP baseline — web (SPA via nginx)
+        if: always() && steps.stack.outcome == 'success'
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: http://localhost:3000/
+          docker_name: ${{ env.ZAP_IMAGE }}
+          rules_file_name: sutraerp/.zap/rules.tsv
+          cmd_options: -a -I
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-web
+      - name: ZAP verdict — web (fail on High)
+        id: zapweb
+        if: always() && steps.stack.outcome == 'success'
+        working-directory: .
+        run: bash sutraerp/.zap/verdict.sh web report_json.json "$RUNNER_TEMP/scan"
+      - name: ZAP baseline — API (/api/v1 via nginx)
+        if: always() && steps.stack.outcome == 'success'
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: http://localhost:3000/api/v1/auth/csrf
+          docker_name: ${{ env.ZAP_IMAGE }}
+          rules_file_name: sutraerp/.zap/rules.tsv
+          cmd_options: -a -I
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-api
+      - name: ZAP verdict — API (fail on High)
+        id: zapapi
+        if: always() && steps.stack.outcome == 'success'
+        working-directory: .
+        run: bash sutraerp/.zap/verdict.sh api report_json.json "$RUNNER_TEMP/scan"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Image scan + ZAP baseline"
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Trivy api + web (CRITICAL/HIGH, fixed only) | ${{ steps.trivy.outcome }} |"
+            echo "| Grype api + web (high, fixed only) | ${{ steps.grype.outcome }} |"
+            echo "| Stack boot from the scanned images | ${{ steps.stack.outcome }} |"
+            echo "| Security headers (nginx) | ${{ steps.headers.outcome }} |"
+            echo "| ZAP baseline web (no High) | ${{ steps.zapweb.outcome }} |"
+            echo "| ZAP baseline API (no High) | ${{ steps.zapapi.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Diagnostics
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/scan/logs"
+          for c in postgres api web; do docker logs --tail 300 "$c" > "$RUNNER_TEMP/scan/logs/$c.log" 2>&1 || true; done
+          docker ps -a
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: image-scan-reports
+          path: ${{ runner.temp }}/scan
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------------------------
+  perf:
+    name: Performance gate (k6)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sutra
+          POSTGRES_PASSWORD: sutra
+          POSTGRES_DB: sutra_perf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra_perf
+      SUTRA_PERF_OUT: ${{ github.workspace }}/sutraerp/perf-results
+      # Throwaway CI database: commit without waiting for the runner's disk fsync (deploy/perf/run.sh).
+      SUTRA_PERF_SYNC_COMMIT_OFF: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: perf-release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: grafana/setup-k6-action@43b9fc21641a76002687994433dd586f56e791b1 # v1.2.2
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+      - name: Build API (release, §9)
+        run: cargo build --release -p sutra-api --locked
+      - name: perf-smoke (20 VU · 60 s · 70/30) — deploy/perf/run.sh smoke
+        run: bash deploy/perf/run.sh smoke
+      - name: API log tail
+        if: failure()
+        run: tail -n 200 perf-results/api.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: perf-results
+          path: sutraerp/perf-results
+          retention-days: 30
+          if-no-files-found: ignore
+
+  capacity:
+    name: Capacity (k6)
+    if: github.ref == 'refs/heads/erp_merge' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sutra
+          POSTGRES_PASSWORD: sutra
+          POSTGRES_DB: sutra_perf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra_perf
+      SUTRA_PERF_OUT: ${{ github.workspace }}/sutraerp/perf-results
+      # Throwaway CI database: commit without waiting for the runner's disk fsync (deploy/perf/run.sh).
+      SUTRA_PERF_SYNC_COMMIT_OFF: "true"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: perf-release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: grafana/setup-k6-action@43b9fc21641a76002687994433dd586f56e791b1 # v1.2.2
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+      - name: Build API (release, §9)
+        run: cargo build --release -p sutra-api --locked
+      - name: Runner info (capacity noise attribution)
+        run: |
+          nproc
+          lscpu | grep -E '^(Model name|CPU\(s\)|Thread|Core)' || true
+          free -m
+      - name: capacity (10 → 100 VU / 5 min, hold 3 min) — deploy/perf/run.sh capacity
+        env:
+          SUTRA_PERF_API_ENV: ${{ inputs.api_env }}
+        run: bash deploy/perf/run.sh capacity
+      - name: API log tail
+        if: failure()
+        run: tail -n 200 perf-results/api.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: perf-results-capacity
+          path: sutraerp/perf-results
+          retention-days: 30
+          if-no-files-found: ignore

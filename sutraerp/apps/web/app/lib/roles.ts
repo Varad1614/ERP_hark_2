@@ -7,23 +7,38 @@
  */
 import type { LucideIcon } from "lucide-react";
 import type { BadgeKind, Tone } from "@sutra/ui";
-import type { Role } from "@sutra/api-client";
+import type { Role as ApiRole } from "@sutra/api-client";
 import { Icons as I } from "./icons";
 
-export type { Role };
+/**
+ * UI persona of a session. Part 1 (DEF-X-002) checker roles (`finance_approver`, `exam_controller`,
+ * `registrar`, `payroll_approver`, `procurement_approver`) sign in to the administrator workspace;
+ * the API alone decides what each role may read or decide.
+ */
+export type Role = Extract<ApiRole, "administrator" | "faculty" | "student">;
+export type { ApiRole };
 export const ROLES: readonly Role[] = ["administrator", "faculty", "student"];
+
+/** The UI persona for an API role (checker roles use the administrator workspace). */
+export function uiRole(r: ApiRole): Role {
+  return r === "faculty" || r === "student" ? r : "administrator";
+}
 
 export interface NavEntry {
   id: string;
   label: string;
   icon: LucideIcon;
+  /** Other screens that light up this pill (e.g. Academics for /academic-delivery). */
+  match?: string[];
 }
+/**
+ * A home KPI tile: label, icon and destination only. 9E: the fixture numbers are gone — every
+ * value is read live in `features/home/live.tsx`, and a figure without a source renders pending.
+ */
 export interface Kpi {
   icon: LucideIcon;
   tone: Tone;
   label: string;
-  value: string;
-  hint: string;
   to: string;
 }
 export interface Todo {
@@ -48,7 +63,6 @@ export interface RoleConfig {
   name: string;
   first: string;
   initials: string;
-  loginId: string;
   blurb: string;
   nav: NavEntry[];
   hero: { sub: string; cta: string; to: string };
@@ -59,7 +73,7 @@ export interface RoleConfig {
   notifications: Notification[];
 }
 
-const nav = (id: string, label: string, icon: LucideIcon): NavEntry => ({ id, label, icon });
+const nav = (id: string, label: string, icon: LucideIcon, match?: string[]): NavEntry => (match ? { id, label, icon, match } : { id, label, icon });
 
 export const ROLE_CONFIG: Record<Role, RoleConfig> = {
   administrator: {
@@ -67,20 +81,19 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     name: "Dhruv Naik",
     first: "Dhruv",
     initials: "DN",
-    loginId: "admin@sutra.dev",
     blurb: "Institution overview, approvals, finance and people.",
     nav: [
-      nav("home", "Home", I.House), nav("students", "Students", I.GraduationCap), nav("academics", "Academics", I.BookOpen),
+      nav("home", "Home", I.House), nav("students", "Students", I.GraduationCap), nav("academics", "Academics", I.BookOpen, ["/academic-delivery"]),
       nav("examinations", "Examinations", I.ClipboardCheck), nav("finance", "Finance", I.Wallet), nav("people", "People", I.Users),
       nav("campus", "Campus", I.Building2), nav("reports", "Reports", I.ChartBar), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
     hero: { sub: "A clear view of your institution, and what needs you today.", cta: "Review priority work", to: "todo:0" },
     now: { time: "11:00", title: "Admissions check-in", sub: "Registrar’s office · 30 min", next: [["09:30", "Department coordinators", "Room 2"], ["14:30", "Academic planning", "45 min"]] },
     kpis: [
-      { icon: I.GraduationCap, tone: "orange", label: "Students enrolled", value: "4,812", hint: "+3.1% vs last year", to: "students" },
-      { icon: I.Users, tone: "green", label: "Faculty on roll", value: "286", hint: "4 joining this month", to: "people" },
-      { icon: I.Wallet, tone: "violet", label: "Fee collection", value: "82%", hint: "₹3.4 Cr of ₹4.1 Cr", to: "finance" },
-      { icon: I.UserCheck, tone: "blue", label: "Attendance today", value: "91%", hint: "Campus-wide", to: "reports" },
+      { icon: I.GraduationCap, tone: "orange", label: "Students enrolled", to: "students" },
+      { icon: I.Users, tone: "green", label: "Faculty on roll", to: "people" },
+      { icon: I.Wallet, tone: "violet", label: "Fee collection", to: "finance" },
+      { icon: I.Building2, tone: "blue", label: "Open work orders", to: "campus/facilities" },
     ],
     todos: [
       { title: "Admission documents to review", meta: "Students · Registrar’s office · Today, 4:00 PM", status: "attention" },
@@ -89,7 +102,7 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
       { title: "Staff leave requests", meta: "People · HR operations · 19 Sep", status: "neutral" },
     ],
     shortcuts: [
-      { icon: I.UserPlus, label: "New admission", to: "students" },
+      { icon: I.UserPlus, label: "New admission", to: "students/admissions" },
       { icon: I.Wallet, label: "Fee overview", to: "finance" },
       { icon: I.CalendarCheck, label: "Exam calendar", to: "examinations" },
       { icon: I.Contact, label: "Staff directory", to: "people" },
@@ -106,20 +119,19 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     name: "Dr. Meera Shah",
     first: "Meera",
     initials: "MS",
-    loginId: "meera.shah@sutra.dev",
     blurb: "Classes, attendance, assessments and mentoring.",
     nav: [
       nav("home", "Home", I.House), nav("classes", "My classes", I.Presentation), nav("attendance", "Attendance", I.UserCheck),
-      nav("assessments", "Assessments", I.PencilLine), nav("students", "Students", I.GraduationCap), nav("timetable", "Timetable", I.CalendarDays),
+      nav("assessments", "Assessments", I.PencilLine), nav("my-students", "Students", I.GraduationCap), nav("timetable", "Timetable", I.CalendarDays),
       nav("leave", "Leave", I.Plane), nav("resources", "Resources", I.Library), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
     hero: { sub: "Your teaching day, with the details that matter.", cta: "Open next class", to: "classes" },
     now: { time: "10:30", title: "Data Structures", sub: "CS201 · Section A · B-204", next: [["09:00", "Database Systems", "B-102"], ["14:00", "Student consultation", "60 min"]] },
     kpis: [
-      { icon: I.Presentation, tone: "orange", label: "Classes today", value: "3", hint: "Next at 10:30", to: "classes" },
-      { icon: I.Users, tone: "green", label: "My students", value: "128", hint: "Across 2 sections", to: "students" },
-      { icon: I.Inbox, tone: "violet", label: "To review", value: "12", hint: "Lab submissions", to: "assessments" },
-      { icon: I.UserCheck, tone: "blue", label: "Avg attendance", value: "88%", hint: "Last 30 days", to: "attendance" },
+      { icon: I.Presentation, tone: "orange", label: "Classes today", to: "classes" },
+      { icon: I.Users, tone: "green", label: "My students", to: "my-students" },
+      { icon: I.Inbox, tone: "violet", label: "To review", to: "assessments" },
+      { icon: I.UserCheck, tone: "blue", label: "Avg attendance", to: "attendance" },
     ],
     todos: [
       { title: "Take attendance · Data Structures", meta: "CS201 · Section A · B-204 · Today, 10:30 AM", status: "attention" },
@@ -145,20 +157,19 @@ export const ROLE_CONFIG: Record<Role, RoleConfig> = {
     name: "Aarav Desai",
     first: "Aarav",
     initials: "AD",
-    loginId: "aarav.desai@sutra.dev",
     blurb: "Timetable, coursework, results and fees.",
     nav: [
-      nav("home", "Home", I.House), nav("timetable", "Timetable", I.CalendarDays), nav("courses", "Courses", I.BookOpen),
+      nav("home", "Home", I.House), nav("timetable", "Timetable", I.CalendarDays), nav("courses", "Courses", I.BookOpen, ["/registration"]),
       nav("assignments", "Assignments", I.PencilLine), nav("results", "Results", I.Award), nav("fees", "Fees", I.Wallet),
       nav("documents", "Documents", I.FileText), nav("library", "Library", I.Library), nav("workspaces", "Workspaces", I.LayoutGrid),
     ],
     hero: { sub: "Make room for learning. Your day is right here.", cta: "View my timetable", to: "timetable" },
     now: { time: "10:30", title: "Data Structures", sub: "Dr. Meera Shah · B-204", next: [["09:00", "Mathematics II", "A-103"], ["13:30", "Database Systems lab", "Lab 2"]] },
     kpis: [
-      { icon: I.UserCheck, tone: "orange", label: "Attendance", value: "92%", hint: "Above the 75% minimum", to: "timetable" },
-      { icon: I.Award, tone: "green", label: "CGPA", value: "8.4", hint: "Semester 2: 8.6", to: "results" },
-      { icon: I.PencilLine, tone: "violet", label: "Due this week", value: "2", hint: "1 due today", to: "assignments" },
-      { icon: I.Wallet, tone: "blue", label: "Fees", value: "Paid", hint: "Next due 15 Jan", to: "fees" },
+      { icon: I.UserCheck, tone: "orange", label: "Attendance", to: "timetable" },
+      { icon: I.Award, tone: "green", label: "CGPA", to: "results" },
+      { icon: I.PencilLine, tone: "violet", label: "Due this week", to: "assignments" },
+      { icon: I.Wallet, tone: "blue", label: "Fees", to: "fees" },
     ],
     todos: [
       { title: "Linked lists: practice assignment", meta: "Data Structures · CS201 · Today, 5:00 PM", status: "attention" },
@@ -188,7 +199,10 @@ export const BADGE_LABEL: Record<Todo["status"], string> = { attention: "Due soo
 export const SCREEN_BATCH: Record<string, { batch: number; area: string }> = {
   students: { batch: 3, area: "Student lifecycle (C)" },
   documents: { batch: 3, area: "Student lifecycle (C)" },
-  academics: { batch: 4, area: "Academic (D)" },
+  registration: { batch: 3, area: "Student lifecycle (C)" },
+  academics: { batch: 2, area: "Institution (B)" },
+  "academic-delivery": { batch: 4, area: "Academic (D)" },
+  "my-students": { batch: 4, area: "Academic (D)" },
   classes: { batch: 4, area: "Academic (D)" },
   attendance: { batch: 4, area: "Academic (D)" },
   timetable: { batch: 4, area: "Academic (D)" },
@@ -201,13 +215,19 @@ export const SCREEN_BATCH: Record<string, { batch: number; area: string }> = {
   results: { batch: 6, area: "Examinations (I)" },
   people: { batch: 7, area: "People & workforce (E)" },
   leave: { batch: 7, area: "People & workforce (E)" },
-  campus: { batch: 8, area: "Campus (G)" },
-  resources: { batch: 8, area: "Resources (J)" },
-  library: { batch: 8, area: "Resources (J)" },
-  reports: { batch: 9, area: "Reporting projections" },
+  campus: { batch: 2, area: "Institution (B) campus setup; Campus operations (G) and resources (J) since Batch 8" },
+  resources: { batch: 4, area: "Academic (D) course resources; Resources (J) in Batch 8" },
+  library: { batch: 4, area: "Academic (D) library links; Campus library (G05) since Batch 8" },
+  reports: { batch: 8, area: "Reports & analytics (H07 dashboards, H08 regulatory reporting)" },
   profile: { batch: 1, area: "Platform (A)" },
   notices: { batch: 1, area: "Platform (A)" },
   todos: { batch: 1, area: "Platform (A)" },
+};
+
+/** Screens reachable from a pill's page instead of their own pill (prototype navigation). */
+export const SECONDARY_SCREENS: Record<string, { label: string; icon: LucideIcon }> = {
+  "academic-delivery": { label: "Academic delivery", icon: I.Presentation },
+  registration: { label: "Registration", icon: I.ClipboardCheck },
 };
 
 export function routeFor(id: string): string {
@@ -217,4 +237,17 @@ export function routeFor(id: string): string {
 
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as readonly string[]).includes(value);
+}
+
+const APPROVER_TITLES: Record<Exclude<ApiRole, Role>, string> = {
+  finance_approver: "Finance approver",
+  exam_controller: "Controller of examinations",
+  registrar: "Registrar",
+  payroll_approver: "Payroll approver",
+  procurement_approver: "Procurement approver",
+};
+
+/** Display title of any API role. */
+export function roleTitle(r: ApiRole): string {
+  return r === "administrator" || r === "faculty" || r === "student" ? ROLE_CONFIG[r].title : APPROVER_TITLES[r];
 }

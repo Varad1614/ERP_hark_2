@@ -1,0 +1,225 @@
+# Batch 9 · owned by slice 9C (sutraerp/docs/batch9-contracts.md §7, §8, §11).
+# Proves, against real services: Flowable REST 8.0.0 (BPMN deploy → start → decision sync →
+# history), OpenSearch 2.19.1 projections (project → search → rebuild == incremental, tenant
+# isolation), and backup → wipe → restore (deploy/ci/dr-drill.sh in compose mode: row counts,
+# audit heads, append-only audit grants, Flowable definitions, search rebuild counts, RTO).
+# Job name is stable (the pinger and b9-ci.sh read it).
+name: SutraERP data platform (Flowable · OpenSearch · DR)
+
+on:
+  push:
+    branches: [ERP_EXTENSIONS, main, erp_merge, "batch9/**"]
+    tags: ["v*"]
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-data.yml"]
+  workflow_dispatch:
+  pull_request:
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-data.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sutraerp-data-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Audit 2026-10 (A1, D1/C1): the dev authenticator has no default password. CI-only value, used
+  # by every API started in dev auth mode, the E2E sign-in and the scripts that log in.
+  SUTRA_DEV_AUTH_PASSWORD: ci-only-dev-signin-6d2f9b
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  SQLX_OFFLINE: "true"
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  data:
+    name: Data platform (Flowable · OpenSearch · backup → restore)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sutra
+          POSTGRES_PASSWORD: sutra
+          POSTGRES_DB: sutra
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sutra" --health-interval 5s --health-timeout 3s --health-retries 20
+      opensearch:
+        image: opensearchproject/opensearch:2.19.1
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: "true"
+          DISABLE_INSTALL_DEMO_CONFIG: "true"
+          OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports: ["9200:9200"]
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 30
+    env:
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
+      SUTRA_TEST_FLOWABLE_URL: http://localhost:8090/flowable-rest
+      SUTRA_TEST_OPENSEARCH_URL: http://localhost:9200
+      FLOWABLE_IMAGE: flowable/flowable-rest:8.0.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: BPMN for every approval key (gen-bpmn.py --check) + chart scripts in sync
+        run: |
+          python3 deploy/flowable/gen-bpmn.py --check
+          python3 deploy/backup/gen-chart.py --check
+          for f in deploy/backup/lib.sh deploy/backup/sutra-backup.sh deploy/backup/sutra-restore.sh deploy/flowable/init-db.sh deploy/ci/dr-drill.sh; do bash -n "$f"; done
+
+      - name: Throwaway credentials
+        run: |
+          {
+            echo "FLOWABLE_DB_PASSWORD=$(openssl rand -hex 16)"
+            echo "SUTRA_TEST_FLOWABLE_PASSWORD=$(openssl rand -hex 16)"
+            echo "SUTRA_RUNTIME_PASSWORD=$(openssl rand -hex 16)"
+          } >> "$GITHUB_ENV"
+
+      - name: PostgreSQL 18 client (pg_dump / pg_restore must match the server)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-18 >/dev/null
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/18/bin/pg_dump --version
+
+      - name: Flowable database (deploy/flowable/init-db.sh)
+        env:
+          PGHOST: localhost
+          PGUSER: sutra
+          PGPASSWORD: sutra
+        run: bash deploy/flowable/init-db.sh
+
+      - name: Start Flowable REST (host port 8090)
+        run: |
+          docker run -d --name flowable --network host \
+            -e SERVER_PORT=8090 \
+            -e SPRING_DATASOURCE_DRIVER-CLASS-NAME=org.postgresql.Driver \
+            -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/flowable \
+            -e SPRING_DATASOURCE_USERNAME=flowable \
+            -e SPRING_DATASOURCE_PASSWORD="$FLOWABLE_DB_PASSWORD" \
+            -e FLOWABLE_REST_APP_ADMIN_USER-ID=rest-admin \
+            -e FLOWABLE_REST_APP_ADMIN_PASSWORD="$SUTRA_TEST_FLOWABLE_PASSWORD" \
+            -e FLOWABLE_REST_APP_ADMIN_FIRST-NAME=Sutra \
+            -e FLOWABLE_REST_APP_ADMIN_LAST-NAME=CI \
+            -e JAVA_OPTS="-Xms256m -Xmx768m" \
+            "$FLOWABLE_IMAGE"
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: data-platform
+          cache-on-failure: true
+
+      - name: Build sutra-api + the 9C test binaries
+        run: |
+          cargo build -p sutra-api --locked
+          cargo test -p sutra-api --features db-tests,flowable-tests,opensearch-tests --locked --no-run \
+            --test db_b9c --test live_flowable --test live_opensearch
+
+      - name: Wait for Flowable + OpenSearch
+        run: |
+          for i in $(seq 1 90); do
+            curl -fsS -u "rest-admin:$SUTRA_TEST_FLOWABLE_PASSWORD" http://localhost:8090/flowable-rest/actuator/health >/dev/null 2>&1 && break
+            [ "$i" = 90 ] && { docker logs --tail 200 flowable; exit 1; }
+            sleep 4
+          done
+          echo "ok flowable $(curl -fsS -u "rest-admin:$SUTRA_TEST_FLOWABLE_PASSWORD" http://localhost:8090/flowable-rest/actuator/health)"
+          curl -s -o /dev/null -w 'flowable health without auth (chart readiness probe): HTTP %{http_code}\n' http://localhost:8090/flowable-rest/actuator/health
+          curl -fsS "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=120s" | jq -c '{status, number_of_nodes}'
+          curl -fsS http://localhost:9200 | jq -r '"ok opensearch \(.version.number)"'
+
+      - name: db_b9c · live_flowable · live_opensearch
+        run: >-
+          cargo test -p sutra-api --features db-tests,flowable-tests,opensearch-tests --locked --no-fail-fast
+          --test db_b9c --test live_flowable --test live_opensearch -- --test-threads 2
+
+      - name: Migrate + start the API (SUTRA_WORKFLOW=flowable, SUTRA_SEARCH=opensearch)
+        env:
+          SUTRA_ENV: development
+          SUTRA_DB_RUNTIME_USER: sutra_api
+        run: |
+          SUTRA_DB_RUNTIME_PASSWORD="$SUTRA_RUNTIME_PASSWORD" target/debug/sutra-api migrate
+          cat > "$RUNNER_TEMP/api-start.sh" <<'EOF'
+          #!/usr/bin/env bash
+          # Started by the workflow and by dr-drill.sh after the restore (same environment).
+          cd "$GITHUB_WORKSPACE/sutraerp"
+          unset SUTRA_DB_RUNTIME_USER SUTRA_DB_RUNTIME_PASSWORD SUTRA_MIGRATION_DATABASE_URL  # migrate-only settings
+          export SUTRA_ENV=development SUTRA_AUTH_MODE=dev SUTRA_HTTP_ADDR=127.0.0.1:8080
+          export SUTRA_SESSION_COOKIE_SECURE=false  # plain http on the runner (curl cookie jar)
+          export DATABASE_URL="postgres://sutra_api:${SUTRA_RUNTIME_PASSWORD}@localhost:5432/sutra"
+          export SUTRA_WORKFLOW=flowable SUTRA_FLOWABLE_URL=http://localhost:8090/flowable-rest
+          export SUTRA_FLOWABLE_USER=rest-admin SUTRA_FLOWABLE_PASSWORD="$SUTRA_TEST_FLOWABLE_PASSWORD"
+          export SUTRA_SEARCH=opensearch SUTRA_OPENSEARCH_URL=http://localhost:9200
+          export SUTRA_OPENSEARCH_INDEX_PREFIX=sutra-development SUTRA_SEARCH_POLL_MS=1000
+          # Part 1 (DEF-X-001): the DR drill tests backup/restore, not approvals → dev auto opt-in.
+          export SUTRA_APPROVAL_MODE=auto
+          nohup target/debug/sutra-api serve >>"$RUNNER_TEMP/api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/api.pid"
+          EOF
+          cat > "$RUNNER_TEMP/api-stop.sh" <<'EOF'
+          #!/usr/bin/env bash
+          pid=$(cat "$RUNNER_TEMP/api.pid" 2>/dev/null || true)
+          [ -n "$pid" ] || exit 0
+          kill "$pid" 2>/dev/null || exit 0
+          for i in $(seq 1 30); do kill -0 "$pid" 2>/dev/null || exit 0; sleep 1; done
+          kill -9 "$pid" 2>/dev/null || true
+          EOF
+          chmod +x "$RUNNER_TEMP/api-start.sh" "$RUNNER_TEMP/api-stop.sh"
+          "$RUNNER_TEMP/api-start.sh"
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/health/ready >/dev/null 2>&1 && break
+            [ "$i" = 60 ] && { tail -100 "$RUNNER_TEMP/api.log"; exit 1; }
+            sleep 2
+          done
+          echo "ok api ready"
+          curl -s -o /dev/null -w 'search route HTTP %{http_code}\n' "http://localhost:8080/api/v1/platform/search?q=a&projection=students"
+
+      - name: DR drill (backup → wipe → restore → verify, compose mode)
+        env:
+          SUTRA_ENV: development
+          SUTRA_CI_MODE: compose
+          SUTRA_CI_API_URL: http://localhost:8080
+          SUTRA_CI_DB_URL: postgres://sutra:sutra@localhost:5432/sutra
+          SUTRA_CI_FLOWABLE_DB_URL: postgres://sutra:sutra@localhost:5432/flowable
+          SUTRA_CI_FLOWABLE_URL: http://localhost:8090/flowable-rest
+          SUTRA_CI_OPENSEARCH_URL: http://localhost:9200
+          SUTRA_CI_OPENSEARCH_PREFIX: sutra-development
+          SUTRA_DB_RUNTIME_USER: sutra_api
+          SUTRA_API_BIN: ${{ github.workspace }}/sutraerp/target/debug/sutra-api
+          SUTRA_CI_FLOWABLE_STOP: docker stop flowable
+          SUTRA_CI_FLOWABLE_RESTART: >-
+            docker start flowable && for i in $(seq 1 90); do curl -fsS -u "rest-admin:$SUTRA_TEST_FLOWABLE_PASSWORD"
+            http://localhost:8090/flowable-rest/actuator/health >/dev/null 2>&1 && break; sleep 4; done
+        run: |
+          export SUTRA_DB_RUNTIME_PASSWORD="$SUTRA_RUNTIME_PASSWORD"
+          export SUTRA_CI_FLOWABLE_PASSWORD="$SUTRA_TEST_FLOWABLE_PASSWORD"
+          export SUTRA_CI_API_START="$RUNNER_TEMP/api-start.sh" SUTRA_CI_API_STOP="$RUNNER_TEMP/api-stop.sh"
+          bash deploy/ci/dr-drill.sh --dry-run
+          bash deploy/ci/dr-drill.sh
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/diag"
+          cp "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/diag/" 2>/dev/null || true
+          docker logs --tail 400 flowable > "$RUNNER_TEMP/diag/flowable.log" 2>&1 || true
+          docker ps -a > "$RUNNER_TEMP/diag/docker-ps.txt" 2>&1 || true
+          for c in $(docker ps -aq); do docker logs --tail 200 "$c" > "$RUNNER_TEMP/diag/container-$c.log" 2>&1 || true; done
+          curl -s "http://localhost:9200/_cat/indices?v" > "$RUNNER_TEMP/diag/opensearch-indices.txt" || true
+          tail -60 "$RUNNER_TEMP/api.log" || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: data-platform-diagnostics
+          path: ${{ runner.temp }}/diag
+          retention-days: 7

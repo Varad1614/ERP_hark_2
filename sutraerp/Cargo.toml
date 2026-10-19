@@ -5,6 +5,7 @@ members = [
     "crates/contracts",
     "crates/persistence",
     "crates/web",
+    "crates/infra",
     "modules/platform",
     "modules/institution",
     "modules/student",
@@ -21,7 +22,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "UNLICENSED"
 publish = false
 
@@ -31,6 +32,7 @@ sutra-kernel = { path = "crates/kernel" }
 sutra-contracts = { path = "crates/contracts" }
 sutra-persistence = { path = "crates/persistence" }
 sutra-web = { path = "crates/web" }
+sutra-infra = { path = "crates/infra" }
 sutra-platform = { path = "modules/platform" }
 sutra-institution = { path = "modules/institution" }
 sutra-student = { path = "modules/student" }
@@ -49,6 +51,7 @@ tower = { version = "0.5", default-features = false, features = ["util"] }
 tower-http = { version = "0.6", features = ["trace", "timeout", "limit", "sensitive-headers", "catch-panic"] }
 http = "1"
 http-body-util = "0.1"
+tokio-util = { version = "0.7", default-features = false }
 
 # Contracts / OpenAPI (ADR-L5-0021 / 0034)
 utoipa = { version = "5", features = ["uuid", "chrono", "decimal"] }
@@ -63,9 +66,12 @@ sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio",
 uuid = { version = "1", features = ["v7", "serde"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 rust_decimal = { version = "1", features = ["serde-with-str"] }
+unicode-normalization = "0.1"
 thiserror = "2"
 async-trait = "0.1"
 sha2 = "0.10"
+hmac = "0.12"
+subtle = "2"
 getrandom = "0.3"
 
 # Observability (ADR-L5-0029 hooks)
@@ -73,6 +79,47 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
 
 dotenvy = "0.15"
+
+# Auth: OIDC back-channel (ADR-L5-0024), ID-token validation, TOTP/AES-GCM (ADR-L5-0038)
+# Part 2 · S5-deploy: + rustls-tls-native-roots — outbound HTTPS (S3 / MinIO, Keycloak, Flowable,
+# Razorpay, OpenSearch) also trusts the OS store, so an on-prem install with a private CA works:
+# set SSL_CERT_FILE to a PEM bundle holding the college / internal CA (rustls-native-certs reads it).
+# The bundled webpki roots stay on for public CAs. docs/readiness/DEPLOYMENT_RUNBOOK.md "TLS".
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
+jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
+ring = "0.17"
+base64 = "0.22"
+regex = "1"
+
+# Messaging + cache adapters (ADR-L5-0022 NATS JetStream, ADR-L5-0037 Valkey); rustls only
+async-nats = { version = "0.50", default-features = false, features = ["ring", "jetstream"] }
+redis = { version = "1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-webpki-roots", "connection-manager"] }
+
+# Dev-mode WebAuthn second factor (Batch 1D). webauthn-rs-core links the system OpenSSL
+# (libssl): rust:1-bookworm ships libssl-dev and distroless/cc-debian12 ships libssl3.
+webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
+url = "2"
+
+# SMTP e-mail channel for notifications (Batch 1D), rustls only; lives in sutra-infra.
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-rustls", "ring", "webpki-roots", "builder", "hostname"] }
+
+# 9A: OpenTelemetry trace + log export over OTLP (gRPC via tonic, HTTP/protobuf via the blocking
+# reqwest client) and the Prometheus `/metrics` listener (docs/batch9-contracts.md §3). One
+# version-matched set: opentelemetry* 0.33 <-> tracing-opentelemetry 0.34.
+opentelemetry = { version = "0.33", default-features = false, features = ["trace", "logs"] }
+opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace", "logs"] }
+opentelemetry-otlp = { version = "0.33", default-features = false, features = ["trace", "logs", "grpc-tonic", "tls-ring", "tls-webpki-roots", "http-proto", "reqwest-blocking-client"] }
+opentelemetry-semantic-conventions = "0.33"
+opentelemetry-appender-tracing = { version = "0.33", default-features = false }
+tracing-opentelemetry = { version = "0.34", default-features = false }
+prometheus-client = "0.25"
+# 9C: metrics facade for sutra_workflow_calls_total / sutra_search_projection_lag_seconds
+metrics = "0.24"
+
+# Part 2 · S4-import: XLSX import / export files (zip container; deflate through flate2 + zlib-rs).
+# calamine / rust_xlsxwriter cannot be used: every release of both depends on zip 7.x / 8.x, all
+# of which are yanked (cargo-deny `yanked = "deny"`); see docs/readiness/part2/s4-import.md.
+zip = { version = "9.0.4", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -92,3 +139,12 @@ debug = false
 lto = "thin"
 codegen-units = 4
 strip = "symbols"
+
+# Lighter profile for local Docker images (Docker Desktop / WSL with ~8 GB): no LTO, more but
+# smaller codegen units, less optimisation -> far lower peak rustc memory and a much faster build.
+[profile.docker]
+inherits = "release"
+opt-level = 1
+lto = false
+codegen-units = 16
+incremental = false

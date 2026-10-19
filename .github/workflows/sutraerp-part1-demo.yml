@@ -1,0 +1,230 @@
+name: SutraERP Part 1 demo (full stack)
+
+# Part 1 Stage 2 — a real full-stack demonstration on a GitHub runner (the developer machine
+# cannot run it): docker compose brings up postgres, keycloak (realm import), valkey, nats,
+# mailpit, minio (built from source), migrate, api and web in Keycloak/OIDC mode; a synthetic institution is seeded through
+# the API; apps/web/e2e/journey.e2e.mjs drives Admission → Enrolment → Attendance → Fees →
+# Examination → Result in Chromium (API where no screen exists), checks every step in PostgreSQL,
+# restarts api + postgres and re-checks persistence. Logs, screenshots and the step results are
+# uploaded; the results are the job summary. Guide: sutraerp/docs/readiness/DEMO_RUN_GUIDE.md.
+
+on:
+  push:
+    branches: ["part1/**"]
+    paths: ["sutraerp/**", ".github/workflows/sutraerp-part1-demo.yml"]
+  workflow_dispatch:
+    inputs:
+      auth_mode:
+        description: "keycloak (OIDC, default) or dev (dev authenticator)"
+        type: choice
+        options: [keycloak, dev]
+        default: keycloak
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part1-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Audit 2026-10 (A1, D1/C1): the dev authenticator has no default password. CI-only value, used
+  # by every API started in dev auth mode, the E2E sign-in and the scripts that log in.
+  SUTRA_DEV_AUTH_PASSWORD: ci-only-dev-signin-6d2f9b
+  # Transitional: web builds before the typed-password sign-in still read VITE_DEV_PASSWORD.
+  VITE_DEV_PASSWORD: ci-only-dev-signin-6d2f9b
+  # Dev persona picker + role switcher in the CI web builds (never in a public build).
+  VITE_DEV_PERSONAS: "true"
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  SQLX_OFFLINE: "true"
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  demo:
+    name: Full stack demo (compose · ${{ inputs.auth_mode || 'keycloak' }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      AUTH_MODE: ${{ inputs.auth_mode || 'keycloak' }}
+      COMPOSE_FILE: docker-compose.yml:docker-compose.demo.yml
+      COMPOSE_PROFILES: app
+      # The host reaches the published ports; the journey talks to the browser-facing origin.
+      E2E_BASE: http://localhost:3000
+      DATABASE_URL: postgres://sutra:sutra@localhost:5432/sutra
+      MINIO_TAG: RELEASE.2025-10-15T17-29-55Z
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        working-directory: /
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+
+      - name: Auth mode
+        run: |
+          DEMO_OUT="$RUNNER_TEMP/demo"; echo "DEMO_OUT=$DEMO_OUT" >> "$GITHUB_ENV"
+          mkdir -p "$DEMO_OUT/logs" "$DEMO_OUT/shots"
+          if [ "$AUTH_MODE" = "keycloak" ]; then
+            echo "SUTRA_COMPOSE_AUTH_MODE=keycloak" >> "$GITHUB_ENV"
+            echo "SUTRA_COMPOSE_WEB_AUTH_MODE=oidc" >> "$GITHUB_ENV"
+            echo "E2E_AUTH=oidc" >> "$GITHUB_ENV"
+          else
+            echo "SUTRA_COMPOSE_AUTH_MODE=dev" >> "$GITHUB_ENV"
+            echo "SUTRA_COMPOSE_WEB_AUTH_MODE=api" >> "$GITHUB_ENV"
+            echo "SUTRA_COMPOSE_WEB_DEV_PERSONAS=true" >> "$GITHUB_ENV"
+            echo "E2E_AUTH=dev" >> "$GITHUB_ENV"
+          fi
+
+      # ---- build: the API binary like the CI e2e jobs (runner Rust cache), web image in compose
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sutraerp
+          shared-key: e2e-api
+          cache-on-failure: true
+      - name: Build sutra-api (debug, same build as the CI e2e jobs)
+        run: |
+          cargo build -p sutra-api --locked
+          mkdir -p deploy/docker/demo-bin
+          cp target/debug/sutra-api deploy/docker/demo-bin/sutra-api
+          strip --strip-debug deploy/docker/demo-bin/sutra-api
+          ls -lh deploy/docker/demo-bin/sutra-api
+      # Part 2 · S4-docs: MinIO (document storage) built from its archived upstream source at a
+      # pinned release tag (no pullable upstream images; no third-party mirrors), cached per tag,
+      # run in compose from deploy/docker/minio-prebuilt.Dockerfile with random root credentials.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - name: MinIO binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/sutra-minio
+          key: minio-${{ env.MINIO_TAG }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Build MinIO from source (${{ env.MINIO_TAG }})
+        run: |
+          set -euo pipefail
+          OUT="$HOME/.cache/sutra-minio/minio" bash deploy/minio/build-from-source.sh
+          mkdir -p deploy/docker/demo-bin
+          cp "$HOME/.cache/sutra-minio/minio" deploy/docker/demo-bin/minio
+          user="demo$(openssl rand -hex 6)"; secret="$(openssl rand -hex 24)"
+          echo "::add-mask::$secret"
+          { echo "SUTRA_COMPOSE_S3_ACCESS_KEY=$user"; echo "SUTRA_COMPOSE_S3_SECRET_KEY=$secret"; } >> "$GITHUB_ENV"
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: sutraerp/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sutraerp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sutra/web exec playwright install --with-deps chromium
+
+      # ---- 1) validate compose + env configuration
+      - name: Validate docker-compose.yml and the environment configuration
+        run: |
+          set -euo pipefail
+          # Base file alone, every profile, then base + demo override.
+          COMPOSE_FILE=docker-compose.yml docker compose --profile app --profile demo config -q
+          docker compose config -q
+          docker compose config > "$DEMO_OUT/logs/compose.resolved.yml"
+          # .env.example parses as a complete configuration (exactly what `serve` would read).
+          env -i PATH="$PATH" SUTRA_DEV_AUTH_PASSWORD="$SUTRA_DEV_AUTH_PASSWORD" SUTRA_ENV_FILE=.env.example target/debug/sutra-api check-config
+          docker compose build
+          # The api service's own environment (compose interpolation included), in its container.
+          docker compose run --rm --no-deps api check-config | tee "$DEMO_OUT/logs/api-check-config.txt"
+          grep -q "auth=$( [ "$AUTH_MODE" = keycloak ] && echo Keycloak || echo Dev )" "$DEMO_OUT/logs/api-check-config.txt"
+          grep -q "documents=S3" "$DEMO_OUT/logs/api-check-config.txt"
+
+      # ---- bring the stack up and wait on every health check
+      - name: docker compose up (infra → migrate → api → web)
+        run: |
+          set -euo pipefail
+          docker compose up -d
+          bash deploy/ci/demo-wait.sh | tee "$DEMO_OUT/logs/health-1-startup.txt"
+
+      # ---- 2+3) seed + journey
+      - name: Journey — seed + Admission → Enrolment → Attendance → Fees → Examination → Result
+        id: journey
+        env:
+          E2E_SHOTS: ${{ runner.temp }}/demo/shots
+          E2E_RESULTS: ${{ runner.temp }}/demo/journey-results.json
+          E2E_PHASE: journey
+          E2E_STATE: ${{ runner.temp }}/journey-state.json
+          # No known open defects: every negative check counts (DEF-C-003 fixed, merged from s2-acad).
+          E2E_KNOWN_DEFECTS: ""
+        run: timeout 2400 node apps/web/e2e/journey.e2e.mjs
+
+      # ---- 4) persistence across restarts
+      - name: Restart api + postgres
+        if: always() && steps.journey.outcome != 'skipped'
+        run: |
+          set -euo pipefail
+          ip() { docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' "$(docker compose ps -q "$1")"; }
+          echo "before: api $(ip api)· postgres $(ip postgres)" | tee "$DEMO_OUT/logs/restart-addresses.txt"
+          docker compose restart postgres api
+          # The api often returns on a new address; the web proxy must follow it (DEF-P1-DEMO-004).
+          echo "after:  api $(ip api)· postgres $(ip postgres)" | tee -a "$DEMO_OUT/logs/restart-addresses.txt"
+          bash deploy/ci/demo-wait.sh | tee "$DEMO_OUT/logs/health-2-after-restart.txt"
+      - name: Persistence — attendance, fees and results re-queried after the restart
+        if: always() && steps.journey.outcome != 'skipped'
+        env:
+          E2E_SHOTS: ${{ runner.temp }}/demo/shots
+          E2E_RESULTS: ${{ runner.temp }}/demo/journey-results.json
+          E2E_PHASE: persistence
+          E2E_STATE: ${{ runner.temp }}/journey-state.json
+        run: timeout 900 node apps/web/e2e/journey.e2e.mjs
+
+      # ---- 4a) Part 2 · S6-pilot: UAT DRY RUN with synthetic data (NOT user acceptance testing):
+      # one key UAT case per pilot role (docs/readiness/UAT_TEST_CASES.md) on the journey's
+      # synthetic institution — administrator, faculty, accounts staff → finance approver,
+      # examination staff → controller of examinations, student — every role signed in through the
+      # stack's real flow, governed decisions by an independent checker (human approval mode).
+      - name: UAT dry run (synthetic data, one key case per role)
+        id: uat
+        if: always() && steps.journey.outcome != 'skipped'
+        env:
+          E2E_SHOTS: ${{ runner.temp }}/demo/shots
+          E2E_STATE: ${{ runner.temp }}/journey-state.json
+          E2E_UAT_RESULTS: ${{ runner.temp }}/demo/uat-dryrun-results.json
+        run: timeout 1200 node apps/web/e2e/uat-dryrun.e2e.mjs
+
+      # ---- 4b) database integrity after the journey + restart: orphans, balances, duplicates,
+      # idempotency, maker-checker, guards and negative probes (rolled back); fails on any violation.
+      - name: Database integrity (SQL checks against the demo DB)
+        if: always() && steps.journey.outcome != 'skipped'
+        run: bash deploy/ci/db-integrity.sh 2>&1 | tee "$DEMO_OUT/logs/db-integrity.txt"; exit "${PIPESTATUS[0]}"
+
+      # ---- 5) evidence
+      - name: Job summary
+        if: always()
+        run: |
+          node apps/web/e2e/lib/journey-report.mjs "$DEMO_OUT/journey-results.json" >> "$GITHUB_STEP_SUMMARY" || echo "no journey results" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$DEMO_OUT/uat-dryrun-results.json" ]; then { echo; node apps/web/e2e/uat-dryrun.e2e.mjs --report "$DEMO_OUT/uat-dryrun-results.json"; } >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ -f "$DEMO_OUT/logs/db-integrity.txt" ]; then { echo; echo "### Database integrity"; echo; echo '```'; cat "$DEMO_OUT/logs/db-integrity.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Collect logs
+        if: always()
+        run: |
+          docker compose ps -a > "$DEMO_OUT/logs/compose-ps.txt" 2>&1 || true
+          for s in postgres keycloak valkey nats mailpit minio migrate api web; do docker compose logs --no-color --timestamps "$s" > "$DEMO_OUT/logs/$s.log" 2>&1 || true; done
+          cp -r "$DEMO_OUT/journey-results.json" "$DEMO_OUT/logs/" 2>/dev/null || true
+          cp "$DEMO_OUT/uat-dryrun-results.json" "$DEMO_OUT/logs/" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: part1-demo-logs
+          path: ${{ runner.temp }}/demo/logs
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: part1-demo-screenshots
+          path: ${{ runner.temp }}/demo/shots
+          retention-days: 14
+      - name: Tear down
+        if: always()
+        run: docker compose down -v --remove-orphans || true

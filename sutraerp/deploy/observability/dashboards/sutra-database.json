@@ -1,0 +1,160 @@
+{
+  "uid": "sutra-database",
+  "title": "SutraERP · Database pool",
+  "description": "PostgreSQL connection pool of every API instance.",
+  "tags": [
+    "sutraerp",
+    "batch9"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "DS_LOKI",
+        "label": "Loki",
+        "type": "datasource",
+        "query": "loki",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "DS_TEMPO",
+        "label": "Tempo",
+        "type": "datasource",
+        "query": "tempo",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Pool connections",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (state) (sutra_db_pool_connections)",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Pool saturation (used / max)",
+      "type": "gauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max(sutra_db_pool_connections{state=\"used\"}) / max(sutra_db_pool_connections{state=\"max\"})",
+          "legendFormat": "used/max"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Per instance used",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sutra_db_pool_connections{state=\"used\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Database errors in logs",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "expr": "{service_name=\"sutra-api\"} |~ \"(?i)database|sqlx|pool timed out\""
+        }
+      ]
+    }
+  ]
+}

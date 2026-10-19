@@ -1,0 +1,37 @@
+# Batch 9 · foundation-owned. Resolves the workspace WITHOUT --locked and uploads the refreshed
+# Cargo.lock as artifact `cargo-lock`, so slices that add a crate (no local cargo in the sandbox)
+# can commit the lockfile CI produced. Always green; the `--locked` jobs elsewhere are the gate.
+name: SutraERP lockfile
+
+on:
+  push:
+    branches: ["batch9/**"]
+    paths: ["sutraerp/**/Cargo.toml", "sutraerp/Cargo.lock", ".github/workflows/sutraerp-lockfile.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sutraerp-lockfile-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sutraerp
+
+jobs:
+  lockfile:
+    name: Cargo.lock refresh (artifact cargo-lock)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo metadata --format-version 1 > /dev/null
+      - name: diff
+        run: git diff --stat -- Cargo.lock || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cargo-lock
+          path: sutraerp/Cargo.lock
+          retention-days: 7

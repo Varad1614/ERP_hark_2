@@ -7,11 +7,12 @@ interface FieldProps {
   error?: string;
 }
 
-export function Input({ label, error, className, ...rest }: FieldProps & InputHTMLAttributes<HTMLInputElement>) {
+/** `hideLabel` keeps the label for assistive tech only (e.g. an input inside a table cell whose column header names it). */
+export function Input({ label, error, className, hideLabel, ...rest }: FieldProps & { hideLabel?: boolean } & InputHTMLAttributes<HTMLInputElement>) {
   const id = useId();
   return (
     <label className="sb-field" htmlFor={id}>
-      {label}
+      {hideLabel ? <span className="sb-visually-hidden">{label}</span> : label}
       <input id={id} className={cx("sb-input", className)} aria-invalid={error ? true : undefined} {...rest} />
       {error && <span className="sb-field-error">{error}</span>}
     </label>

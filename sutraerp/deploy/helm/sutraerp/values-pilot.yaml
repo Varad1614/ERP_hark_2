@@ -1,0 +1,81 @@
+# Pilot values (9B; docs/runbooks/deploy.md, docs/runbooks/pilot-go-live.md). One institution on a
+# real cluster: external managed PostgreSQL / NATS / Valkey, OpenBao for every credential, ingress
+# with TLS, two replicas of api and web. Replace every `CHANGE-ME` before installing:
+#   helm upgrade --install sutraerp deploy/helm/sutraerp -n sutraerp --create-namespace \
+#     -f deploy/helm/sutraerp/values-pilot.yaml --set image.api.digest=sha256:… --set image.web.digest=sha256:…
+global:
+  environment: production
+  verifyImages:
+    enabled: true                      # enforce with Kyverno / sigstore policy-controller (runbook)
+image:
+  api: { tag: "", digest: "", pullPolicy: IfNotPresent }   # deploy by signed digest (cosign verify first)
+  web: { tag: "", digest: "", pullPolicy: IfNotPresent }
+api:
+  replicas: 2
+  authMode: keycloak
+  publicUrl: https://erp.pilot.example.edu   # CHANGE-ME
+  extraEnv:
+    SUTRA_OIDC_ISSUER: https://idp.pilot.example.edu/realms/sutra   # CHANGE-ME
+    SUTRA_OIDC_CLIENT_ID: sutra-web
+    SUTRA_OIDC_REDIRECT_URI: https://erp.pilot.example.edu/api/v1/auth/oidc/callback
+    SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI: https://erp.pilot.example.edu/sign-in
+    SUTRA_WEBAUTHN_RP_ID: erp.pilot.example.edu
+    SUTRA_WEBAUTHN_ORIGINS: https://erp.pilot.example.edu
+    SUTRA_NOTIFY_EMAIL: smtp
+    SUTRA_SMTP_HOST: smtp.pilot.example.edu   # CHANGE-ME
+    SUTRA_SMTP_PORT: "587"
+    SUTRA_SMTP_TLS: starttls
+    # INT: SEC-9D-003 — no real payment gateway adapter yet: student online checkout and the
+    # gateway webhook answer 503 (also the production default; explicit here for the checklist).
+    SUTRA_PAYMENT_GATEWAY: disabled
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 4, targetCPUUtilizationPercentage: 70 }
+  podDisruptionBudget: { enabled: true, minAvailable: 1 }
+web:
+  replicas: 2
+ingress:
+  enabled: true
+  className: nginx
+  host: erp.pilot.example.edu            # CHANGE-ME
+  tls:
+    enabled: true
+    secretName: sutraerp-tls             # cert-manager Certificate or an operator-provided TLS Secret
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m
+    # cert-manager.io/cluster-issuer: letsencrypt   # CHANGE-ME
+secrets:
+  mode: openbao
+  openbao:
+    address: https://openbao.pilot.example.edu:8200   # CHANGE-ME (operator-run OpenBao)
+    role: sutraerp
+    groups: [database, app, oidc, smtp, audit, flowable]   # Part 1: flowable (approval workflow) is required in production
+postgres:
+  mode: external
+  external:
+    host: pg.pilot.example.edu           # CHANGE-ME (DATABASE_URL in OpenBao carries the real DSN)
+    port: 5432
+    database: sutra
+    sslmode: require
+nats:
+  mode: external
+  url: nats://nats.pilot.example.edu:4222   # CHANGE-ME
+valkey:
+  mode: external
+  url: redis://valkey.pilot.example.edu:6379  # CHANGE-ME
+networkPolicy:
+  enabled: true
+  externalCidrs: [10.0.0.0/8]            # CHANGE-ME: the managed services' subnet
+  extraEgress:
+    - ports: [{ protocol: TCP, port: 443 }, { protocol: TCP, port: 587 }]   # IdP (OIDC) + SMTP
+observability:
+  enabled: true
+  otlpEndpoint: http://otel-collector.observability.svc:4317
+backup:
+  enabled: true
+# Part 1 (DEF-X-001): governed decisions wait for a human approver; Flowable runs the approval
+# processes with autoApprove off (the API refuses noop / auto / autoApprove=true in production).
+approvals:
+  mode: human
+flowable:
+  enabled: true
+  bundled: true                        # in-cluster flowable-rest, database `flowable` on the managed PostgreSQL
+  autoApprove: false

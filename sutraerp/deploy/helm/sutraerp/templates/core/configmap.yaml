@@ -1,0 +1,71 @@
+{{- /* Foundation: non-secret API environment shared by the api Deployment and the migrate Job (9B extends). */ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sutraerp.fullname" . }}-env
+  labels:
+    {{- include "sutraerp.labels" . | nindent 4 }}
+data:
+  SUTRA_ENV: {{ .Values.global.environment | quote }}
+  SUTRA_LOG_FORMAT: "json"
+  SUTRA_HTTP_ADDR: {{ printf "0.0.0.0:%v" .Values.api.port | quote }}
+  SUTRA_METRICS_ADDR: {{ printf "0.0.0.0:%v" .Values.api.metricsPort | quote }}
+  SUTRA_AUTH_MODE: {{ .Values.api.authMode | quote }}
+  SUTRA_PUBLIC_URL: {{ .Values.api.publicUrl | quote }}
+  SUTRA_OUTBOX_RELAY: "nats"
+  SUTRA_NATS_URL: {{ .Values.nats.url | quote }}
+  SUTRA_NATS_STREAM: {{ .Values.nats.stream | quote }}
+  SUTRA_CACHE: "valkey"
+  SUTRA_VALKEY_URL: {{ .Values.valkey.url | quote }}
+  OTEL_SERVICE_NAME: "sutra-api"
+  {{- if .Values.observability.enabled }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.observability.otlpEndpoint | quote }}
+  OTEL_EXPORTER_OTLP_PROTOCOL: {{ .Values.observability.otlpProtocol | quote }}
+  OTEL_TRACES_SAMPLER_ARG: {{ .Values.observability.sampleRatio | quote }}
+  {{- end }}
+  {{- /* Part 1 (DEF-X-001): production never auto-approves (the API refuses these at start-up too). */}}
+  {{- $approvalMode := default "human" (.Values.approvals | default dict).mode }}
+  {{- $flowableAuto := default false .Values.flowable.autoApprove }}
+  {{- if eq .Values.global.environment "production" }}
+  {{- if eq $approvalMode "auto" }}{{ fail "approvals.mode=auto is not allowed when global.environment=production" }}{{ end }}
+  {{- if not .Values.flowable.enabled }}{{ fail "flowable.enabled=false (SUTRA_WORKFLOW=noop) is not allowed when global.environment=production" }}{{ end }}
+  {{- if $flowableAuto }}{{ fail "flowable.autoApprove=true is not allowed when global.environment=production" }}{{ end }}
+  {{- /* Part 1 · Stage 3 (S3-config): the API refuses these at start-up; fail the render first. */}}
+  {{- range $k, $v := .Values.api.extraEnv }}
+  {{- if hasPrefix "SUTRA_DEV_" $k }}{{ fail (printf "api.extraEnv.%s (development-only) is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- if and (eq $k "SUTRA_PAYMENT_GATEWAY") (eq (lower (toString $v)) "mock") }}{{ fail "SUTRA_PAYMENT_GATEWAY=mock is not allowed when global.environment=production (DEF-F-002)" }}{{ end }}
+  {{- if and (has $k (list "SUTRA_RATE_LIMIT" "SUTRA_SESSION_COOKIE_SECURE" "SUTRA_HSTS")) (eq (lower (toString $v)) "false") }}{{ fail (printf "%s=false is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- if and (has $k (list "SUTRA_API_DOCS" "SUTRA_HEALTH_DETAIL")) (eq (lower (toString $v)) "true") }}{{ fail (printf "%s=true is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- end }}
+  {{- end }}
+  {{- /* Part 1 S3 (auth): production never disables MFA enforcement, the sign-in lockout or
+  Keycloak (the API refuses these at start-up too). */}}
+  {{- if eq .Values.global.environment "production" }}
+  {{- $xe := .Values.api.extraEnv | default dict }}
+  {{- if eq .Values.api.authMode "dev" }}{{ fail "api.authMode=dev is not allowed when global.environment=production" }}{{ end }}
+  {{- range $k := list "SUTRA_PRIVILEGED_MFA" "SUTRA_MFA_STEP_UP" }}
+  {{- if and (hasKey $xe $k) (eq (toString (index $xe $k)) "false") }}{{ fail (printf "api.extraEnv.%s=false is not allowed when global.environment=production" $k) }}{{ end }}
+  {{- end }}
+  {{- if and (hasKey $xe "SUTRA_AUTH_MAX_FAILURES") (eq (toString (index $xe "SUTRA_AUTH_MAX_FAILURES")) "0") }}{{ fail "api.extraEnv.SUTRA_AUTH_MAX_FAILURES=0 is not allowed when global.environment=production" }}{{ end }}
+  {{- end }}
+  SUTRA_APPROVAL_MODE: {{ $approvalMode | quote }}
+  {{- /* Part 2 · S7-entitle: production states the entitlement default (the API refuses to start without it). */}}
+  {{- $entDefault := index (.Values.entitlements | default dict) "default" | default "" }}
+  {{- if and (eq .Values.global.environment "production") (eq (toString $entDefault) "") }}{{ fail "entitlements.default (SUTRA_ENTITLEMENT_DEFAULT) is required when global.environment=production" }}{{ end }}
+  {{- if $entDefault }}
+  SUTRA_ENTITLEMENT_DEFAULT: {{ $entDefault | quote }}
+  {{- end }}
+  SUTRA_WORKFLOW: {{ ternary "flowable" "noop" .Values.flowable.enabled | quote }}
+  {{- if .Values.flowable.enabled }}
+  SUTRA_FLOWABLE_URL: {{ .Values.flowable.url | quote }}
+  SUTRA_FLOWABLE_USER: {{ .Values.flowable.user | quote }}
+  SUTRA_FLOWABLE_AUTO_APPROVE: {{ ternary "true" "false" $flowableAuto | quote }}
+  {{- end }}
+  SUTRA_SEARCH: {{ ternary "opensearch" "off" .Values.opensearch.enabled | quote }}
+  {{- if .Values.opensearch.enabled }}
+  SUTRA_OPENSEARCH_URL: {{ .Values.opensearch.url | quote }}
+  SUTRA_OPENSEARCH_INDEX_PREFIX: {{ default (printf "sutra-%s" .Values.global.environment) .Values.opensearch.indexPrefix | quote }}
+  {{- end }}
+  {{- range $k, $v := .Values.api.extraEnv }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}

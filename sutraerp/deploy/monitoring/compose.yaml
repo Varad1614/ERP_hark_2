@@ -1,0 +1,114 @@
+# SutraERP on-prem monitoring stack (Part 2 S5-monitor) — docs/readiness/MONITORING_AND_SUPPORT.md.
+#
+#   cp deploy/monitoring/monitoring.env.example /etc/sutraerp/monitoring.env   # edit it
+#   python3 deploy/monitoring/alertmanager/render.py --env /etc/sutraerp/monitoring.env \
+#       --out deploy/monitoring/alertmanager/alertmanager.yml
+#   docker compose --env-file /etc/sutraerp/monitoring.env -f deploy/monitoring/compose.yaml up -d --wait
+#
+# Prometheus (rules: deploy/monitoring/prometheus/rules + deploy/observability/alerts), Alertmanager
+# (receivers rendered from the env file), Grafana (provisioned dashboards), postgres_exporter,
+# node_exporter (+ textfile collector for backup metrics) and the NATS exporter. UIs listen on
+# 127.0.0.1 only: publish them through the site's reverse proxy / VPN, never directly.
+name: sutra-monitoring
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  prometheus:
+    <<: *restart
+    image: prom/prometheus:v3.13.4
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${SUTRA_MON_RETENTION:-30d}
+      - --web.enable-lifecycle
+    ports: ["127.0.0.1:${SUTRA_MON_PROMETHEUS_PORT:-9090}:9090"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - ${SUTRA_MON_RULES_DIR:-./prometheus/rules}:/etc/prometheus/rules:ro
+      - ${SUTRA_MON_RULES_9A_DIR:-../observability/alerts}:/etc/prometheus/rules-9a:ro
+      - promdata:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
+      interval: 5s
+      retries: 30
+
+  alertmanager:
+    <<: *restart
+    image: prom/alertmanager:v0.34.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports: ["127.0.0.1:${SUTRA_MON_ALERTMANAGER_PORT:-9093}:9093"]
+    volumes:
+      # Rendered by alertmanager/render.py from the env file (not committed: it holds secrets).
+      - ${SUTRA_MON_AM_CONFIG:-./alertmanager/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/templates:/etc/alertmanager/templates:ro
+      - amdata:/alertmanager
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"]
+      interval: 5s
+      retries: 30
+
+  grafana:
+    <<: *restart
+    image: grafana/grafana:12.4.13
+    environment:
+      GF_SECURITY_ADMIN_USER: ${SUTRA_GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${SUTRA_GRAFANA_ADMIN_PASSWORD:?set SUTRA_GRAFANA_ADMIN_PASSWORD in the env file}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_SERVER_ROOT_URL: ${SUTRA_GRAFANA_ROOT_URL:-http://localhost:3000/}
+    ports: ["127.0.0.1:${SUTRA_MON_GRAFANA_PORT:-3000}:3000"]
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards/onprem:ro
+      - ${SUTRA_MON_DASHBOARDS_9A_DIR:-../observability/dashboards}:/var/lib/grafana/dashboards/api:ro
+      - grafanadata:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      retries: 30
+
+  postgres-exporter:
+    <<: *restart
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    command:
+      - --collector.stat_statements          # slow statements (needs the pg_stat_statements extension)
+      - --collector.long_running_transactions
+      - --collector.stat_checkpointer
+    environment:
+      # postgresql://sutra_monitor:<password>@<host>:5432/sutra?sslmode=... (role: postgres/monitor-role.sql)
+      DATA_SOURCE_NAME: ${SUTRA_MON_PG_DSN:?set SUTRA_MON_PG_DSN in the env file}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+  node-exporter:
+    <<: *restart
+    image: prom/node-exporter:v1.12.1
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)
+    volumes:
+      - /:/host:ro,rslave
+      # Backup metrics written by textfile/sutra-backup-metrics.sh.
+      - ${SUTRA_MON_TEXTFILE_DIR:-/var/lib/sutraerp/node-exporter}:/textfile:ro
+
+  nats-exporter:
+    <<: *restart
+    image: natsio/prometheus-nats-exporter:0.20.2
+    command: ["-varz", "-connz", "-jsz=all", "${SUTRA_MON_NATS_MONITOR_URL:-http://host.docker.internal:8222}"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+volumes:
+  promdata:
+  amdata:
+  grafanadata:

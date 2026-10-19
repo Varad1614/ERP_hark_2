@@ -87,6 +87,14 @@ impl ApiError {
                 (StatusCode::UNAUTHORIZED, "Authentication required", None)
             }
             KernelError::Forbidden(d) => (StatusCode::FORBIDDEN, "Forbidden", Some(d.clone())),
+            KernelError::StepUpRequired(p) => (
+                StatusCode::FORBIDDEN,
+                "Multi-factor step-up required",
+                Some(format!(
+                    "`{p}` requires a session verified with a second factor; \
+                     complete POST /api/v1/auth/mfa/step-up (or OIDC step-up) and retry"
+                )),
+            ),
             KernelError::Scope(d) => (
                 StatusCode::BAD_REQUEST,
                 "Invalid execution scope",
@@ -123,9 +131,20 @@ impl ApiError {
             KernelError::Unavailable(d) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 "Dependency unavailable",
-                Some(d.clone()),
+                Some(public_unavailable_detail(d)),
             ),
             KernelError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error", None),
+            // Part 2 · S7-entitle: same status / code / title as the entitlement gate.
+            KernelError::Entitlement { code, detail } => (
+                StatusCode::FORBIDDEN,
+                match *code {
+                    sutra_kernel::entitlement::MODULE_INACTIVE => "Module not active",
+                    sutra_kernel::entitlement::LICENCE_EXPIRED => "Licence expired",
+                    sutra_kernel::entitlement::LICENCE_SUSPENDED => "Licence suspended",
+                    _ => "Not entitled",
+                },
+                Some(detail.clone()),
+            ),
         };
         let mut p = Problem::new(status, code, title);
         p.detail = detail;
@@ -138,11 +157,38 @@ impl ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        if let KernelError::Internal(source) = &self.0 {
-            // Never echo internal details to the caller; keep them in the trace.
-            tracing::error!(error = %source, "internal error");
+        match &self.0 {
+            KernelError::Internal(source) => {
+                // Never echo internal details to the caller; keep them in the trace.
+                tracing::error!(error = %source, "internal error");
+            }
+            KernelError::Unavailable(d) if public_unavailable_detail(d) != *d => {
+                // The adapter's own text (URLs, hosts, ports, driver errors) stays in the log.
+                tracing::warn!(reason = %d, "dependency unavailable");
+            }
+            _ => {}
         }
         self.to_problem().into_response()
+    }
+}
+
+/// Caller-facing detail of a 503 (SEC-P1-APPSEC-005). Adapters wrap transport errors as
+/// `"<component>: <error>"` (reqwest / lettre / OpenSearch errors carry internal URLs, host names,
+/// ports and driver messages); only the component label is returned, the full text is logged.
+/// Plain operator messages without such a suffix ("database unavailable", "online payments are
+/// disabled") pass unchanged.
+fn public_unavailable_detail(d: &str) -> String {
+    let label = match d.split_once(": ") {
+        Some((label, _)) => label,
+        None => d,
+    };
+    if label.contains("://") || label.contains('@') || label.len() > 120 {
+        return "a required service is unavailable; try again later".into();
+    }
+    if label.len() == d.len() {
+        d.to_owned()
+    } else {
+        format!("a required service ({label}) is unavailable; try again later")
     }
 }
 
@@ -181,6 +227,30 @@ mod tests {
         assert_eq!(v["status"], 422);
         assert_eq!(v["errorCode"], "validation-failed");
         assert_eq!(v["validationErrors"][0]["field"], "name");
+    }
+
+    #[tokio::test]
+    async fn unavailable_errors_do_not_leak_internal_endpoints() {
+        let res = ApiError(KernelError::Unavailable(
+            "flowable: error sending request for url (http://flowable.internal:8080/flowable-rest/service/runtime/tasks)".into(),
+        ))
+        .into_response();
+        assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let v = body_json(res).await.to_string();
+        assert!(!v.contains("flowable.internal"), "{v}");
+        assert!(!v.contains("8080"), "{v}");
+        assert!(
+            v.contains("a required service (flowable) is unavailable"),
+            "{v}"
+        );
+        let res = ApiError(KernelError::Unavailable(
+            "discovery issuer http://kc.internal/realms/x does not match configured issuer".into(),
+        ))
+        .into_response();
+        let v = body_json(res).await.to_string();
+        assert!(!v.contains("kc.internal"), "{v}");
+        let res = ApiError(KernelError::Unavailable("database unavailable".into())).into_response();
+        assert_eq!(body_json(res).await["detail"], "database unavailable");
     }
 
     #[tokio::test]

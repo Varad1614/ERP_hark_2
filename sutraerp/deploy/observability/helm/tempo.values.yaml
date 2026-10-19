@@ -1,0 +1,14 @@
+# grafana/tempo values for SutraERP.
+tempo:
+  retention: 336h
+  receivers:
+    otlp:
+      protocols:
+        grpc: { endpoint: 0.0.0.0:4317 }
+        http: { endpoint: 0.0.0.0:4318 }
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: http://kps-prometheus.observability.svc:9090/api/v1/write
+persistence:
+  enabled: true
+  size: 50Gi

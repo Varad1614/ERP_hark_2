@@ -20,6 +20,13 @@ thiserror.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
 utoipa.workspace = true
+sha2.workspace = true
+hmac.workspace = true
+subtle.workspace = true
+getrandom.workspace = true
+# Part 1 S3 (DEF-X-003): task-local database security context (db_context);
+# also used by S3-appr task-local request identity (`approval::with_requester`).
+tokio.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

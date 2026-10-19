@@ -1,0 +1,101 @@
+{{- /* 9B: bundled single-node PostgreSQL (CI / pilot only; production uses postgres.mode=external).
+The superuser password comes from the OpenBao `database` group (POSTGRES_PASSWORD) through the
+agent init container; nothing secret is a Helm value or a Kubernetes Secret. */ -}}
+{{- if eq .Values.postgres.mode "bundled" }}
+{{- $name := include "sutraerp.componentName" (dict "root" . "component" "postgres") -}}
+{{- $openbao := include "sutraerp.openbaoEnabled" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  ports:
+    - { name: postgres, port: 5432, targetPort: postgres, protocol: TCP }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.componentLabels" (dict "root" . "component" "postgres") | nindent 8 }}
+      {{- if $openbao }}
+      annotations:
+        {{- $tpl := printf "{{ with secret %q }}POSTGRES_PASSWORD='{{ .Data.data.POSTGRES_PASSWORD }}'\n{{ end }}" (include "sutraerp.openbaoPath" (dict "root" . "name" "database")) }}
+        {{- include "sutraerp.openbaoAnnotations" (dict "root" . "file" "postgres.env" "template" $tpl) | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ $name }}
+      automountServiceAccountToken: {{ ternary true false (eq .Values.secrets.mode "openbao") }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.bundled.image | quote }}
+          {{- if $openbao }}
+          command: ["sh", "-c", "set -a; . /vault/secrets/postgres.env; set +a; exec docker-entrypoint.sh postgres"]
+          {{- end }}
+          env:
+            - { name: POSTGRES_USER, value: {{ .Values.postgres.bundled.user | quote }} }
+            - { name: POSTGRES_DB, value: {{ .Values.postgres.external.database | quote }} }
+            {{- if eq .Values.secrets.mode "kubernetes" }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret }}
+                  key: POSTGRES_PASSWORD
+            {{- end }}
+          ports:
+            - { name: postgres, containerPort: 5432, protocol: TCP }
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -q -h 127.0.0.1 -U {{ .Values.postgres.bundled.user }} -d {{ .Values.postgres.external.database }}"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -q -h 127.0.0.1"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.postgres.bundled.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql }
+            - { name: run, mountPath: /var/run/postgresql }
+      volumes:
+        - name: run
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.postgres.bundled.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgres.bundled.storage }}
+{{- end }}

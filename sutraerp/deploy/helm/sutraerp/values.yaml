@@ -1,0 +1,275 @@
+# SutraERP Helm values — layout is CONTRACT (docs/batch9-contracts.md §3). Section owners:
+#   global/image/api/web/migrations/ingress/secrets/postgres/nats/valkey/networkPolicy  → 9B
+#   observability                                                                    → 9A
+#   flowable/opensearch/backup                                                       → 9C
+# A slice adds keys only inside its own sections (append, with a `# 9X:` comment). Defaults are
+# production-shaped (external dependencies, OpenBao secrets); CI / pilot overrides live in
+# deploy/helm/sutraerp/ci/*.yaml (kind) and deploy/helm/sutraerp/values-pilot.yaml.
+
+global:
+  environment: production            # SUTRA_ENV; also the OpenBao path segment <env>
+  imageRegistry: ghcr.io/varad1614
+  imagePullSecrets: []
+  # Cosign keyless verification (policy-controller / Kyverno, optional in-cluster).
+  verifyImages:
+    enabled: false
+    certificateIdentityRegexp: "^https://github.com/Varad1614/ERP_hark_2/.github/workflows/sutraerp-ci.yml@refs/(heads/erp_merge|tags/v.*)$"
+    certificateOidcIssuer: https://token.actions.githubusercontent.com
+
+image:
+  api:
+    repository: sutraerp-api           # → ghcr.io/varad1614/sutraerp-api
+    tag: ""                            # default: .Chart.AppVersion; CI pins sha-<12>
+    digest: ""                         # sha256:… wins over tag when set (signed digest)
+    pullPolicy: IfNotPresent
+  web:
+    repository: sutraerp-web
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+
+api:
+  replicas: 2
+  port: 8080
+  metricsPort: 9464                    # SUTRA_METRICS_ADDR, scraped by Prometheus; never exposed by the Service of the public ingress
+  authMode: keycloak                   # SUTRA_AUTH_MODE (dev only in CI: ci/kind.yaml)
+  publicUrl: https://erp.example.edu   # SUTRA_PUBLIC_URL
+  extraEnv: {}                         # non-secret SUTRA_* overrides (map)
+  resources:
+    requests: { cpu: 250m, memory: 256Mi }
+    limits: { memory: 768Mi }
+  probes:
+    liveness: /health/live
+    readiness: /health/ready
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  podSecurityContext: { runAsNonRoot: true, runAsUser: 65532, fsGroup: 65532, seccompProfile: { type: RuntimeDefault } }
+  securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+  # 9B:
+  startupProbe: { failureThreshold: 60, periodSeconds: 5 }   # /health/live while migrations / dependencies settle
+  terminationGracePeriodSeconds: 30                          # > SUTRA_SHUTDOWN_GRACE_SECS (20)
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+web:
+  replicas: 2
+  port: 8080
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  # 9B: nginx-unprivileged runs as uid 101; /tmp is an emptyDir (pid + temp paths).
+  podSecurityContext: { runAsNonRoot: true, runAsUser: 101, runAsGroup: 101, fsGroup: 101, seccompProfile: { type: RuntimeDefault } }
+  securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+  podDisruptionBudget: { enabled: true, minAvailable: 1 }
+  podAnnotations: {}
+
+migrations:
+  enabled: true                        # Helm pre-install/pre-upgrade hook Job: `sutra-api migrate` as the schema owner
+  backoffLimit: 2
+  runtimeUser: sutra_api               # SUTRA_DB_RUNTIME_USER provisioned by migrate (must match OpenBao `database`)
+  # 9B: "auto" = pre-install/pre-upgrade hook with external PostgreSQL; with postgres.mode=bundled a
+  # plain Job named <release>-migrate-r<revision> (a hook would run before the bundled database exists).
+  hook: auto                           # auto | true | false
+  ttlSecondsAfterFinished: 86400
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+ingress:
+  enabled: false
+  className: nginx
+  host: erp.example.edu
+  tls:
+    enabled: true
+    secretName: sutraerp-tls
+  annotations: {}
+  # Part 1 S3 (SEC-9D-005): per-client request rate limit on /api/v1/auth/* (ingress-nginx
+  # annotations on a separate Ingress, templates/core/ingress-auth.yaml).
+  authRateLimit:
+    enabled: true
+    rpm: 30                            # requests per minute per client IP
+    burstMultiplier: 5
+    connections: 20                    # concurrent connections per client IP
+
+# Secrets: never in values. mode=openbao renders OpenBao Agent Injector annotations that write
+# /vault/secrets/sutra.env (dotenv) and sets SUTRA_ENV_FILE; mode=kubernetes reads an existing
+# Secret (envFrom). Paths: docs/batch9-contracts.md §5.
+secrets:
+  mode: openbao                        # openbao | kubernetes
+  existingSecret: ""                   # mode=kubernetes: Secret with the §5 keys
+  openbao:
+    address: http://openbao.openbao.svc:8200
+    authPath: auth/kubernetes
+    role: sutraerp
+    kvMount: kv                        # KV v2 mount
+    pathPrefix: sutraerp               # → kv/data/sutraerp/<env>/<name>
+    # 9B: the openbao chart ships the upstream vault-k8s injector → `vault.hashicorp.com/*` annotations.
+    annotationPrefix: vault.hashicorp.com
+    prePopulateOnly: true              # init container only (static KV; lets the migrate Job finish)
+    # Groups rendered into /vault/secrets/sutra.env; every listed path must exist in OpenBao.
+    groups: [database, app, oidc, smtp, audit, flowable, opensearch, backup]
+    agent: { requestsCpu: 25m, requestsMem: 32Mi, limitsCpu: 250m, limitsMem: 64Mi }
+
+postgres:
+  mode: external                       # external | bundled (bundled = single-node StatefulSet for CI / pilot)
+  external:
+    host: ""
+    port: 5432
+    database: sutra
+    sslmode: require
+  bundled:
+    image: postgres:18
+    storage: 10Gi
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+    # 9B: owner role / database; the password is POSTGRES_PASSWORD in the OpenBao `database` group.
+    user: sutra
+    storageClass: ""
+
+nats:
+  mode: external                       # external | bundled
+  url: nats://nats:4222
+  stream: SUTRA_EVENTS
+  bundled:
+    image: nats:2.11-alpine
+    storage: 2Gi
+    # 9B:
+    storageClass: ""
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { memory: 256Mi }
+
+valkey:
+  mode: external                       # external | bundled
+  url: redis://valkey:6379
+  bundled:
+    image: valkey/valkey:8
+    # 9B: cache only (no persistence, emptyDir).
+    resources:
+      requests: { cpu: 50m, memory: 32Mi }
+      limits: { memory: 256Mi }
+
+networkPolicy:
+  enabled: true
+  # 9B: default deny inside the release + explicit allows (templates/core/networkpolicy.yaml).
+  ingressNamespaceSelector: { matchLabels: { kubernetes.io/metadata.name: ingress-nginx } }
+  metricsNamespaceSelector: { matchLabels: { kubernetes.io/metadata.name: observability } }
+  openbaoNamespace: openbao
+  # External dependencies (mode=external) and outbound HTTPS (OIDC, S3): CIDRs the pods may reach.
+  externalCidrs: [0.0.0.0/0]
+  extraEgress: []                      # raw NetworkPolicy egress rules appended to the api policy
+
+# ---- 9A: observability --------------------------------------------------------------------
+observability:
+  enabled: true
+  otlpEndpoint: http://otel-collector.observability.svc:4317   # OTEL_EXPORTER_OTLP_ENDPOINT
+  otlpProtocol: grpc
+  sampleRatio: 1.0                     # OTEL_TRACES_SAMPLER_ARG
+  serviceMonitor:
+    enabled: false                     # true when the Prometheus Operator CRDs exist
+    interval: 30s                      # 9A
+    labels: {}                         # 9A: extra labels for the Prometheus Operator selector
+  prometheusRule:
+    enabled: false                     # renders deploy/observability/alerts/*.yaml as a PrometheusRule
+    labels: {}                         # 9A
+  grafanaDashboards:
+    enabled: false                     # ConfigMaps labelled grafana_dashboard=1 from deploy/observability/dashboards
+  prometheusNamespace: observability   # 9A: namespace allowed to scrape the API metrics port (NetworkPolicy)
+  # CI / pilot all-in-one (grafana/otel-lgtm: collector + Prometheus + Loki + Tempo + Grafana).
+  lgtm:
+    enabled: false
+    image: grafana/otel-lgtm:0.36.0    # 9A: pinned (was 0.11.10 in the foundation skeleton)
+    resources:                         # 9A
+      requests: { cpu: 250m, memory: 1Gi }
+      limits: { memory: 3Gi }
+
+# ---- 9C: workflow, search, backup ---------------------------------------------------------
+# Part 1 (DEF-X-001): how governed decisions (refunds, admissions, results, payroll, POs, …)
+# resolve. `human` (default) waits for an authorised approver who is not the requester; `auto` is a
+# development / test opt-in only — the API refuses it (and the chart refuses to render it) when
+# global.environment=production.
+approvals:
+  mode: human                          # SUTRA_APPROVAL_MODE: human | auto
+
+# Part 2 · S7-entitle: SUTRA_ENTITLEMENT_DEFAULT — what an institution WITHOUT a stored licence
+# (platform.tenant_entitlement) may use: a package key (core_academic | academic_plus |
+# institution_operations | complete_erp) or none (core only until a licence is approved). Required
+# when global.environment=production (the render fails when empty; the API refuses to start
+# without it). Set it to the package the institution bought. docs/readiness/ENTITLEMENT_IMPLEMENTATION.md
+entitlements:
+  default: complete_erp
+
+flowable:
+  # Part 1 (DEF-X-001): on by default — production refuses SUTRA_WORKFLOW=noop.
+  enabled: true                        # true → SUTRA_WORKFLOW=flowable
+  # Part 1 (DEF-X-001): SUTRA_FLOWABLE_AUTO_APPROVE. false → every process waits at `decide` for the
+  # domain decision endpoint; true is development / test only (refused in production).
+  autoApprove: false
+  # Part 1: the production default points at an operator-run Flowable REST (`url`); set bundled=true
+  # to run flowable-rest in-cluster (needs postgres.external.host or postgres.mode=bundled), as the
+  # kind CI and pilot values do.
+  bundled: false                       # true → run flowable-rest in-cluster (Deployment + its own database)
+  image: flowable/flowable-rest:8.0.0  # 9C: newest 8.x on Docker Hub (Oct 2026); ADR-L5-0042
+  url: http://sutraerp-flowable:8080/flowable-rest
+  user: rest-admin
+  database: flowable
+  resources:
+    requests: { cpu: 250m, memory: 768Mi }
+    limits: { memory: 1536Mi }
+  # 9C: JVM heap of the Flowable pod (JAVA_OPTS); keep below limits.memory.
+  javaOpts: "-Xms256m -Xmx1g"
+  # 9C: Job `<fullname>-flowable-init-db` (deploy/flowable/init-db.sh): LOGIN role + database
+  # `flowable` on the SutraERP server as the admin user (default postgres.bundled.user / sutra) with
+  # POSTGRES_PASSWORD + FLOWABLE_DB_PASSWORD from OpenBao (groups `database`, `flowable`).
+  initDb:
+    enabled: true
+    adminUser: ""
+
+opensearch:
+  enabled: false                       # true → SUTRA_SEARCH=opensearch
+  bundled: true
+  image: opensearchproject/opensearch:2.19.1
+  url: http://sutraerp-opensearch:9200
+  indexPrefix: ""                      # default sutra-<env>
+  javaOpts: "-Xms512m -Xmx512m"
+  storage: 5Gi
+  # 9C: true only for CI (plain http, no auth). Production keeps the security plugin on; the
+  # initial admin password is SUTRA_OPENSEARCH_PASSWORD (OpenBao group `opensearch`).
+  securityDisabled: false
+  # 9C:
+  resources:
+    requests: { cpu: 250m, memory: 1Gi }
+    limits: { memory: 1536Mi }
+
+backup:
+  enabled: false                       # CronJob: deploy/backup/sutra-backup.sh (pg_dump -Fc + manifest)
+  schedule: "30 20 * * *"              # 02:00 IST
+  retentionDays: 14
+  target:
+    kind: pvc                          # pvc | s3
+    pvcSize: 20Gi
+    s3:
+      bucket: ""
+      endpoint: ""
+      prefix: sutraerp/<env>
+  # 9C: backup image = stock PostgreSQL 18 (bash, pg_dump / pg_restore 18, sha256sum; the scripts
+  # need no jq / python). Scripts come from ConfigMap <fullname>-backup-scripts
+  # (templates/data/backup-scripts.yaml, generated by deploy/backup/gen-chart.py).
+  image: postgres:18
+  # 9C: one <name>.tar per run instead of a directory.
+  tarball: true
+  # 9C: ServiceAccount of the backup CronJob, the Flowable init Job and pods (default <fullname>-backup).
+  serviceAccount: ""
+  # 9C:
+  storageClass: ""
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }

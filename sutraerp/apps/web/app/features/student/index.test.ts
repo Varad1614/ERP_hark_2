@@ -1,0 +1,15 @@
+import { describe, expect, it } from "vitest";
+import { activeTab, STUDENT_360_TABS, student360Path, STUDENTS_TABS } from "./index";
+
+describe("Batch 3 student tabs", () => {
+  it("defaults to the first tab, resolves known keys and keeps keys unique", () => {
+    expect(activeTab(STUDENTS_TABS, undefined).key).toBe("directory");
+    expect(activeTab(STUDENTS_TABS, "guardians").key).toBe("guardians");
+    expect(activeTab(STUDENT_360_TABS, "bogus").key).toBe("overview");
+    for (const tabs of [STUDENTS_TABS, STUDENT_360_TABS]) {
+      expect(new Set(tabs.map((t) => t.key)).size).toBe(tabs.length);
+    }
+    expect(student360Path("s1")).toBe("/students/record/s1");
+    expect(student360Path("s1", "documents")).toBe("/students/record/s1/documents");
+  });
+});

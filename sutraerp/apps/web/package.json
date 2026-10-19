@@ -8,18 +8,31 @@
     "build": "react-router build",
     "preview": "vite preview --outDir build/client",
     "typecheck": "react-router typegen && tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e:passkey": "node e2e/passkey.e2e.mjs",
+    "e2e:student": "node e2e/student.e2e.mjs",
+    "e2e:academic": "node e2e/academic.e2e.mjs",
+    "e2e:finance": "node e2e/finance.e2e.mjs",
+    "e2e:ui": "node e2e/ui.e2e.mjs",
+    "e2e:exams": "node e2e/exams.e2e.mjs",
+    "e2e:people": "node e2e/people.e2e.mjs",
+    "e2e:campus": "node e2e/campus.e2e.mjs",
+    "e2e:reskin2": "node e2e/reskin2-shots.e2e.mjs",
+    "e2e:imports": "node e2e/imports.e2e.mjs",
+    "e2e:uat-dryrun": "node e2e/uat-dryrun.e2e.mjs",
+    "e2e:extensions": "node e2e/extensions.e2e.mjs"
   },
   "dependencies": {
     "@react-router/node": "^8.4.0",
     "@sutra/api-client": "workspace:*",
     "@sutra/ui": "workspace:*",
     "@tanstack/react-query": "^5.104.1",
+    "isbot": "^5",
     "lucide-react": "^1.55.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0",
-    "isbot": "^5"
+    "uqr": "^0.1.3"
   },
   "devDependencies": {
     "@react-router/dev": "^8.4.0",
@@ -29,6 +42,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "jsdom": "^30.1.2",
+    "playwright": "^1.64.0",
     "typescript": "~5.9.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"

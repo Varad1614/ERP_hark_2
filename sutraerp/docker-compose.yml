@@ -1,10 +1,18 @@
 # Local development dependencies for SutraERP.
-#   docker compose up -d            # infra only (postgres, keycloak, valkey, mailpit)
-#   docker compose --profile app up # + api and web containers
+#   docker compose up -d                    # infra only (postgres, keycloak, valkey, nats, mailpit, minio)
+#   docker compose --profile app up --build # + migrate (owner) → api (runtime role) and web
+#   docker compose --profile demo run --rm --build demo-seed   # Batch 3 + 4 demo data (README)
+#   SUTRA_COMPOSE_OCR_URL=http://ocr:8866 docker compose --profile app --profile ocr up -d --build
+#                                           # + receipt OCR sidecar for expense claims (3D)
+# See README "Local Docker verification".
+# Long-running services use `restart: unless-stopped`, so the stack comes back after a Docker
+# Desktop / host restart (until you `docker compose stop|down` it). `migrate` is a one-shot job
+# and has no restart policy.
 name: sutraerp
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:18
     environment:
       POSTGRES_USER: sutra
@@ -21,7 +29,12 @@ services:
       retries: 20
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7
+    restart: unless-stopped
+    # Audit 2026-10 (A1): the realm is copied into the image (deploy/docker/keycloak.Dockerfile)
+    # instead of bind-mounted — a non-world-readable checkout made Keycloak (UID 1000) unable to
+    # read the mounted realm file and crash-loop.
+    build: { context: ., dockerfile: deploy/docker/keycloak.Dockerfile }
+    image: sutraerp-keycloak:local
     command: ["start-dev", "--import-realm", "--http-port=8180"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -31,13 +44,32 @@ services:
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak
       KC_HEALTH_ENABLED: "true"
+      # Fixed browser-facing issuer; containers reach Keycloak at keycloak:8180 (back channel).
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # Keycloak shares the postgres service: after `docker compose restart postgres` its pooled
+      # connections are dead and the next sign-in failed (“Database operation failed”, reported
+      # as invalid_user_credentials). Connections idle for more than 5 s are validated before
+      # use, so the pool replaces dead ones instead of failing a login (DEF-P1-DEMO-005).
+      QUARKUS_DATASOURCE_JDBC_VALIDATION_QUERY_SQL: "SELECT 1"
+      QUARKUS_DATASOURCE_JDBC_FOREGROUND_VALIDATION_INTERVAL: "5S"
     ports: ["8180:8180"]
-    volumes:
-      - ./deploy/keycloak/realm-sutra-dev.json:/opt/keycloak/data/import/realm-sutra-dev.json:ro
+    # Back-channel logout POSTs go to http://api:8080 (compose); host.docker.internal lets an
+    # API started on the host (`make api`) be registered instead.
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    # KC_HEALTH_ENABLED serves /health/ready on the management port 9000 (not published). The
+    # image has no curl/wget, so bash's /dev/tcp asks it; `docker compose ps` then shows healthy.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     depends_on:
       postgres: { condition: service_healthy }
 
   valkey:
+    restart: unless-stopped
     image: valkey/valkey:8
     ports: ["6379:6379"]
     healthcheck:
@@ -45,41 +77,205 @@ services:
       interval: 5s
       retries: 10
 
-  mailpit:
-    image: axllent/mailpit:latest
-    ports: ["1025:1025", "8025:8025"]
+  # ADR-L5-0022: event transport for the outbox relay (JetStream, file storage).
+  nats:
+    restart: unless-stopped
+    image: nats:2.11-alpine
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports: ["4222:4222", "8222:8222"]
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz?js-enabled-only=true"]
+      interval: 5s
+      retries: 10
 
+  # Development SMTP sink: notification e-mails (SUTRA_NOTIFY_EMAIL=smtp) land here.
+  # Web UI http://localhost:8025, SMTP localhost:1025.
+  mailpit:
+    restart: unless-stopped
+    image: axllent/mailpit:v1.31
+    ports: ["1025:1025", "8025:8025"]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      retries: 10
+
+  # Part 2 · S4-docs: S3-compatible document storage (student admission / record files). Built from
+  # MinIO's archived upstream source (deploy/docker/minio.Dockerfile; no mirror images). Private
+  # bucket, created by the API (SUTRA_S3_CREATE_BUCKET, development only). S3 API localhost:9000.
+  minio:
+    restart: unless-stopped
+    build: { context: ., dockerfile: deploy/docker/minio.Dockerfile }
+    image: sutraerp-minio:local
+    environment:
+      MINIO_ROOT_USER: ${SUTRA_COMPOSE_S3_ACCESS_KEY:-sutra}
+      MINIO_ROOT_PASSWORD: ${SUTRA_COMPOSE_S3_SECRET_KEY:-sutra-minio-dev-only}
+    ports: ["9000:9000"]
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/minio-healthcheck"]
+      interval: 5s
+      retries: 20
+
+  # ADR-L5-0008 / ADR-L5-0005: migrations run as the schema OWNER (`sutra`) and provision the
+  # API's runtime LOGIN role (member of `sutra_app`, owns nothing, DML only).
   migrate:
     profiles: ["app"]
     build: { context: ., dockerfile: deploy/docker/api.Dockerfile }
     command: ["migrate"]
     environment:
       SUTRA_ENV: development
+      SUTRA_LOG_FORMAT: json
       DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      SUTRA_MIGRATION_DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      SUTRA_DB_RUNTIME_USER: sutra_api
+      SUTRA_DB_RUNTIME_PASSWORD: sutra-api-dev-only
     depends_on:
       postgres: { condition: service_healthy }
 
   api:
+    restart: unless-stopped
     profiles: ["app"]
     build: { context: ., dockerfile: deploy/docker/api.Dockerfile }
     environment:
       SUTRA_ENV: development
       SUTRA_LOG_FORMAT: json
-      DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
-      SUTRA_AUTH_PROVIDER: dev
-      SUTRA_KEYCLOAK_URL: http://keycloak:8180
+      # Serves as the runtime role provisioned by `migrate` (not the schema owner).
+      DATABASE_URL: postgres://sutra_api:sutra-api-dev-only@postgres:5432/sutra
+      # dev | keycloak. Keycloak mode: OIDC Authorization Code + PKCE through the BFF endpoints
+      # /api/v1/auth/oidc/start|callback (browser-facing issuer localhost:8180, back channel
+      # through the compose network).
+      # Switch with `SUTRA_COMPOSE_AUTH_MODE=keycloak SUTRA_COMPOSE_WEB_AUTH_MODE=oidc docker compose …`.
+      SUTRA_AUTH_MODE: ${SUTRA_COMPOSE_AUTH_MODE:-dev}
+      # Audit 2026-10 (D1/C1): the dev authenticator has no default password and refuses to start
+      # without one. Export SUTRA_DEV_AUTH_PASSWORD (>= 12 characters, not `sutra`/`change-me`/…)
+      # before `docker compose --profile app up`; it is the password typed on the sign-in page.
+      # Ignored in Keycloak mode.
+      SUTRA_DEV_AUTH_PASSWORD: ${SUTRA_DEV_AUTH_PASSWORD:-}
+      # true = administrators must answer a second factor (TOTP or passkey) at dev sign-in.
+      SUTRA_DEV_MFA: ${SUTRA_COMPOSE_DEV_MFA:-false}
+      # Part 1 (DEF-X-001): governed decisions wait for a human approver by default. The demo seed
+      # (`--profile demo`) walks every governed step itself, so run it with
+      # `SUTRA_COMPOSE_APPROVAL_MODE=auto docker compose --profile app up -d` (development only;
+      # production refuses auto).
+      SUTRA_APPROVAL_MODE: ${SUTRA_COMPOSE_APPROVAL_MODE:-human}
+      SUTRA_OIDC_ISSUER: http://localhost:8180/realms/sutra
+      SUTRA_OIDC_BACKCHANNEL_URL: http://keycloak:8180/realms/sutra
+      SUTRA_OIDC_CLIENT_ID: sutra-web
+      SUTRA_OIDC_CLIENT_SECRET: dev-only-change-me
+      SUTRA_OIDC_REDIRECT_URI: http://localhost:3000/api/v1/auth/oidc/callback
+      SUTRA_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3000/sign-in
+      # Batch 1C: outbox → NATS JetStream, Valkey advisory cache, sweepers (on by default).
+      SUTRA_OUTBOX_RELAY: nats
+      SUTRA_NATS_URL: nats://nats:4222
+      SUTRA_NATS_STREAM: SUTRA_EVENTS
+      SUTRA_CACHE: valkey
+      SUTRA_VALKEY_URL: redis://valkey:6379
+      # Batch 1D: notifications / notices / to-dos inbox, e-mail channel (Mailpit), retention.
+      SUTRA_PUBLIC_URL: http://localhost:3000
+      SUTRA_NOTIFY_EMAIL: smtp
+      SUTRA_SMTP_HOST: mailpit
+      SUTRA_SMTP_PORT: "1025"
+      SUTRA_SMTP_TLS: none
+      SUTRA_MAIL_FROM: SutraERP <no-reply@sutra.dev>
+      SUTRA_NOTIFY_DELIVERY_MS: "5000"
+      SUTRA_NOTIFY_MAX_ATTEMPTS: "5"
+      SUTRA_INBOX_CONSUMER: "true"
+      SUTRA_INBOX_POLL_MS: "2000"
+      SUTRA_INBOX_LOOKBACK_SECS: "604800"
+      SUTRA_INBOX_BATCH_SIZE: "200"
+      SUTRA_SWEEP_INBOX_SECS: "3600"
+      SUTRA_NOTIFICATION_RETENTION_SECS: "7776000"
+      SUTRA_NOTICE_RETENTION_SECS: "15552000"
+      SUTRA_TODO_RETENTION_SECS: "7776000"
+      # Dev-mode WebAuthn (passkeys): relying party = the browser-facing host.
+      SUTRA_WEBAUTHN_RP_ID: localhost
+      SUTRA_WEBAUTHN_RP_NAME: SutraERP
+      SUTRA_WEBAUTHN_ORIGINS: http://localhost:3000,http://localhost:5173
+      # 3D expense claims: receipt OCR sidecar (`--profile ocr`, tools/ocr-sidecar). Empty = off
+      # (uploads still work, nothing is pre-filled). Set SUTRA_COMPOSE_OCR_URL=http://ocr:8866
+      # when the `ocr` profile is up.
+      SUTRA_OCR_URL: ${SUTRA_COMPOSE_OCR_URL:-}
+      SUTRA_OCR_TIMEOUT_SECS: ${SUTRA_COMPOSE_OCR_TIMEOUT_SECS:-30}
+      # Part 2 · S4-docs: document storage on the compose MinIO (development values; production
+      # needs https, SSE and non-development credentials — see .env.example "Document storage").
+      SUTRA_DOCUMENT_STORAGE: s3
+      SUTRA_S3_ENDPOINT: http://minio:9000
+      SUTRA_S3_BUCKET: sutraerp-documents
+      SUTRA_S3_ACCESS_KEY_ID: ${SUTRA_COMPOSE_S3_ACCESS_KEY:-sutra}
+      SUTRA_S3_SECRET_ACCESS_KEY: ${SUTRA_COMPOSE_S3_SECRET_KEY:-sutra-minio-dev-only}
+      SUTRA_S3_CREATE_BUCKET: "true"
     ports: ["8080:8080"]
     depends_on:
       migrate: { condition: service_completed_successfully }
+      nats: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+      mailpit: { condition: service_healthy }
+      minio: { condition: service_healthy }
 
   web:
+    restart: unless-stopped
     profiles: ["app"]
     build:
       context: .
       dockerfile: deploy/docker/web.Dockerfile
-      args: { VITE_AUTH_MODE: api }
+      # api = login id + password form against the dev authenticator. SUTRA_COMPOSE_WEB_DEV_PERSONAS=true
+      # adds the dev persona picker (login id prefilled, password still typed) and the account-menu
+      # role switcher — local development / CI only, never on a public host.
+      # SUTRA_COMPOSE_WEB_AUTH_MODE=oidc pairs with SUTRA_COMPOSE_AUTH_MODE=keycloak.
+      args:
+        VITE_AUTH_MODE: "${SUTRA_COMPOSE_WEB_AUTH_MODE:-api}"
+        VITE_DEV_PERSONAS: "${SUTRA_COMPOSE_WEB_DEV_PERSONAS:-false}"
     ports: ["3000:8080"]
     depends_on: [api]
 
+  # 3D expense claims: receipt OCR (PaddleOCR, Apache-2.0) as a separate service. Receipts stay on
+  # this host; OCR only pre-fills a draft a person confirms. Internal port only (api reaches
+  # http://ocr:8866). Models are baked in at build time (the first build downloads them).
+  #   SUTRA_COMPOSE_OCR_URL=http://ocr:8866 docker compose --profile app --profile ocr up -d --build
+  ocr:
+    restart: unless-stopped
+    profiles: ["ocr"]
+    build:
+      context: ./tools/ocr-sidecar
+      args: { OCR_LANG: "${SUTRA_COMPOSE_OCR_LANG:-en}" }
+    environment:
+      OCR_LANG: ${SUTRA_COMPOSE_OCR_LANG:-en}
+    expose: ["8866"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8866/healthz', timeout=4).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # Demo data for the Batch 3 + 4 click-through (README): a new institution DEMO taken to active
+  # through the Batch 2 API, students, a course offering with faculty and seats. One-shot, never
+  # started by `up`:  docker compose --profile demo run --rm --build demo-seed
+  # Needs the app profile running. Idempotent; leaves every other institution alone.
+  demo-seed:
+    profiles: ["demo"]
+    build: { context: ., dockerfile: deploy/docker/demo-seed.Dockerfile }
+    environment:
+      E2E_API_URL: http://api:8080
+      # Schema owner, like the e2e suites (student/academic foundation rows are inserted directly).
+      DATABASE_URL: postgres://sutra:sutra@postgres:5432/sutra
+      DEMO_CODE: ${DEMO_CODE:-DEMO}
+      DEMO_NAME: ${DEMO_NAME:-Sutra Demo College}
+      # The seed signs in as admin@sutra.dev through the dev authenticator (same password as api).
+      SUTRA_DEV_AUTH_PASSWORD: ${SUTRA_DEV_AUTH_PASSWORD:-}
+      # Login subjects linked to Aarav (student) and Dr. Meera Shah (faculty). Default: the dev
+      # personas (dev|<login id>). For the OIDC demo (docker-compose.oidc-demo.yml) pass the fixed
+      # Keycloak user ids of deploy/keycloak/realm-sutra-demo.json.
+      DEMO_STUDENT_SUBJECT: ${DEMO_STUDENT_SUBJECT:-dev|aarav.desai@sutra.dev}
+      DEMO_FACULTY_SUBJECT: ${DEMO_FACULTY_SUBJECT:-dev|meera.shah@sutra.dev}
+
 volumes:
   pgdata:
+  natsdata:
+  miniodata:

@@ -1,0 +1,156 @@
+{{- /* 9C: bundled Flowable REST (docs/batch9-contracts.md §7): init Job (role + database `flowable`),
+Deployment (1 replica), Service <fullname>-flowable:8080, readiness = TCP on :8080 (the actuator
+health endpoint needs basic auth).
+Credentials: FLOWABLE_DB_PASSWORD + SUTRA_FLOWABLE_PASSWORD (rest-admin) from OpenBao group
+`flowable` rendered as a Spring properties file (SPRING_CONFIG_IMPORT), or secrets.existingSecret
+in mode=kubernetes. The API reads SUTRA_FLOWABLE_PASSWORD from the same group (sutra.env). */ -}}
+{{- if and .Values.flowable.enabled .Values.flowable.bundled }}
+{{- $name := include "sutraerp.data.name" (dict "root" . "component" "flowable") -}}
+{{- $openbao := include "sutraerp.data.openbao" . -}}
+{{- $pgHost := include "sutraerp.data.pgHost" . -}}
+{{- $pgPort := include "sutraerp.data.pgPort" . -}}
+{{- if .Values.flowable.initDb.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}-init-db-r{{ .Release.Revision }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "backup") | nindent 4 }}
+    sutraerp.io/job: flowable-init-db
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.selectorLabels" (dict "root" . "component" "backup") | nindent 8 }}
+        sutraerp.io/job: flowable-init-db
+      {{- if $openbao }}
+      annotations:
+        {{- include "sutraerp.data.openbaoAnnotations" (dict "root" . "file" "data.env" "group" "flowable" "template" (include "sutraerp.data.dotenvTemplate" (dict "root" . "groups" (list "database" "flowable")))) | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "sutraerp.data.serviceAccount" . }}
+      securityContext:
+        {{- include "sutraerp.data.podSecurity" (dict "uid" 999) | nindent 8 }}
+      containers:
+        - name: init-db
+          image: {{ .Values.backup.image | quote }}
+          command:
+            - bash
+            - -c
+            - |
+              {{- include "sutraerp.data.loadEnv" . | nindent 14 }}
+              export PGPASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing}"
+              exec bash /opt/sutra/init-db.sh
+          env:
+            - { name: PGHOST, value: {{ $pgHost | quote }} }
+            - { name: PGPORT, value: {{ $pgPort | quote }} }
+            - { name: PGUSER, value: {{ include "sutraerp.data.pgAdminUser" . | quote }} }
+            - { name: PGDATABASE, value: postgres }
+            - { name: FLOWABLE_DB_NAME, value: {{ .Values.flowable.database | quote }} }
+          {{- if eq .Values.secrets.mode "kubernetes" }}
+          envFrom:
+            - secretRef: { name: {{ required "secrets.existingSecret is required with secrets.mode=kubernetes" .Values.secrets.existingSecret }} }
+          {{- end }}
+          securityContext:
+            {{- include "sutraerp.data.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: scripts, mountPath: /opt/sutra, readOnly: true }
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ include "sutraerp.data.name" (dict "root" . "component" "backup-scripts") }}
+            defaultMode: 0555
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "flowable") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sutraerp.selectorLabels" (dict "root" . "component" "flowable") | nindent 4 }}
+  ports:
+    - { name: http, port: 8080, targetPort: http, protocol: TCP }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "sutraerp.data.labels" (dict "root" . "component" "flowable") | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      {{- include "sutraerp.selectorLabels" (dict "root" . "component" "flowable") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sutraerp.data.labels" (dict "root" . "component" "flowable") | nindent 8 }}
+      {{- if $openbao }}
+      annotations:
+        {{- $tpl := printf "{{ with secret %q }}spring.datasource.password={{ .Data.data.FLOWABLE_DB_PASSWORD }}\nflowable.rest.app.admin.password={{ .Data.data.SUTRA_FLOWABLE_PASSWORD }}\n{{ end }}" (include "sutraerp.openbaoPath" (dict "root" . "name" "flowable")) }}
+        {{- include "sutraerp.data.openbaoAnnotations" (dict "root" . "file" "flowable.properties" "group" "flowable" "template" $tpl) | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "sutraerp.data.serviceAccount" . }}
+      automountServiceAccountToken: {{ ternary true false (eq .Values.secrets.mode "openbao") }}
+      securityContext:
+        {{- include "sutraerp.data.podSecurity" (dict "uid" 1000) | nindent 8 }}
+      containers:
+        - name: flowable
+          image: {{ .Values.flowable.image | quote }}
+          env:
+            - { name: SERVER_PORT, value: "8080" }
+            - { name: JAVA_OPTS, value: {{ .Values.flowable.javaOpts | quote }} }
+            - { name: SPRING_DATASOURCE_DRIVER-CLASS-NAME, value: org.postgresql.Driver }
+            - name: SPRING_DATASOURCE_URL
+              value: {{ printf "jdbc:postgresql://%s:%s/%s" $pgHost $pgPort .Values.flowable.database | quote }}
+            - { name: SPRING_DATASOURCE_USERNAME, value: flowable }
+            - { name: FLOWABLE_REST_APP_ADMIN_USER-ID, value: {{ .Values.flowable.user | quote }} }
+            - { name: FLOWABLE_REST_APP_ADMIN_FIRST-NAME, value: Sutra }
+            - { name: FLOWABLE_REST_APP_ADMIN_LAST-NAME, value: ERP }
+            {{- if $openbao }}
+            - { name: SPRING_CONFIG_IMPORT, value: "optional:file:/vault/secrets/flowable.properties" }
+            {{- else if eq .Values.secrets.mode "kubernetes" }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.secrets.existingSecret | quote }}, key: FLOWABLE_DB_PASSWORD } }
+            - name: FLOWABLE_REST_APP_ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.secrets.existingSecret | quote }}, key: SUTRA_FLOWABLE_PASSWORD } }
+            {{- end }}
+          ports:
+            - { name: http, containerPort: 8080, protocol: TCP }
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          # /flowable-rest/actuator/health answers 401 without basic auth (measured in the Data platform
+          # CI job), so an httpGet probe can never pass; the port opens once the engine has booted.
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+          securityContext:
+            {{- include "sutraerp.data.containerSecurity" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.flowable.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}
