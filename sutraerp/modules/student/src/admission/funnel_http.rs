@@ -21,7 +21,7 @@ use super::funnel::{
 use crate::record::refs;
 use crate::record::support::{
     check_version, expect_version, finish, invalid, next_number, norm, validate_opt_text,
-    CommandErrors, CreateErrors, ReadErrors,
+    validate_text, CommandErrors, CreateErrors, ReadErrors,
 };
 use crate::shared::guard::require_institution_writable;
 use crate::shared::http::{actor, with_etag};
