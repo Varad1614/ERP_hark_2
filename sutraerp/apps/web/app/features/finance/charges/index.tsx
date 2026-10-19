@@ -22,6 +22,7 @@ import { StatusBadge, statusLabel, useCommand } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
 import { rkeys, useRecordApi } from "../../student/record/hooks";
 import { money, rowActions, useFinanceAsk, type FinAskSpec } from "../ui";
+import { ChargeGstSection, GstTile } from "../gst";
 import { BillingRunsTile } from "./billing-runs";
 import { FINAL_CHARGE, fkeys, useChargesApi } from "./hooks";
 import type { AdjustmentKind, ChargeCommand, ChargeListItem, FeeCategory, PolicyKind } from "./types";
@@ -237,12 +238,14 @@ export function ChargesAdminTab({ institution }: { institution: Institution | nu
                 );
               })}
             </section>
+            <ChargeGstSection chargeId={c.id} studentAccountId={c.studentAccountId} institutionId={institution.id} />
           </div>
         )}
       </SidePanel>
       <PolicyTile institution={institution} kind="config" />
       <PolicyTile institution={institution} kind="rule" />
       <BillingRunsTile institutionId={institution.id} />
+      <GstTile institutionId={institution.id} />
       {prompt}
       {dialog}
     </>
