@@ -20,10 +20,12 @@ mod support;
 
 use axum::http::StatusCode;
 use axum::Router;
+use http_body_util::BodyExt;
 use rust_decimal::Decimal;
 use serde_json::{json, Value};
 use support::b5::amount;
 use support::*;
+use tower::ServiceExt;
 
 const T_FLOW: &str = "0192f5a0-7c3e-7000-8000-0000000e5d00";
 const T_ACCESS: &str = "0192f5a0-7c3e-7000-8000-0000000e5d01";
@@ -374,17 +376,16 @@ async fn gst_invoices_credit_notes_and_summary() {
         sum["exempt"]["intraExempt"], "45000.00",
         "50000 less the credited share"
     );
-    let (s, h, csv) = send(
-        &app,
-        get(&admin, &format!("{F}/institutions/{inst}/gst-summary/csv")),
-    )
-    .await;
-    assert_eq!(s, StatusCode::OK);
+    let res = app
+        .clone()
+        .oneshot(get(&admin, &format!("{F}/institutions/{inst}/gst-summary/csv")))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let h = res.headers().clone();
     assert!(h["content-type"].to_str().unwrap().starts_with("text/csv"));
-    let csv = csv
-        .as_str()
-        .map(str::to_owned)
-        .unwrap_or_else(|| csv.to_string());
+    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    let csv = String::from_utf8(bytes.to_vec()).unwrap();
     assert!(csv.contains("cdnur") && csv.contains("hsn"), "{csv}");
 
     // ---- reversing the credit note cancels it and restores the tax.
