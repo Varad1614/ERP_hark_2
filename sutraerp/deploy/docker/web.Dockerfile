@@ -41,6 +41,15 @@ LABEL org.opencontainers.image.source="https://github.com/Varad1614/ERP_hark_2" 
       org.opencontainers.image.title="sutraerp-web" \
       org.opencontainers.image.revision="${SUTRA_GIT_SHA}"
 COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Audit 2026-10 (A1): SUTRA_WEB_KEYCLOAK_PROXY=1 = also proxy the browser-facing Keycloak realm
+# endpoints under /auth (public OIDC demo, docker-compose.oidc-demo.yml). Off by default.
+ARG SUTRA_WEB_KEYCLOAK_PROXY=0
+COPY deploy/docker/nginx-keycloak.conf /tmp/nginx-keycloak.conf
+USER root
+RUN mkdir -p /etc/nginx/sutra-extra \
+ && if [ "$SUTRA_WEB_KEYCLOAK_PROXY" = "1" ]; then cp /tmp/nginx-keycloak.conf /etc/nginx/sutra-extra/keycloak.conf; fi \
+ && rm /tmp/nginx-keycloak.conf && chmod -R a+rX /etc/nginx/sutra-extra
+USER 101
 COPY --from=build /src/sutra-csp.conf /etc/nginx/sutra-csp.conf
 COPY --from=build /src/apps/web/build/client /usr/share/nginx/html
 EXPOSE 8080

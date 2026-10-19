@@ -78,9 +78,12 @@ make api          # http://localhost:8080   (OpenAPI: /api/openapi.json)
 make web          # http://localhost:5173   (proxies /api to :8080)
 ```
 
-The web app runs without the API by default (`VITE_AUTH_MODE=mock`): pick a role on the sign-in
-page. Set `VITE_AUTH_MODE=api` to sign in through `POST /api/v1/auth/login` (dev authenticator,
-password `sutra`). With `SUTRA_DEV_MFA=true` administrators are asked to enrol an authenticator app
+`make web` (the dev server) runs without the API (`VITE_AUTH_MODE` unset = `mock`): pick a role on
+the sign-in page. A build without `VITE_AUTH_MODE` is `oidc` (audit 2026-10). Set
+`VITE_AUTH_MODE=api` to sign in through `POST /api/v1/auth/login` (dev authenticator: login id +
+password form; `VITE_DEV_PERSONAS=true` adds the persona picker). The dev authenticator has **no
+default password**: start the API with `SUTRA_DEV_AUTH_PASSWORD=<at least 12 characters>` (it
+refuses to start otherwise) and type that password on the sign-in page. With `SUTRA_DEV_MFA=true` administrators are asked to enrol an authenticator app
 (QR code on `/mfa/enrol`) and then enter a real TOTP code at every sign-in. `VITE_AUTH_MODE=oidc`
 pairs with `SUTRA_AUTH_MODE=keycloak` and shows a single sign-on button (`GET /api/v1/auth/oidc/start`).
 
@@ -525,7 +528,7 @@ itself; it needs a migrated PostgreSQL and `psql` (to clear the administrator's 
 cargo build -p sutra-api && cargo run -p sutra-api -- migrate        # DATABASE_URL as in .env
 pnpm --filter @sutra/web exec playwright install --with-deps chromium  # once
 pnpm e2e:passkey                                                     # web: Vite dev server on :5173
-VITE_AUTH_MODE=api pnpm --filter @sutra/web build && E2E_WEB=preview pnpm e2e:passkey   # built SPA on :3000
+VITE_AUTH_MODE=api VITE_DEV_PERSONAS=true pnpm --filter @sutra/web build && E2E_WEB=preview pnpm e2e:passkey   # built SPA on :3000
 ```
 
 Options: `SUTRA_API_BIN` (default `$CARGO_TARGET_DIR/debug/sutra-api`), `CHROMIUM_PATH` (use an installed

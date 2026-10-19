@@ -100,7 +100,9 @@ bash deploy/ci/demo-wait.sh        # waits + prints compose ps and the health en
 
 Windows / PowerShell: `$env:SUTRA_COMPOSE_AUTH_MODE="keycloak"; $env:SUTRA_COMPOSE_WEB_AUTH_MODE="oidc"; docker compose --profile app up -d --build`.
 
-Open <http://localhost:3000>. Accounts (dev realm, password `sutra`): `admin@sutra.dev`
+Open <http://localhost:3000>. Accounts (local dev realm `realm-sutra-dev.json`, password `sutra` —
+local only; the public demo uses `docker-compose.oidc-demo.yml` with its own passwords, see
+AUDIT_REMEDIATION_2026-10.md): `admin@sutra.dev`
 (administrator; Keycloak asks to enrol TOTP on the first sign-in), `meera.shah@sutra.dev`
 (faculty), `aarav.desai@sutra.dev` (student). Mail sent by the stack: <http://localhost:8025>.
 
