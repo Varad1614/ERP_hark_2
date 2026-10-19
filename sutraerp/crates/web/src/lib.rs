@@ -14,6 +14,8 @@
 //! * [`health`] – `/health/live` and `/health/ready` — ADR-L5-0044
 //! * [`security_headers`], [`cors`], [`rate_limit`] – response hardening headers, CORS allow-list and
 //!   public-endpoint rate limiting (Part 1 · Stage 3, `docs/security/config.md`)
+//! * [`request_guard`] – one RFC 9457 envelope for framework rejections (no schema leak),
+//!   body-less actions refuse a body, shared page bounds (audit A3)
 //! * [`entitlement`] – server-side module entitlement and licence gate (Part 2 · S7-entitle)
 //!
 //! Framework types defined here never leak into canonical contracts (`sutra-contracts`).
@@ -25,6 +27,7 @@ pub mod health;
 pub mod idempotency;
 pub mod problem;
 pub mod rate_limit;
+pub mod request_guard; // Audit A3: problem envelope, body-less actions, page bounds
 pub mod request_id;
 pub mod scope;
 pub mod security_headers;
