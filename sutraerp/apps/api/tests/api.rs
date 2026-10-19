@@ -165,10 +165,21 @@ async fn cross_site_unsafe_requests_are_rejected() {
 
 #[tokio::test]
 async fn catalog_and_modules() {
-    let (s, _, body) = call(
-        Request::get("/api/v1/platform/workspaces?role=faculty")
-            .body(Body::empty())
-            .unwrap(),
+    // Audit A3 (SEC-3 / M-1): the workspace catalogue needs a session.
+    let app = router(AppContext::for_spec());
+    for uri in [
+        "/api/v1/platform/workspaces?role=faculty",
+        "/api/v1/platform/workspaces/W-A01",
+    ] {
+        let (s, h, body) = send(&app, Request::get(uri).body(Body::empty()).unwrap()).await;
+        assert_eq!(s, StatusCode::UNAUTHORIZED, "{uri}: {body}");
+        assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+        assert!(body.get("items").is_none());
+    }
+    let who = signed_in(&app, "meera.shah@sutra.dev").await;
+    let (s, _, body) = send(
+        &app,
+        get_as("/api/v1/platform/workspaces?role=faculty", &who),
     )
     .await;
     assert_eq!(s, StatusCode::OK);
@@ -547,5 +558,231 @@ async fn admin_sensitive_permission_needs_step_up() {
     assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE, "policy passed: {body}");
     // The pre-enrolment session id is gone.
     let (s, _, _) = send(&app, get_req(Some(&admin))).await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Audit A3 (H-1, D-1, D-2, D-3, M8, SEC-6, L-1): one problem+json envelope without schema leaks
+// ---------------------------------------------------------------------------------------------
+
+/// Session cookie + CSRF token of a dev sign-in.
+struct Who {
+    cookie: String,
+    csrf: String,
+}
+
+async fn signed_in(app: &Router, login_id: &str) -> Who {
+    let csrf = login_csrf(app).await;
+    let (s, h, body) = send(app, login_request(login_id, Some(&csrf))).await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    Who {
+        cookie: h[header::SET_COOKIE]
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned(),
+        csrf: body["csrfToken"].as_str().unwrap().to_owned(),
+    }
+}
+
+fn get_as(uri: &str, who: &Who) -> Request<Body> {
+    Request::get(uri)
+        .header("cookie", &who.cookie)
+        .body(Body::empty())
+        .unwrap()
+}
+
+fn post_as(uri: &str, who: &Who, content_type: &str, body: &str) -> Request<Body> {
+    Request::post(uri)
+        .header("cookie", &who.cookie)
+        .header("x-csrf-token", &who.csrf)
+        .header("content-type", content_type)
+        .header("idempotency-key", uuid::Uuid::now_v7().to_string())
+        .body(Body::from(body.to_owned()))
+        .unwrap()
+}
+
+/// RFC 9457 problem with a correlation id and none of the operation's schema in it.
+fn assert_schema_free_problem(
+    what: &str,
+    s: StatusCode,
+    h: &axum::http::HeaderMap,
+    body: &serde_json::Value,
+    status: StatusCode,
+    code: &str,
+    secrets: &[&str],
+) {
+    assert_eq!(s, status, "{what}: {body}");
+    assert_eq!(
+        h[header::CONTENT_TYPE],
+        "application/problem+json",
+        "{what}"
+    );
+    assert_eq!(body["errorCode"], code, "{what}: {body}");
+    assert!(body["correlationId"].is_string(), "{what}: {body}");
+    assert!(body.get("validationErrors").is_none(), "{what}: {body}");
+    let text = body.to_string();
+    for leak in secrets.iter().chain(&[
+        "unknown field",
+        "missing field",
+        "expected",
+        "variant",
+        "UUID",
+        "invalid character",
+        "line ",
+        "Failed to",
+        "deserialize",
+    ]) {
+        assert!(!text.contains(leak), "{what}: `{leak}` leaked in {text}");
+    }
+}
+
+#[tokio::test]
+async fn malformed_json_is_problem_json_without_field_names() {
+    let app = router(AppContext::for_spec());
+    let fields = ["loginId", "login_id", "password"];
+    for (what, body, status) in [
+        ("truncated JSON", "{\"loginId\":", StatusCode::BAD_REQUEST),
+        ("not JSON", "loginId=x", StatusCode::BAD_REQUEST),
+        ("missing fields", "{}", StatusCode::UNPROCESSABLE_ENTITY),
+        (
+            "duplicate key",
+            "{\"loginId\":\"a\",\"loginId\":\"b\",\"password\":\"c\"}",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        ),
+        ("wrong type", "[1,2]", StatusCode::UNPROCESSABLE_ENTITY),
+    ] {
+        let csrf = login_csrf(&app).await;
+        let req = Request::post("/api/v1/auth/login")
+            .header("content-type", "application/json")
+            .header("cookie", &csrf.0)
+            .header("x-csrf-token", &csrf.1)
+            .body(Body::from(body))
+            .unwrap();
+        let (s, h, v) = send(&app, req).await;
+        assert_schema_free_problem(what, s, &h, &v, status, "invalid-request-body", &fields);
+        assert_eq!(v["detail"], "The request body is invalid.", "{what}");
+    }
+    // Wrong content type: 415 problem, not text.
+    let csrf = login_csrf(&app).await;
+    let req = Request::post("/api/v1/auth/login")
+        .header("content-type", "text/plain")
+        .header("cookie", &csrf.0)
+        .header("x-csrf-token", &csrf.1)
+        .body(Body::from("{}"))
+        .unwrap();
+    let (s, h, v) = send(&app, req).await;
+    assert_schema_free_problem(
+        "content type",
+        s,
+        &h,
+        &v,
+        StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        "unsupported-media-type",
+        &fields,
+    );
+}
+
+#[tokio::test]
+async fn bad_path_uuid_and_bad_query_are_problem_json_for_signed_in_callers() {
+    let app = router(AppContext::for_spec());
+    // A student (no institution or import permission) probing administrative routes.
+    let who = signed_in(&app, "aarav.desai@sutra.dev").await;
+    let (s, h, v) = send(
+        &app,
+        get_as("/api/v1/institution/institutions/not-a-uuid", &who),
+    )
+    .await;
+    assert_schema_free_problem(
+        "bad uuid",
+        s,
+        &h,
+        &v,
+        StatusCode::BAD_REQUEST,
+        "invalid-path-parameter",
+        &["not-a-uuid"],
+    );
+    // Missing required query parameter (`institutionId`) and an unparsable one.
+    for uri in [
+        "/api/v1/platform/imports/entities/students/export",
+        "/api/v1/platform/imports/entities/students/export?institutionId=zzz",
+    ] {
+        let (s, h, v) = send(&app, get_as(uri, &who)).await;
+        assert_schema_free_problem(
+            uri,
+            s,
+            &h,
+            &v,
+            StatusCode::BAD_REQUEST,
+            "invalid-query-parameter",
+            &["institutionId", "institution_id", "format"],
+        );
+    }
+    // Unknown method on a known route: 405 problem with `Allow`.
+    let (s, h, v) = send(
+        &app,
+        Request::builder()
+            .method("TRACE")
+            .uri("/api/v1/auth/csrf")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::METHOD_NOT_ALLOWED, "{v}");
+    assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+    assert!(h.contains_key(header::ALLOW));
+}
+
+#[tokio::test]
+async fn bodyless_action_rejects_a_body() {
+    let app = router(AppContext::for_spec());
+    let admin = signed_in(&app, "admin@sutra.dev").await;
+    let uri = "/api/v1/finance/institutions/0192f5a0-7c3e-7000-8000-0000000000aa/receivables";
+    for junk in ["{\"amount\":-999999}", "[1]", "\"x\""] {
+        let (s, h, v) = send(&app, post_as(uri, &admin, "application/json", junk)).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{junk}: {v}");
+        assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+        assert_eq!(v["errorCode"], "unexpected-request-body", "{junk}: {v}");
+    }
+    // An empty body (or `{}`) still reaches the handler (here: no database -> not a 422).
+    let (s, _, v) = send(&app, post_as(uri, &admin, "application/json", "{}")).await;
+    assert_ne!(s, StatusCode::UNPROCESSABLE_ENTITY, "{v}");
+}
+
+#[tokio::test]
+async fn pagination_bounds_are_enforced() {
+    let app = router(AppContext::for_spec());
+    let who = signed_in(&app, "meera.shah@sutra.dev").await;
+    for q in [
+        "limit=0",
+        "limit=-1",
+        "limit=101",
+        "limit=100000",
+        "limit=ten",
+        "offset=-1",
+        "page=-5",
+        "sort=secretField",
+        "sort=%3BDROP",
+    ] {
+        let uri = format!("/api/v1/notifications?{q}");
+        let (s, h, v) = send(&app, get_as(&uri, &who)).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {v}");
+        assert_eq!(h[header::CONTENT_TYPE], "application/problem+json");
+        assert_eq!(v["errorCode"], "invalid-query-parameter", "{q}: {v}");
+        assert!(!v.to_string().contains("secretField"), "{v}");
+    }
+    // The default ceiling elsewhere is 200.
+    let (s, _, v) = send(&app, get_as("/api/v1/platform/imports?limit=201", &who)).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{v}");
+    // Anonymous callers still get 401 first.
+    let (s, _, _) = send(
+        &app,
+        Request::get("/api/v1/notifications?limit=0")
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
 }

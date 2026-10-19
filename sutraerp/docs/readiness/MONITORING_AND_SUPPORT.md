@@ -25,7 +25,7 @@ Artifacts of the monitoring run: `monitoring-static` (promtool output, rendered 
 
 | Area | Signals | Source |
 |---|---|---|
-| API availability and load | scrape `up`, requests in flight, process restarts, RED (rate / errors / p95) per route, DB pool | API `/metrics` listener (`SUTRA_METRICS=true`, `SUTRA_METRICS_ADDR`, default `:9464`) |
+| API availability and load | scrape `up`, requests in flight, process restarts, RED (rate / errors / p95) per route, DB pool | API `/metrics` listener (`SUTRA_METRICS=true`, `SUTRA_METRICS_ADDR`, default `127.0.0.1:9464` — set `0.0.0.0:9464` for a remote scrape) |
 | PostgreSQL | up, connections vs `max_connections`, replication lag, long transactions, slow statements (`pg_stat_statements`), dead-row bloat, deadlocks, database size | `postgres_exporter` with the read-only `sutra_monitor` role (`deploy/monitoring/postgres/monitor-role.sql`) |
 | Backups and WAL | last backup run success, last success age (24 h RPO + 2 h grace), duration, size; WAL archive failures and archive age | backup wrapper → node_exporter textfile collector; `pg_stat_archiver` |
 | Security | failed / throttled sign-ins, lockouts, MFA failures, privilege changes, cross-tenant denials, webhook and checkout signature failures | `sutra_security_events_total{event}` from `sutra_kernel::signal` (hooks in auth, identity, finance webhook / checkout, RLS-scope guard) |

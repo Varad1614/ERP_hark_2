@@ -238,9 +238,9 @@ async fn api_responses_carry_hardening_headers() {
 /// Routes that answer without a session, by design (each justified in
 /// docs/readiness/security/auth.md): health probes, the sign-in bootstrap (pre-session CSRF
 /// protected), the OIDC redirect endpoints, the signed back-channel logout and payment webhook,
-/// idempotent logout, the static navigation catalog (the same JSON ships in the web bundle) and
-/// the public careers page (ERP_EXTENSIONS 5A).
-const PUBLIC: [(&str, &str); 17] = [
+/// idempotent logout, the module list and the public careers page (ERP_EXTENSIONS 5A). The
+/// workspace catalogue needs a session since audit A3 (SEC-3 / M-1).
+const PUBLIC: [(&str, &str); 15] = [
     ("GET", "/health/live"),
     ("GET", "/health/ready"),
     ("GET", "/api/v1/auth/csrf"),
@@ -260,14 +260,12 @@ const PUBLIC: [(&str, &str); 17] = [
         "/api/v1/people/public/careers/{id}/requisitions/{requisition_id}/apply",
     ),
     ("GET", "/api/v1/platform/modules"),
-    ("GET", "/api/v1/platform/workspaces"),
-    ("GET", "/api/v1/platform/workspaces/{key}"),
 ];
 
 /// Authenticated-only routes that act on the caller's *own* session / second factors (or return
 /// only data addressed to the caller's own roles) and
 /// therefore need a session but no role permission.
-const SESSION_ONLY: [(&str, &str); 17] = [
+const SESSION_ONLY: [(&str, &str); 19] = [
     ("GET", "/api/v1/auth/session"),
     ("GET", "/api/v1/auth/mfa"),
     ("DELETE", "/api/v1/auth/mfa/totp"),
@@ -291,6 +289,10 @@ const SESSION_ONLY: [(&str, &str); 17] = [
     // `platform.entitlement.manage` / `.approve`.
     ("GET", "/api/v1/platform/entitlement"),
     ("GET", "/api/v1/platform/entitlement/catalogue"),
+    // Audit A3 (SEC-3 / M-1): the navigation catalogue (no tenant data) needs a session but no
+    // permission — every signed-in role renders its navigation from it.
+    ("GET", "/api/v1/platform/workspaces"),
+    ("GET", "/api/v1/platform/workspaces/{key}"),
 ];
 
 fn resolve<'a>(doc: &'a Value, schema: &'a Value) -> &'a Value {

@@ -137,38 +137,40 @@ async fn migrate(cfg: Config) -> Result<(), String> {
     Ok(())
 }
 
-/// Part 1 S3 (DEF-X-003): the API must serve as a role that row-level security applies to. A
-/// superuser or BYPASSRLS login is refused in production and reported loudly elsewhere. An
-/// unreachable database is not fatal here (readiness reports it).
+/// Part 1 S3 (DEF-X-003): the API must serve as a role that row-level security applies to.
+/// Audit A3 (M5): in production a superuser / BYPASSRLS login **and** a probe that errors or
+/// times out refuse start-up (fail closed); elsewhere they are reported loudly.
 async fn check_runtime_role(cfg: &Config, pool: &sqlx::PgPool) -> Result<(), String> {
-    let probe = tokio::time::timeout(
+    use sutra_api::startup_checks::{runtime_role_verdict, RoleProbe, RoleVerdict};
+    let probe = match tokio::time::timeout(
         std::time::Duration::from_secs(5),
         sutra_persistence::pool::role_security(pool),
     )
-    .await;
-    match probe {
-        Ok(Ok(r)) if r.bypasses_rls() => {
-            if cfg.env == sutra_api::config::Environment::Production {
-                return Err(format!(
-                    "DATABASE_URL role `{}` is superuser={} bypassrls={}: row-level tenant \
-                     isolation would not apply; serve as the runtime role (member of sutra_app)",
-                    r.role, r.superuser, r.bypass_rls
-                ));
+    .await
+    {
+        Ok(Ok(r)) if r.bypasses_rls() => RoleProbe::BypassesRls {
+            role: r.role,
+            superuser: r.superuser,
+            bypass_rls: r.bypass_rls,
+        },
+        Ok(Ok(r)) => RoleProbe::SubjectToRls { role: r.role },
+        Ok(Err(e)) => RoleProbe::Failed(e.to_string()),
+        Err(_) => RoleProbe::TimedOut,
+    };
+    let production = cfg.env == sutra_api::config::Environment::Production;
+    match runtime_role_verdict(production, &probe) {
+        RoleVerdict::Ok => {
+            if let RoleProbe::SubjectToRls { role } = &probe {
+                tracing::info!(role = %role, "runtime role is subject to row-level security");
             }
-            tracing::warn!(
-                role = %r.role,
-                superuser = r.superuser,
-                bypassrls = r.bypass_rls,
-                "the API serves as a role that bypasses row-level security (refused in production)"
-            );
+            Ok(())
         }
-        Ok(Ok(r)) => {
-            tracing::info!(role = %r.role, "runtime role is subject to row-level security")
+        RoleVerdict::Warn(msg) => {
+            tracing::warn!("{msg} (refused in production)");
+            Ok(())
         }
-        Ok(Err(e)) => tracing::warn!(error = %e, "could not check the runtime database role"),
-        Err(_) => tracing::warn!("timed out checking the runtime database role"),
+        RoleVerdict::Refuse(msg) => Err(msg),
     }
-    Ok(())
 }
 
 async fn serve(cfg: Config) -> Result<(), String> {

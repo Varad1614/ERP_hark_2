@@ -139,7 +139,10 @@ pub struct TelemetryConfig {
     pub sample_ratio: f64,
     /// `SUTRA_METRICS` (default true outside `test`): serve Prometheus text on `metrics_addr`.
     pub metrics_enabled: bool,
-    /// `SUTRA_METRICS_ADDR` (default `0.0.0.0:9464`): separate listener, never the public port.
+    /// `SUTRA_METRICS_ADDR` (default `127.0.0.1:9464`): separate listener, never the public port.
+    /// Audit A3 (M6): loopback by default because `/metrics` is unauthenticated; deployments
+    /// whose Prometheus scrapes over the network set it explicitly (Helm: `0.0.0.0:<metricsPort>`
+    /// behind the metrics NetworkPolicy; CI / on-prem monitoring: `0.0.0.0:9464`).
     pub metrics_addr: SocketAddr,
     // 9A: `SUTRA_GIT_SHA` (set by the image build, contract §3.3 `sutra_build_info{git_sha}`;
     // empty when unset).
@@ -274,7 +277,7 @@ impl HardeningConfig {
             metrics_addr: parse(
                 src,
                 "SUTRA_METRICS_ADDR",
-                SocketAddr::from(([0, 0, 0, 0], 9464)),
+                SocketAddr::from(([127, 0, 0, 1], 9464)),
             )?,
             git_sha: string(src, "SUTRA_GIT_SHA", ""), // 9A
         };
@@ -534,6 +537,8 @@ mod tests {
         assert_eq!(c.telemetry.service_name, "sutra-api");
         assert!(c.telemetry.metrics_enabled);
         assert_eq!(c.telemetry.metrics_addr.port(), 9464);
+        // Audit A3 (M6): unauthenticated metrics stay on loopback unless configured otherwise.
+        assert!(c.telemetry.metrics_addr.ip().is_loopback());
         assert!(c.audit_chain.enabled);
         assert!(c.audit_chain.anchor_key.is_none());
         assert_eq!(c.workflow.mode, WorkflowMode::Noop);

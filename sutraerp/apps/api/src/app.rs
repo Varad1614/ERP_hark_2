@@ -1180,6 +1180,19 @@ pub fn import_state(
     sutra_platform::dataimport::ImportState::new(pool, targets, workflow, institutions)
 }
 
+/// Audit A3 (L-1): page-size ceilings — 200 unless the route documents its own maximum.
+pub fn page_bounds() -> sutra_web::request_guard::PageBounds {
+    sutra_web::request_guard::PageBounds::default()
+        .route("/api/v1/platform/imports/{id}/rows", 5000)
+        .route("/api/v1/platform/identities", 500)
+        .route("/api/v1/platform/audit/anchors", 500)
+        .route("/api/v1/platform/search", 100)
+        .route("/api/v1/notices", 100)
+        .route("/api/v1/notifications", 100)
+        .route("/api/v1/todos", 100)
+        .route("/api/v1/people/roster/shifts/{id}/suggestions", 20)
+}
+
 /// Builds the router plus the generated OpenAPI document.
 ///
 /// Layer order (outermost first): cross-site Origin guard → session authentication + CSRF →
@@ -1190,7 +1203,11 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
     // Part 2 · S7-entitle: Finance facts read / written through ports follow the `fees`
     // entitlement (see `crate::entitlement_ports`).
     let policy = ctx.entitlement.policy().clone();
-    OpenApiRouter::with_openapi(ApiDoc::openapi())
+    // Audit A3 (SEC-5): Domain B's directory answers "is this institution the caller's?".
+    let institutions: Arc<dyn sutra_contracts::institution::InstitutionDirectory> = Arc::new(
+        sutra_institution::PgInstitutionDirectory::new(ctx.pool.clone()),
+    );
+    let router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .merge(sutra_web::health::router(ctx.readiness.clone()))
         .merge(sutra_platform::router(ctx.platform, ctx.pool.clone()))
         .merge(sutra_platform::search::router(ctx.search.clone())) // 9C
@@ -1260,10 +1277,30 @@ pub fn build(ctx: AppContext) -> OpenApiRouter {
         .merge(sutra_platform::dataimport::router(
             import_state(ctx.pool.clone(), ctx.workflow.clone(), ctx.approvals)
                 .with_entitlement(policy),
+        ));
+    // Audit A3 (D-2): mutating operations documented without a request body.
+    let bodyless = sutra_web::request_guard::BodylessRoutes::from_openapi(router.get_openapi());
+    router
+        // Audit A3 (SEC-5): a successful institution-scoped read of an institution that is not
+        // the caller's becomes 404 (after the handler, so its permission check stays first).
+        .layer(axum::middleware::from_fn_with_state(
+            crate::institution_guard::InstitutionGuard::new(institutions),
+            crate::institution_guard::institution_guard,
         ))
         .layer(axum::middleware::from_fn_with_state(
             ctx.idempotency,
             sutra_web::idempotency::idempotency,
+        ))
+        // Audit A3 (D-2, L-1): inside the session layer (anonymous callers still get 401 from
+        // the handler) and outside the idempotency layer (a refusal is never stored as a replay):
+        // body-less actions refuse a body; list `limit` / `offset` / `page` bounds, no `sort`.
+        .layer(axum::middleware::from_fn_with_state(
+            bodyless,
+            sutra_web::request_guard::reject_unexpected_body,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            page_bounds(),
+            sutra_web::request_guard::page_bounds,
         ))
         // Part 2 · S7-entitle: inside the session layer (it needs the session's tenant and runs
         // its lookup under the session's RLS scope): inactive modules, expired (read-only) and
@@ -1328,6 +1365,13 @@ pub fn router(ctx: AppContext) -> Router {
         ))
         .layer(axum::extract::DefaultBodyLimit::max(layers.max_body_bytes))
         .layer(CatchPanicLayer::new())
+        // Audit A3 (H-1, D-1, D-3, M8, SEC-6): every error answer — extractor rejections (bad
+        // JSON / UUID / query / content type / size), 405s and panics included — leaves as RFC
+        // 9457 problem+json with a generic text and the correlation id; inside the request-id
+        // layer so the correlation id is known.
+        .layer(axum::middleware::from_fn(
+            sutra_web::request_guard::problem_envelope,
+        ))
         .layer(axum::middleware::from_fn(crate::metrics::track_http)) // 9A
         .layer(TraceLayer::new_for_http().make_span_with(crate::telemetry::make_span))
         .layer(SetSensitiveRequestHeadersLayer::new([

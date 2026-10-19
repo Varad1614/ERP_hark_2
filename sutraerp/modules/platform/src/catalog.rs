@@ -7,7 +7,7 @@ use sutra_contracts::platform::auth::Role;
 use sutra_contracts::platform::catalog::{Workspace, WorkspaceList};
 use sutra_kernel::error::KernelError;
 use sutra_kernel::module::ModuleDescriptor;
-use sutra_web::{ApiResult, Problem};
+use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 /// Embedded copy of `catalog/workspaces.json` (shared with the web app).
@@ -33,15 +33,25 @@ pub struct WorkspaceQuery {
     pub group: Option<String>,
 }
 
-/// List workspaces (navigation catalog).
+/// List workspaces (navigation catalog). Audit A3 (SEC-3 / M-1): the full feature / workflow
+/// catalogue is only for signed-in users (the sign-in page needs none of it); `401` otherwise.
 #[utoipa::path(
     get,
     path = "/api/v1/platform/workspaces",
     tag = "platform",
     params(WorkspaceQuery),
-    responses((status = 200, body = WorkspaceList))
+    security(("session_cookie" = [])),
+    responses((status = 200, body = WorkspaceList), (status = 401, body = Problem, content_type = "application/problem+json"))
 )]
-pub async fn list_workspaces(Query(q): Query<WorkspaceQuery>) -> Json<WorkspaceList> {
+pub async fn list_workspaces(
+    _auth: Authenticated,
+    Query(q): Query<WorkspaceQuery>,
+) -> Json<WorkspaceList> {
+    Json(filter_workspaces(&q))
+}
+
+/// The catalogue filtered by role / group (workflows trimmed to the role).
+pub fn filter_workspaces(q: &WorkspaceQuery) -> WorkspaceList {
     let items: Vec<Workspace> = catalog()
         .iter()
         .filter(|w| q.role.is_none_or(|r| w.roles.contains(&r)))
@@ -61,11 +71,11 @@ pub async fn list_workspaces(Query(q): Query<WorkspaceQuery>) -> Json<WorkspaceL
         })
         .collect();
     let workflow_total = items.iter().map(|w| w.workflows.len()).sum();
-    Json(WorkspaceList {
+    WorkspaceList {
         total: items.len(),
         workflow_total,
         items,
-    })
+    }
 }
 
 /// Get one workspace by key.
@@ -74,9 +84,18 @@ pub async fn list_workspaces(Query(q): Query<WorkspaceQuery>) -> Json<WorkspaceL
     path = "/api/v1/platform/workspaces/{key}",
     tag = "platform",
     params(("key" = String, Path, description = "Workspace key, e.g. W-C01")),
-    responses((status = 200, body = Workspace), (status = 404, body = Problem, content_type = "application/problem+json"))
+    security(("session_cookie" = [])),
+    responses((status = 200, body = Workspace), (status = "4XX", body = Problem, content_type = "application/problem+json"))
 )]
-pub async fn get_workspace(Path(key): Path<String>) -> ApiResult<Json<Workspace>> {
+pub async fn get_workspace(
+    _auth: Authenticated,
+    Path(key): Path<String>,
+) -> ApiResult<Json<Workspace>> {
+    find_workspace(&key)
+}
+
+/// One workspace by key (`404` when unknown).
+pub fn find_workspace(key: &str) -> ApiResult<Json<Workspace>> {
     catalog()
         .iter()
         .find(|w| w.key == key)
@@ -126,13 +145,12 @@ mod tests {
         assert_eq!((faculty, student), (50, 44));
     }
 
-    #[tokio::test]
-    async fn role_filter_trims_workflows() {
-        let Json(list) = list_workspaces(Query(WorkspaceQuery {
+    #[test]
+    fn role_filter_trims_workflows() {
+        let list = filter_workspaces(&WorkspaceQuery {
             role: Some(Role::Student),
             group: None,
-        }))
-        .await;
+        });
         assert_eq!(list.total, 44);
         assert!(list
             .items
@@ -140,9 +158,9 @@ mod tests {
             .all(|w| w.workflows.iter().all(|f| f.roles.contains(&Role::Student))));
     }
 
-    #[tokio::test]
-    async fn unknown_workspace_is_404() {
-        assert!(get_workspace(Path("W-NOPE".into())).await.is_err());
-        assert!(get_workspace(Path("W-A01".into())).await.is_ok());
+    #[test]
+    fn unknown_workspace_is_404() {
+        assert!(find_workspace("W-NOPE").is_err());
+        assert!(find_workspace("W-A01").is_ok());
     }
 }

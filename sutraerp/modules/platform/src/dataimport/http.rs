@@ -273,20 +273,34 @@ fn require_entity<'a>(
 
 /// Part 2 · S7-entitle: the module `entity` writes into must be active for the caller's tenant
 /// (`403 entitlement.module_inactive`); institution set-up entities are core.
+///
+/// Audit A3 (M7): fails **closed** — a state built without an entitlement policy refuses every
+/// module entity (`403 entitlement.not_configured`) instead of allowing it.
 async fn require_entitled(
     st: &ImportState,
     ctx: &AuthContext,
     entity: &str,
 ) -> Result<(), KernelError> {
-    let Some(policy) = &st.entitlement else {
-        return Ok(());
-    };
     let reg = entitlement::registry().map_err(|e| KernelError::Unavailable(e.to_owned()))?;
-    match reg.import_module(entity) {
-        Some(module) => policy.require_module(ctx.scope.tenant_id, module).await,
-        None => Ok(()),
-    }
+    let Some(module) = reg.import_module(entity) else {
+        return Ok(()); // core institution set-up
+    };
+    let Some(policy) = &st.entitlement else {
+        tracing::error!(
+            entity,
+            module,
+            "data import without an entitlement policy; refusing module entity"
+        );
+        return Err(KernelError::Entitlement {
+            code: ENTITLEMENT_NOT_CONFIGURED,
+            detail: format!("module `{module}` entitlement is not configured for data import"),
+        });
+    };
+    policy.require_module(ctx.scope.tenant_id, module).await
 }
+
+/// Audit A3 (M7): error code of a module import refused because no policy is wired.
+pub const ENTITLEMENT_NOT_CONFIGURED: &str = "entitlement.not_configured";
 
 fn format_of(raw: Option<&str>) -> Result<FileFormat, KernelError> {
     match raw {
@@ -338,14 +352,16 @@ pub async fn entity_list(
     let mut items: Vec<ImportEntityView> =
         st.targets.values().map(|t| view(&t.spec(), ctx)).collect();
     // Part 2 · S7-entitle: only entities of active modules (and core set-up) are offered.
-    if let Some(policy) = &st.entitlement {
-        let reg = entitlement::registry().map_err(|e| KernelError::Unavailable(e.to_owned()))?;
-        let ent = policy.effective(ctx.scope.tenant_id).await?;
-        items.retain(|v| match reg.import_module(&v.entity) {
-            Some(m) => ent.has_module(m),
-            None => true,
-        });
-    }
+    // Audit A3 (M7): without a policy only the core set-up entities are offered (fail closed).
+    let reg = entitlement::registry().map_err(|e| KernelError::Unavailable(e.to_owned()))?;
+    let ent = match &st.entitlement {
+        Some(policy) => Some(policy.effective(ctx.scope.tenant_id).await?),
+        None => None,
+    };
+    items.retain(|v| match reg.import_module(&v.entity) {
+        Some(m) => ent.as_ref().is_some_and(|e| e.has_module(m)),
+        None => true,
+    });
     let order = |e: &str| {
         sutra_contracts::platform::dataimport::entity::ALL
             .iter()

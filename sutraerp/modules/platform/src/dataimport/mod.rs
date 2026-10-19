@@ -63,8 +63,9 @@ pub struct ImportState {
     /// Domain B's directory: an upload / export names an institution of the caller's tenant
     /// (404 otherwise, so no job is ever recorded against another tenant's institution).
     pub institutions: Arc<dyn InstitutionDirectory>,
-    /// Part 2 · S7-entitle: tenant entitlements; `None` only in harnesses that build the state
-    /// without the API (no module gate).
+    /// Part 2 · S7-entitle: tenant entitlements. Audit A3 (M7): `None` fails closed — only the
+    /// core institution set-up entities can be imported (module entities answer 403); the API
+    /// always wires the policy ([`ImportState::with_entitlement`]).
     pub entitlement: Option<EntitlementPolicy>,
 }
 

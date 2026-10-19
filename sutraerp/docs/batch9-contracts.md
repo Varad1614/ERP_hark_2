@@ -92,7 +92,7 @@ workflow run for your push and commit it (§13). The integrator regenerates both
 | `OTEL_RESOURCE_ATTRIBUTES` | unset | extra resource attrs; 9A always adds `service.version` (crate version), `deployment.environment` (`SUTRA_ENV`), `service.instance.id` (hostname) |
 | `OTEL_TRACES_SAMPLER_ARG` | `1.0` | parent-based trace-id ratio |
 | `SUTRA_METRICS` | `true` (not in `test`) | serve Prometheus text format |
-| `SUTRA_METRICS_ADDR` | `0.0.0.0:9464` | separate listener, path `/metrics`; never routed through the web / ingress |
+| `SUTRA_METRICS_ADDR` | `127.0.0.1:9464` (audit A3 M6; set `0.0.0.0:9464` where Prometheus scrapes over the network) | separate listener, path `/metrics`; never routed through the web / ingress |
 
 The existing `Config::otel_endpoint` stays (same variable). Logs stay JSON on stdout (collected by
 Loki through the collector / promtail); with an endpoint set, 9A also exports logs via OTLP.
