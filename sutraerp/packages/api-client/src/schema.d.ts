@@ -371,7 +371,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A mapping rule version with its history. */
+        /**
+         * A mapping rule version with its history.
+         *     Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
+         */
         get: operations["credit_mapping_get"];
         put?: never;
         post?: never;
@@ -596,7 +599,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One policy version (`academic.read`). */
+        /** One policy version (`faculty_assignment.manage`; Audit C3 — was `academic.read`). */
         get: operations["faculty_policy_get"];
         put?: never;
         post?: never;
@@ -1260,7 +1263,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Credit mapping rule versions of an institution (`?opportunityId=`, `?status=`). */
+        /**
+         * Credit mapping rule versions of an institution (`?opportunityId=`, `?status=`).
+         *     Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
+         */
         get: operations["credit_mapping_list"];
         put?: never;
         /** Draft a new mapping version for an opportunity. */
@@ -1295,7 +1301,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Policy versions of an institution, newest first (`academic.read`). */
+        /**
+         * Policy versions of an institution, newest first (`faculty_assignment.manage`; Audit C3 —
+         *     was `academic.read`).
+         */
         get: operations["faculty_policy_list"];
         put?: never;
         /** Draft a new governance configuration version (L3-D-019, `faculty_assignment.manage`). */
@@ -1456,7 +1465,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Reconciliation runs of an institution. */
+        /**
+         * Reconciliation runs of an institution.
+         *     Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
+         */
         get: operations["reconciliation_list"];
         put?: never;
         /** Compare provider records with the institutional records of an opportunity. */
@@ -3382,7 +3394,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A reconciliation run with both evidence sets and its discrepancies. */
+        /**
+         * A reconciliation run with both evidence sets and its discrepancies.
+         *     Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
+         */
         get: operations["reconciliation_get"];
         put?: never;
         post?: never;
@@ -17223,7 +17238,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Applied profile revisions, newest first (`institution.read`). */
+        /**
+         * Applied profile revisions, newest first (`institution.read`; `403` for student-only
+         *     sessions — revisions carry the full master information, Audit C3).
+         */
         get: operations["institution_list_profile_revisions"];
         put?: never;
         post?: never;
@@ -23094,7 +23112,9 @@ export interface paths {
         };
         /**
          * Active modules and licence state of the caller's institution (drives navigation and the
-         *     renewal / expiry banner).
+         *     renewal / expiry banner). Audit C3: the full record (package, add-ons, validity window,
+         *     grace) only for `platform.entitlement.manage` / `platform.entitlement.approve`; every other
+         *     session gets [`EffectiveEntitlement::summary_only`] (modules, status, read-only flag).
          */
         get: operations["platform_entitlement_get"];
         put?: never;
@@ -28711,7 +28731,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Progression policies of an institution, every version (`student.read`). */
+        /**
+         * Progression policies of an institution, every version (`student.read` or
+         *     `student.read.assigned`).
+         */
         get: operations["progression_policy_list"];
         put?: never;
         /** Define a draft progression policy (`progression.policy.manage`). */
@@ -28787,7 +28810,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Students with a context in the institution, newest first (`student.read`). `currentContext`
+         * Students with a context in the institution, newest first (`student.read`; with
+         *     `student.read.assigned` only the students the caller teaches). `currentContext`
          *     is the student's context **in this institution** (live preferred).
          */
         get: operations["student_directory"];
@@ -29364,7 +29388,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One progression policy version. */
+        /**
+         * One progression policy version (`student.read` or `student.read.assigned`: policies are
+         *     institution rules, not student data).
+         */
         get: operations["progression_policy_get"];
         put?: never;
         post?: never;
@@ -30325,7 +30352,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Student 360 read model: persona, current context and every context (`student.read`). */
+        /**
+         * Student 360 read model: persona, current context and every context (`student.read`, or
+         *     `student.read.assigned` for a student the caller teaches).
+         */
         get: operations["student_get"];
         put?: never;
         post?: never;
@@ -30829,7 +30859,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Progression decisions of a student, newest first. */
+        /**
+         * Progression decisions of a student, newest first (`student.read`, or `student.read.assigned`
+         *     for a student the caller teaches).
+         */
         get: operations["progression_decision_list"];
         put?: never;
         /** Draft a progression decision. Evidence comes from the Exams ResultsPort when published, otherwise `creditsEarned` (+ attempted, failed components) is entered here; the outcome defaults to the effective policy's recommendation. */
@@ -30917,7 +30950,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Registrations of a student, newest first (`student.read`). */
+        /**
+         * Registrations of a student, newest first (`student.read`, or `student.read.assigned` for a
+         *     student the caller teaches).
+         */
         get: operations["registration_list"];
         put?: never;
         /** Start a registration (draft) for the student's live context in an open window (L3-C-021). */
@@ -30992,7 +31028,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Persona and context status history, oldest first (`student.read`). */
+        /**
+         * Persona and context status history, oldest first (`student.read`, or `student.read.assigned`
+         *     for a student the caller teaches).
+         */
         get: operations["student_status_history"];
         put?: never;
         post?: never;
@@ -131488,6 +131527,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProgressionPolicy"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             404: {

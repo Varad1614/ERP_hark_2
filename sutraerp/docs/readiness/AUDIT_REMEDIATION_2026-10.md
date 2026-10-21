@@ -143,8 +143,8 @@ guard (cells starting `=`, `+`, `-`, `@`, tab or CR are prefixed), with a test i
 - `apps/api/tests/db_a2_input_policy.rs` (db-tests): institution names, admission applications
   (names, DOB required / future / age range, Indian mobile, e-mail), enquiries (contact required,
   clean names), offering seats 1–10 000 and clean titles, staff names, payment amounts ≤ ₹1 crore.
-- Existing suites updated to the policy: `db_b3a.rs` bodies carry a DOB; E2E / seeds use DOBs,
-  Indian mobiles and capacities ≥ 1.
+- Existing suites checked against the policy: `db_b3a.rs` bodies now carry a DOB; the E2E, pilot,
+  perf and DR-drill seeds already send DOBs and Indian mobiles (pilot seed, E2E and Kind smoke pass).
 - Vitest: `xss.test.tsx`, `financial-statements.test.ts`.
 
 ## A3 — API error surface, scoping and fail-closed start-up
@@ -186,3 +186,31 @@ paging), **SEC-3 / M-1** (workspace catalogue), **SEC-5** (foreign institution i
   `localhost` needs nothing.
 - Clients that sent bodies to body-less actions, `limit` > 200, or `sort` parameters now get `422`;
   E2E and seed scripts were adjusted accordingly.
+
+## C3 — read scope (faculty, student sessions) and M9 tenant columns
+
+Findings: **C3 / M-2** (faculty could read every student of the tenant; students read the full
+institution and entitlement records), **M9** (two institution child tables without `tenant_id`).
+
+### What changed
+
+| Finding | Fix |
+|---|---|
+| M-2: faculty held tenant-wide `student.read` | New permission `student.read.assigned` (Faculty only; Administrator keeps `student.read`). `modules/student/src/shared/read_scope.rs` resolves the caller's scope: `student.read` = every student of the tenant; `student.read.assigned` = only students holding an `enrolled` seat in a section where the caller has an **active** faculty assignment (`TaughtStudentsReader` port, `academic::taught_students::PgTaughtStudents`). Any other student is `404`, like a missing or foreign record; neither permission is `403` before any row is read. Ending the assignment ends the access. |
+| M-2: which reads take the assigned scope | Directory, Student 360, status history, the student's registrations and progression decisions, progression policies. Admissions, documents, ledgers, guardians, scholarships, transfers, completion, registration windows and every institution-wide list stay on `student.read` (faculty `403`). The platform search `students` projection needs `student.read` (faculty `403`; the index has no section scope). |
+| C3: administrative academic configuration readable with `academic.read` | Credit-mapping rules and reconciliation runs need `flexible_learning.manage`; faculty-assignment policies need `faculty_assignment.manage`. |
+| C3: student sessions read the full institution and entitlement records | A student-only session (`AuthContext::is_student_only`) reads `Institution::public_subset` (administrator e-mail and registration number blanked, cached copy included) and no profile revisions. The entitlement is `summary_only` (active modules, status, read-only flag, origin, as-of; package, add-ons, validity window, grace and version blanked). |
+| M9: `org_type_blueprint_unit_type` / `org_restructure_move` protected only through their parents | Migration `20270106000100_audit_tenant_scope.sql` adds `tenant_id` + `institution_id` (backfilled from the parent, NOT NULL) so `platform.apply_tenant_rls()` enables and forces RLS on them; inserts copy both columns from the parent row. |
+| Web | Student 360 hides enrolment, documents, guardians, scholarships, completion, **registration and progression** from faculty (`FACULTY_HIDDEN_360_TABS`; a hidden or unknown tab opens the overview). Registration / progression are hidden because those tabs also read options, holds, summary, ledger, breaks, transfers and ABC sync, which stay on `student.read`. |
+
+### Tests
+
+- `apps/api/tests/db_audit_c3_read_scope.rs`: own-section faculty reads and the 404 / 403 matrix,
+  access ending with the assignment, admin-only configuration reads, student-only institution and
+  entitlement subsets, M9 columns under forced RLS.
+- Faculty expectations updated in `db_b3a.rs`, `db_b3b.rs`, `db_b3c.rs`, `db_p2_entitle.rs`;
+  kernel `auth` tests for the permission and `is_student_only`.
+- Vitest: `features/student/index.test.ts` (faculty tab set), `record/record.test.tsx`.
+- E2E: `student.e2e.mjs` — faculty opening a student they do not teach sees "Student not found"
+  (the 404s are expected in the problem filter); `journey.e2e.mjs` — faculty `403` on an admission,
+  `404` on Aarav's Student 360 before he is seated, `200` after the CS101 enrolment step.

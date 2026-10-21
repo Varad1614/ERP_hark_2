@@ -39,9 +39,11 @@ export const STUDENT_360_TABS = [
 /**
  * Audit C3 (M-2): Student 360 sections faculty never see — they read only the students they
  * teach (`student.read.assigned`); enrolment, documents, guardians, scholarships and completion
- * stay with the student office (`student.read`, the API answers 403).
+ * stay with the student office (`student.read`, the API answers 403). Registration and
+ * progression are hidden too: their tabs also read options, holds, summary, ledger, breaks,
+ * transfers and ABC sync, which remain on `student.read`.
  */
-export const FACULTY_HIDDEN_360_TABS: readonly string[] = ["enrolment", "documents", "guardians", "scholarships", "completion"];
+export const FACULTY_HIDDEN_360_TABS: readonly string[] = ["enrolment", "documents", "guardians", "scholarships", "completion", "registration", "progression"];
 
 /** The Student 360 tabs a role sees (faculty without the admin-only sections). */
 export function student360TabsFor(role: string | undefined): readonly (typeof STUDENT_360_TABS)[number][] {

@@ -1652,7 +1652,7 @@
         "tags": [
           "credit-recognition"
         ],
-        "summary": "A mapping rule version with its history.",
+        "summary": "A mapping rule version with its history.\nAudit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).",
         "operationId": "credit_mapping_get",
         "parameters": [
           {
@@ -2698,7 +2698,7 @@
         "tags": [
           "faculty-assignments"
         ],
-        "summary": "One policy version (`academic.read`).",
+        "summary": "One policy version (`faculty_assignment.manage`; Audit C3 — was `academic.read`).",
         "operationId": "faculty_policy_get",
         "parameters": [
           {
@@ -6376,7 +6376,7 @@
         "tags": [
           "credit-recognition"
         ],
-        "summary": "Credit mapping rule versions of an institution (`?opportunityId=`, `?status=`).",
+        "summary": "Credit mapping rule versions of an institution (`?opportunityId=`, `?status=`).\nAudit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).",
         "operationId": "credit_mapping_list",
         "parameters": [
           {
@@ -6567,7 +6567,7 @@
         "tags": [
           "faculty-assignments"
         ],
-        "summary": "Policy versions of an institution, newest first (`academic.read`).",
+        "summary": "Policy versions of an institution, newest first (`faculty_assignment.manage`; Audit C3 —\nwas `academic.read`).",
         "operationId": "faculty_policy_list",
         "parameters": [
           {
@@ -7746,7 +7746,7 @@
         "tags": [
           "credit-recognition"
         ],
-        "summary": "Reconciliation runs of an institution.",
+        "summary": "Reconciliation runs of an institution.\nAudit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).",
         "operationId": "reconciliation_list",
         "parameters": [
           {
@@ -18087,7 +18087,7 @@
         "tags": [
           "credit-recognition"
         ],
-        "summary": "A reconciliation run with both evidence sets and its discrepancies.",
+        "summary": "A reconciliation run with both evidence sets and its discrepancies.\nAudit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).",
         "operationId": "reconciliation_get",
         "parameters": [
           {
@@ -78776,7 +78776,7 @@
         "tags": [
           "institution"
         ],
-        "summary": "Applied profile revisions, newest first (`institution.read`).",
+        "summary": "Applied profile revisions, newest first (`institution.read`; `403` for student-only\nsessions — revisions carry the full master information, Audit C3).",
         "operationId": "institution_list_profile_revisions",
         "parameters": [
           {
@@ -105136,7 +105136,7 @@
         "tags": [
           "platform-entitlement"
         ],
-        "summary": "Active modules and licence state of the caller's institution (drives navigation and the\nrenewal / expiry banner).",
+        "summary": "Active modules and licence state of the caller's institution (drives navigation and the\nrenewal / expiry banner). Audit C3: the full record (package, add-ons, validity window,\ngrace) only for `platform.entitlement.manage` / `platform.entitlement.approve`; every other\nsession gets [`EffectiveEntitlement::summary_only`] (modules, status, read-only flag).",
         "operationId": "platform_entitlement_get",
         "responses": {
           "200": {
@@ -132076,7 +132076,7 @@
         "tags": [
           "progression"
         ],
-        "summary": "Progression policies of an institution, every version (`student.read`).",
+        "summary": "Progression policies of an institution, every version (`student.read` or\n`student.read.assigned`).",
         "operationId": "progression_policy_list",
         "parameters": [
           {
@@ -132699,7 +132699,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Students with a context in the institution, newest first (`student.read`). `currentContext`\nis the student's context **in this institution** (live preferred).",
+        "summary": "Students with a context in the institution, newest first (`student.read`; with\n`student.read.assigned` only the students the caller teaches). `currentContext`\nis the student's context **in this institution** (live preferred).",
         "operationId": "student_directory",
         "parameters": [
           {
@@ -136383,7 +136383,7 @@
         "tags": [
           "progression"
         ],
-        "summary": "One progression policy version.",
+        "summary": "One progression policy version (`student.read` or `student.read.assigned`: policies are\ninstitution rules, not student data).",
         "operationId": "progression_policy_get",
         "parameters": [
           {
@@ -136410,6 +136410,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProgressionPolicy"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -141567,7 +141577,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Student 360 read model: persona, current context and every context (`student.read`).",
+        "summary": "Student 360 read model: persona, current context and every context (`student.read`, or\n`student.read.assigned` for a student the caller teaches).",
         "operationId": "student_get",
         "parameters": [
           {
@@ -145439,7 +145449,7 @@
         "tags": [
           "progression"
         ],
-        "summary": "Progression decisions of a student, newest first.",
+        "summary": "Progression decisions of a student, newest first (`student.read`, or `student.read.assigned`\nfor a student the caller teaches).",
         "operationId": "progression_decision_list",
         "parameters": [
           {
@@ -146016,7 +146026,7 @@
         "tags": [
           "registration"
         ],
-        "summary": "Registrations of a student, newest first (`student.read`).",
+        "summary": "Registrations of a student, newest first (`student.read`, or `student.read.assigned` for a\nstudent the caller teaches).",
         "operationId": "registration_list",
         "parameters": [
           {
@@ -146515,7 +146525,7 @@
         "tags": [
           "students"
         ],
-        "summary": "Persona and context status history, oldest first (`student.read`).",
+        "summary": "Persona and context status history, oldest first (`student.read`, or `student.read.assigned`\nfor a student the caller teaches).",
         "operationId": "student_status_history",
         "parameters": [
           {

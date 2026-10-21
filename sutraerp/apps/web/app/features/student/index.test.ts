@@ -16,7 +16,8 @@ describe("Batch 3 student tabs", () => {
   it("hides the admin-only Student 360 sections from faculty (Audit C3)", () => {
     expect(student360TabsFor("administrator")).toEqual(STUDENT_360_TABS);
     const faculty = student360TabsFor("faculty").map((t) => t.key);
-    expect(faculty).toEqual(["overview", "academics", "attendance", "fees", "registration", "progression"]);
+    expect(faculty).toEqual(["overview", "academics", "attendance", "fees"]);
+    expect(activeTab(student360TabsFor("faculty"), "registration").key).toBe("overview");
     expect(activeTab(student360TabsFor("faculty"), "completion").key).toBe("overview");
   });
 });

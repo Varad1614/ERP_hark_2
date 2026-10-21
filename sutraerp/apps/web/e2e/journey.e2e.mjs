@@ -457,7 +457,8 @@ try {
       check(au.actors.includes(CHECKERS.registrar.subject), "the registrar is an actor in the admission audit trail", e);
       db(e, "approval decided by the registrar", `SELECT actor FROM student.admission_status_history WHERE admission_id = ${q(ids.admissionId)} AND to_status = 'approved' ORDER BY occurred_at DESC LIMIT 1`, (v) => v === CHECKERS.registrar.subject);
       // visibility
-      await sees(e, "faculty", faculty, `${S}/admissions/${ids.admissionId}`, 200, (j) => j.id === ids.admissionId, "student.read: read-only");
+      // Audit C3 (M-2): admissions stay with the student office (`student.read`); faculty get 403.
+      await sees(e, "faculty", faculty, `${S}/admissions/${ids.admissionId}`, 403, null, "admissions are student-office only");
       await sees(e, "student", student, `${S}/admissions/${ids.admissionId}`, 403);
     });
 
@@ -562,7 +563,8 @@ try {
       db(e, "admission completed", `SELECT status FROM student.admission WHERE id = ${q(ids.admissionId)}`, (v) => v === "completed");
       db(e, "student active", `SELECT status FROM student.student WHERE id = ${q(ids.aarav.id)}`, (v) => v === "active");
       audit(e, ids.aarav.id, [], "student");
-      await sees(e, "faculty", faculty, `${S}/students/${ids.aarav.id}`, 200, (j) => j.currentContext?.status === "active", "Student 360 read-only");
+      // Audit C3 (M-2): faculty read only students seated in their sections; Aarav is not yet.
+      await sees(e, "faculty", faculty, `${S}/students/${ids.aarav.id}`, 404, null, "not taught yet: not found");
       await sees(e, "student", student, `${S}/students/${ids.aarav.id}`, 403);
     });
 
@@ -633,6 +635,8 @@ try {
       audit(e, ids.enrolmentId, [], "section enrolment");
       await sees(e, "admin", admin, `${A}/sections/${ids.sections.CS101}/enrolments`, 200, (j) => (j.items ?? j).some((x) => x.studentId === ids.aarav.id), "roster");
       await sees(e, "faculty", faculty, `${A}/sections/${ids.sections.CS101}/enrolments`, 200, (j) => (j.items ?? j).some((x) => x.studentId === ids.aarav.id), "own section roster");
+      // Audit C3 (M-2): once seated in the faculty member's CS101 section, Student 360 opens (read-only).
+      await sees(e, "faculty", faculty, `${S}/students/${ids.aarav.id}`, 200, (j) => j.currentContext?.status === "active", "Student 360 of a taught student");
       await sees(e, "student", student, `${A}/me/courses`, 200, (j) => JSON.stringify(j).includes("CS101-T1"));
       const fpage = P.faculty;
       await go(fpage, "/classes");

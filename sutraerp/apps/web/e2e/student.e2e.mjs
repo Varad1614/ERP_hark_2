@@ -972,9 +972,15 @@ try {
   // ------------------------------------------------------------ faculty read-only
   await signOut(page);
   await signIn(page, "faculty");
-  await step(page, "faculty: Student 360 read-only", async () => {
+  // Audit C3 (M-2): faculty read only the students they teach (`student.read.assigned`). Aarav
+  // is not seated in a section of this faculty member in this suite, so his record is "not
+  // found" for them (404, indistinguishable from a missing record) and nothing is offered.
+  const aaravRecord = `/api/v1/student/students/${ids.aarav}`;
+  expectedFailures.push((p, status) => status === 404 && (p === aaravRecord || p.startsWith(`${aaravRecord}/`)));
+  await step(page, "faculty: Student 360 of a student they do not teach is not found", async () => {
     await go(page, `/students/record/${ids.aarav}`);
-    await page.locator('[data-current-context="active"]').waitFor();
+    await page.getByText("Student not found").first().waitFor();
+    check((await page.locator("[data-current-context]").count()) === 0, "no record shown to faculty who do not teach the student");
     check((await page.locator('[data-action="student-suspend"]').count()) === 0, "no admin actions for faculty");
     await shot(page, "faculty-student360");
   });
