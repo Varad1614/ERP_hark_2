@@ -214,3 +214,30 @@ institution and entitlement records), **M9** (two institution child tables witho
 - E2E: `student.e2e.mjs` — faculty opening a student they do not teach sees "Student not found"
   (the 404s are expected in the problem filter); `journey.e2e.mjs` — faculty `403` on an admission,
   `404` on Aarav's Student 360 before he is seated, `200` after the CS101 enrolment step.
+
+## Phase B — input validation, remaining items (D-2 mass assignment, web side of VAL-2..4 / H-2 / L-1)
+
+Most of Phase B's server work landed in **A2** (text policy, DOB / Indian mobile / e-mail, seat and
+amount caps) and **A3** (pagination bounds, body-less action guard). Unknown `sort` / `order` /
+`orderBy` / `sortBy` query parameters were already refused by A3's `page_bounds` with
+`422 invalid-query-parameter` and a `validationErrors[]` entry naming the parameter (no list endpoint
+supports caller-chosen sorting), so nothing further was needed there.
+
+### What changed
+
+| Finding | Fix |
+|---|---|
+| D-2 / mass assignment: some command bodies silently dropped unknown members | `#[serde(deny_unknown_fields)]` on the remaining payment and offering command DTOs: `RecordPaymentRequest`, `AllocateRequest`, `ReasonRequest`, `RecoverRequest`, `InitiatePaymentRequest`, `RecordUnidentifiedRequest`, `IdentifyRequest`, `CreateCollectionRequest`, `CollectionItemInput`, `AllocationInput`, `CreateOffering`, `UpdateOffering`, `UpdateOfferingSection`, `OfferingCapacityChange`, `SectionSeatRequest`, `SeatTransferRequest`, `OfferingWaitlistJoin`, `OfferingWaitlistPromote`, `SelfEnrol`, `SelfWaitlist` (admission / enquiry / student record DTOs already had it). Unknown members → `422` problem, without echoing the member name back (A3 envelope). OpenAPI marks those schemas `additionalProperties: false`, the same output utoipa generates. Left out on purpose: `ConfirmPaymentRequest` (the gateway callback can carry extra members) and `NewOfferingSection` (also serialised and stored). |
+| VAL-2..4 / H-2 / L-1 web: free-form numeric inputs, errors only on submit, 422 shown as "Request failed (422)" | New shared form layer `apps/web/app/lib/forms.ts`: `LIMITS` copy the server caps (seats 1–10 000, ₹1 crore per payment, applicant age 3–100); field `rule`s (`amount`, `seats`, `mobile`, `email`, `dob`, `integer`) give native `type` / `min` / `max` / `step` / `inputMode` and run on blur and before submit. `problemFieldErrors` maps a problem's `validationErrors[]` (or `errors[]`), by `field` or JSON `pointer` (`/body/x`, `#/x`, `a[0].b`, snake_case), onto the form's fields (`member` aliases, e.g. `fullName` ← `givenName` / `familyName`, `sectionCapacity` ← `capacity`). The first invalid control gets focus. `problemMessage` shows the problem `detail` or a status sentence. `ApiProblem` in `@sutra/api-client` no longer uses a client-made "Request failed (n)" title as its message. |
+| Where it applies | The four shared form components (institution `QuickForm`, academic `useAsk` / `AskForm`, finance dialog, student `SpecForm`) use `useValidatedForm`, so every dialog built on them gets on-blur checks, problem → field mapping and focus. Rules are set on the main forms: payment record, unidentified receipt, bulk collection and refund amounts (`amount`); offering section seats, add section and capacity change (`seats`); new admission dialog (DOB now required as on the server, `dob` / `mobile` / `email`; a 422 returns to the step with the field); admissions-funnel enquiry (mobile / e-mail / intake / fee, plus "a mobile or an e-mail", same rule as the server); My profile (problem mapping + focus + on-blur). |
+
+### Tests
+
+- `apps/api/tests/db_b_strict_bodies.rs` (db-tests): an unknown member on record payment and on
+  offering create gets a 422 problem that does not echo the member; the clean body still passes.
+- Vitest: `app/lib/forms.test.ts` (rules, bounds, pointer / alias mapping, human messages) and
+  `app/features/finance/record-payment-form.test.tsx` (amount input bounded, on-blur error, 422
+  mapped to the field and focused, no "Request failed (422)").
+- Ran locally: `tsc --noEmit` (web), ESLint on the changed files, and Vitest for the new suites
+  plus institution, academic offering, finance, checkout, student record / screens, imports, XSS.
+  Not run locally: `cargo check` / the db-tests (CI runs them).
