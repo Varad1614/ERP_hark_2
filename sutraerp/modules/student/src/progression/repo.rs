@@ -574,12 +574,15 @@ pub async fn submit_policy(
     let mut vars = BTreeMap::new();
     vars.insert("policyId".into(), json!(id));
     vars.insert("code".into(), json!(cur.code));
-    let outcome = request_approval(
-        state,
-        &scope,
-        process::PROGRESSION_POLICY,
-        business_key("progression_policy", id, cur.version),
-        vars,
+    let outcome = sutra_kernel::approval::with_maker(
+        actor.id.as_deref(),
+        request_approval(
+            state,
+            &scope,
+            process::PROGRESSION_POLICY,
+            business_key("progression_policy", id, cur.version),
+            vars,
+        ),
     )
     .await?;
     let pid = outcome.process_instance_id().to_owned();
@@ -1672,12 +1675,15 @@ pub async fn submit_decision(
     let mut vars = BTreeMap::new();
     vars.insert("decisionId".into(), json!(id));
     vars.insert("outcome".into(), json!(cur.outcome));
-    let outcome = request_approval(
-        state,
-        &ss.scope,
-        process::PROGRESSION_DECISION,
-        business_key("progression_decision", id, cur.version),
-        vars,
+    let outcome = sutra_kernel::approval::with_maker(
+        actor.id.as_deref(),
+        request_approval(
+            state,
+            &ss.scope,
+            process::PROGRESSION_DECISION,
+            business_key("progression_decision", id, cur.version),
+            vars,
+        ),
     )
     .await?;
     let pid = outcome.process_instance_id().to_owned();

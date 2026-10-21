@@ -1405,12 +1405,15 @@ pub async fn create_break(
     let id = Uuid::now_v7();
     let mut vars = BTreeMap::new();
     vars.insert("academicBreakId".into(), json!(id));
-    let outcome = request_approval(
-        state,
-        &ss.scope,
-        process::ACADEMIC_BREAK,
-        business_key("academic_break", id, 1),
-        vars,
+    let outcome = sutra_kernel::approval::with_maker(
+        actor.id.as_deref(),
+        request_approval(
+            state,
+            &ss.scope,
+            process::ACADEMIC_BREAK,
+            business_key("academic_break", id, 1),
+            vars,
+        ),
     )
     .await?;
     let pid = outcome.process_instance_id().to_owned();

@@ -1544,8 +1544,6 @@ pub async fn my_approval_decide(
     Json(b): Json<LeaveDecisionBody>,
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleSelfService)?;
-    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "leave request").await?;
     let v = expected!(headers);
     let me = my_staff(&st, ctx).await?;
     let t = ctx.scope.tenant_id;
@@ -1562,6 +1560,10 @@ pub async fn my_approval_decide(
         }
         .into());
     }
+    // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
+    // C1/C2 CI follow-up: checked once the request is known to be in the caller's approval
+    // queue, so a request outside it answers `404` (not the SoD `403` / fail-closed `409`).
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "leave request").await?;
     ensure_version(v, r.version)?;
     if !b.approve() && reason.is_none() {
         return Err(invalid("reason", "required", "a rejection needs a reason").into());

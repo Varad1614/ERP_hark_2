@@ -487,7 +487,19 @@ pub async fn decide(
 ) -> ApiResult<Response> {
     let ctx = auth.require(Permission::PeopleApprove)?;
     // Part 1 · S3-appr (DEF-X-002): the requester of the pending request never decides it.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, &id, "separation").await?;
+    // C1/C2 CI follow-up: the approval's business key names the *engagement* (not the case), so
+    // the pending request is found through the case's `process_instance_id` — a lookup by the
+    // case id found no maker and the fail-closed check refused every separation decision (409).
+    sutra_persistence::approval::guard_decision_for_row(
+        &st.pool,
+        ctx,
+        "people.separation_case",
+        "id",
+        id,
+        &[],
+        "separation",
+    )
+    .await?;
     let v = expected!(headers);
     let reason = clean(b.reason);
     if b.decision == Decision::Reject && reason.is_none() {

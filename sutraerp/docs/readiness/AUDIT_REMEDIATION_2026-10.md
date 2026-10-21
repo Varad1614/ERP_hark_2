@@ -289,3 +289,47 @@ decided (409) until re-submitted — E2E/demo journeys that decide seed data may
 record the request; (2) "losing concurrent submissions count as makers" (rest of M1) is unchanged —
 it only over-restricts; (3) if a request's first outbox event after `request_approval` is in a
 different transaction than the owning one, the rows ride with that transaction.
+
+### C1/C2 CI follow-up (2026-10-21)
+
+CI run 39563394051 (head `c24d0cd`) failed `fmt` (`crates/kernel/src/money.rs`) and 19 `sutra-api`
+db-tests, nearly all `409 "separation of duties: no recorded requester …"`.
+
+**Root cause.** The maker of a governed request is taken from the task-local requester
+(`sutra_kernel::approval::with_requester`), which only the session middleware
+(`sutra_web::auth::authenticate`) set. Requests that reach a module router *without* that middleware
+(the integration harness mounts `router_with_state` and injects the `AuthContext`) and service
+functions called directly with an explicit `Actor` therefore recorded `requested_by = NULL`. Before
+C1 a missing maker meant "anyone may decide", which masked it (and let those tests decide their own
+submissions); with C1 failing closed every such decision became `409`. The C2 ledger queue itself was
+not at fault: it writes immediately outside a request scope and with the owning event / on success
+inside one. Two real defects surfaced on the way: the people **separation** decision looked the
+ledger up by the case id while the approval's business key names the engagement (every separation
+decision was refused), and three decision handlers ran the SoD check before "is this yours / does it
+exist / is the module active" (a foreign or unknown item answered `409`/`403` instead of `404`).
+
+**Fixes (C1 stays fail-closed, C2's same-transaction write is unchanged).**
+- `sutra_web::auth::approval_scope`: a layer on every module's `router_with_state` (academic, campus,
+  exams, finance, people, resources, services, student) that gives a request carrying an
+  `AuthContext` its maker and request-scoped ledger queue when no requester is set yet (a
+  pass-through inside `authenticate`). `authenticate` and the layer share `with_approval_scope`
+  (leftover rows written only on a 2xx response).
+- `sutra_kernel::approval::with_maker(actor, fut)`: a direct service call records its explicit human
+  actor as maker (never a `system:*` actor; the request's subject always wins). Applied where
+  integration tests call services directly: org restructure request, registration submit,
+  internal-assessment finalisation, progression decision / policy submit, academic break request.
+- `people_separation_decide` guards through the case's `process_instance_id`
+  (`guard_decision_for_row`); `platform_import_job_decision` loads the job and checks entitlement
+  before SoD; `people_leave_self_approval_decide` checks queue membership (404) before SoD.
+- Tests: decisions on items the harness submitted as the same injected administrator are now made by
+  an independent checker (`dev|checker@sutra.dev` / registrar / clerk as maker) in db_b2a, b3a, b3b,
+  b4a, b4b, b6a, b7a, b7b, b8b, b8c, b8d, b9e — these tests self-decided, which SoD forbids; the
+  expected statuses are unchanged except `decidedBy` (now the checker). Intentional maker-403 checks
+  (b8c fine waiver, b8d requisition) still use the maker.
+
+**Remaining risks.** (1) Other service functions called directly with a human actor outside the web
+stack still record no maker (409 on decision) — only the call sites above use `with_maker`; production
+always runs inside `authenticate`. (2) Decision handlers that run the SoD guard before their own
+existence / ownership checks answer `409` for an unknown id (fixed only for imports and leave
+self-approval). (3) Other aggregates whose approval business key names a different entity than the
+decision path id would be refused like separations were; none other surfaced in CI.

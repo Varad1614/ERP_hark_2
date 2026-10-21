@@ -310,8 +310,9 @@ fn user() -> Actor {
     }
 }
 
-/// C1/C2 CI follow-up: the clerk who submits a registration directly; the administrator decides
-/// it over HTTP, and separation of duties forbids deciding one's own submission.
+/// C1/C2 CI follow-up: the clerk who submits registrations, progression decisions / policies and
+/// breaks directly; the administrator decides them over HTTP, and separation of duties forbids
+/// deciding one's own submission.
 fn clerk() -> Actor {
     Actor {
         id: Some("dev|clerk@sutra.dev".into()),
@@ -2807,7 +2808,7 @@ async fn approvals_await_a_decision() {
     let d = prog::create_decision(&st, tenant, StudentId(b.student_id), cmd, &user())
         .await
         .unwrap();
-    let d = prog::submit_decision(&st, tenant, d.id, Version(d.version), &user())
+    let d = prog::submit_decision(&st, tenant, d.id, Version(d.version), &clerk())
         .await
         .unwrap();
     assert_eq!(d.status, ProgressionDecisionStatus::PendingApproval);
@@ -2837,7 +2838,7 @@ async fn approvals_await_a_decision() {
     let d = prog::create_decision(&st, tenant, StudentId(c.student_id), cmd, &user())
         .await
         .unwrap();
-    let d = prog::submit_decision(&st, tenant, d.id, Version(d.version), &user())
+    let d = prog::submit_decision(&st, tenant, d.id, Version(d.version), &clerk())
         .await
         .unwrap();
     let d = prog::decide_decision(
@@ -2877,7 +2878,7 @@ async fn approvals_await_a_decision() {
         StatusCode::CREATED,
     )
     .await;
-    let p = prog::submit_policy(&st, tenant, id(&p).parse().unwrap(), Version(1), &user())
+    let p = prog::submit_policy(&st, tenant, id(&p).parse().unwrap(), Version(1), &clerk())
         .await
         .unwrap();
     assert_eq!(p.status.as_str(), "in_review");
@@ -2902,7 +2903,7 @@ async fn approvals_await_a_decision() {
         tenant,
         StudentId(c.student_id),
         cmd,
-        &user(),
+        &clerk(),
     )
     .await
     .unwrap();
