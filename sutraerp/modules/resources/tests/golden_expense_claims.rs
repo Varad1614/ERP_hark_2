@@ -8,8 +8,11 @@
 //! `parse_loose_date` and `today` feeds `normalize_ocr_result`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use sutra_kernel::money::decimal_from_f64;
 use sutra_resources::expenses::rules::{
     can_transition, claim_totals, extract_json, is_editable, match_category, next_status,
     normalize_ocr_result, normalize_text, parse_amount, parse_loose_date, resolve_currency, tokens,
@@ -69,8 +72,13 @@ fn norm(v: Value) -> Value {
     }
 }
 
-fn pairs(v: &[(String, f64)]) -> Value {
-    Value::Array(v.iter().map(|(c, a)| json!([c, a])).collect())
+// Amounts are exact decimals in the port (audit M2); the fixture's are compared as numbers.
+fn pairs(v: &[(String, Decimal)]) -> Value {
+    Value::Array(v.iter().map(|(c, a)| json!([c, a.to_f64()])).collect())
+}
+
+fn dec(x: f64) -> Decimal {
+    decimal_from_f64(x, "amount").unwrap()
 }
 
 #[test]
@@ -86,15 +94,20 @@ fn expense_claims_match_everything() {
             .iter()
             .filter(|l| l.report_id == i.report_id)
             .map(|l| LineFacts {
-                amount: l.amount,
+                amount: dec(l.amount),
                 currency: l.currency.clone(),
                 has_receipt: l.receipt_path.as_deref().is_some_and(|p| !p.is_empty()),
                 reconciled: l.reconciled,
             })
             .collect();
         let totals = claim_totals(&in_report);
-        let all = totals_by_currency(i.lines.iter().map(|l| (l.currency.as_str(), l.amount)));
-        let amounts: Vec<Option<f64>> = i.amounts.iter().map(parse_amount).collect();
+        let all =
+            totals_by_currency(i.lines.iter().map(|l| (l.currency.as_str(), dec(l.amount))));
+        let amounts: Vec<Option<f64>> = i
+            .amounts
+            .iter()
+            .map(|a| parse_amount(a).and_then(|d| d.to_f64()))
+            .collect();
         let normalized: Vec<String> = i.texts.iter().map(|t| normalize_text(t)).collect();
         let toks: Vec<Vec<String>> = i.texts.iter().map(|t| tokens(t)).collect();
         let jsons: Vec<Option<Value>> = i.jsons.iter().map(extract_json).collect();

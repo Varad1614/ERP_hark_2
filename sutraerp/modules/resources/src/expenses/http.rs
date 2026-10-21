@@ -32,13 +32,11 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use base64::Engine;
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
-use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use sqlx::PgConnection;
-use std::str::FromStr;
 use sutra_contracts::finance::ports::{ProcurementPostingKind, ProcurementPostingRequest};
 use sutra_contracts::people::ports::StaffSummary;
 use sutra_kernel::auth::{AuthContext, Permission};
@@ -61,13 +59,6 @@ fn bad(field: &str, message: &str) -> KernelError {
     invalid(field, "invalid", message)
 }
 
-fn dec(f: f64) -> Decimal {
-    Decimal::from_str(&format!("{f:.2}")).unwrap_or_default()
-}
-
-fn f(d: Decimal) -> f64 {
-    d.to_f64().unwrap_or_default()
-}
 
 fn ds(d: NaiveDate) -> String {
     d.format("%Y-%m-%d").to_string()
@@ -147,8 +138,8 @@ impl ExpenseSettings {
             Some(c) => (
                 true,
                 Some(CategoryPolicy {
-                    limit: c.limit.map(f),
-                    receipt_above: c.receipt_above.map(f),
+                    limit: c.limit,
+                    receipt_above: c.receipt_above,
                 }),
             ),
             None => (false, None),
@@ -710,13 +701,13 @@ fn flags_of(e: &ExpenseRow, s: &ExpenseSettings, today: &str) -> Vec<String> {
     let date = ds(e.spent_on);
     let mut out: Vec<String> = r::policy_flags(
         &PolicyInput {
-            amount: f(e.amount),
+            amount: e.amount,
             date: &date,
             has_receipt: e.receipt_id.is_some(),
             category: policy.as_ref(),
             category_known: known,
         },
-        f(s.receipt_required_above),
+        s.receipt_required_above,
         i64::from(s.max_age_days),
         today,
     )
@@ -1257,7 +1248,7 @@ async fn claim_view(
         &rows
             .iter()
             .map(|e| LineFacts {
-                amount: f(e.amount),
+                amount: e.amount,
                 currency: e.currency.clone(),
                 has_receipt: e.receipt_id.is_some(),
                 reconciled: false,
@@ -1281,7 +1272,7 @@ async fn claim_view(
             .by_currency
             .iter()
             .find(|(cur, _)| cur == &c.currency)
-            .map_or(Decimal::ZERO, |(_, v)| dec(*v))
+            .map_or(Decimal::ZERO, |(_, v)| v.round_dp(2))
     } else {
         c.total
     };

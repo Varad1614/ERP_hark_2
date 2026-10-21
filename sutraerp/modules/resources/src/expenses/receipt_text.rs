@@ -15,6 +15,8 @@ use serde_json::{json, Value};
 use std::sync::OnceLock;
 
 use super::rules::{parse_amount_str, parse_loose_date};
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 
 /// One line PaddleOCR read, top to bottom.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, utoipa::ToSchema)]
@@ -56,7 +58,7 @@ fn pats() -> &'static Patterns {
 pub use sutra_kernel::india::gstin_checksum_valid as gstin_valid;
 
 /// Money amounts on a line (percentages skipped), left to right.
-fn amounts(line: &str) -> Vec<f64> {
+fn amounts(line: &str) -> Vec<Decimal> {
     let lower = line.to_lowercase();
     pats()
         .amount
@@ -136,7 +138,7 @@ const TOTAL_KEYS: [&str; 9] = [
     "total",
 ];
 
-fn total(lines: &[OcrLine]) -> Option<f64> {
+fn total(lines: &[OcrLine]) -> Option<Decimal> {
     let lowered: Vec<String> = lines.iter().map(|l| l.text.to_lowercase()).collect();
     for key in TOTAL_KEYS {
         for (i, l) in lowered.iter().enumerate().rev() {
@@ -170,12 +172,12 @@ fn total(lines: &[OcrLine]) -> Option<f64> {
     lowered
         .iter()
         .flat_map(|l| amounts(l))
-        .filter(|a| *a < 10_000_000.0)
-        .fold(None, |m: Option<f64>, a| Some(m.map_or(a, |m| m.max(a))))
+        .filter(|a| *a < Decimal::from(10_000_000))
+        .fold(None, |m: Option<Decimal>, a| Some(m.map_or(a, |m| m.max(a))))
 }
 
-fn gst(lines: &[OcrLine]) -> Option<f64> {
-    let mut parts = 0.0;
+fn gst(lines: &[OcrLine]) -> Option<Decimal> {
+    let mut parts = Decimal::ZERO;
     let mut found = false;
     for l in lines {
         let lower = l.text.to_lowercase();
@@ -307,7 +309,10 @@ pub fn fields_from_lines(lines: &[OcrLine], today: &str) -> Value {
         .iter()
         .filter(|b| **b)
         .count();
-    let confidence = super::rules::round2(mean * (0.4 + 0.2 * found as f64));
+    let confidence = super::rules::round2_f64(mean * (0.4 + 0.2 * found as f64));
+    // The loose shape carries amounts as JSON numbers, as an OCR reader would; the exact value
+    // comes back through `parse_amount` (shortest decimal form). `to_f64` is total.
+    let num = |d: Option<Decimal>| d.and_then(|x| x.to_f64());
     let lower = text.to_lowercase();
     let currency =
         (text.contains('₹') || lower.contains("rs.") || lower.contains("inr") || gstin.is_some())
@@ -315,8 +320,8 @@ pub fn fields_from_lines(lines: &[OcrLine], today: &str) -> Value {
     json!({
         "merchant": merchant(lines),
         "date": date,
-        "total": total,
-        "tax": gst(lines),
+        "total": num(total),
+        "tax": num(gst(lines)),
         "currency": currency,
         "category": category_hint(&text),
         "paymentMethod": payment_method(&text),

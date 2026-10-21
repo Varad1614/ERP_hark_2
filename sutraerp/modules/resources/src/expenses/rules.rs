@@ -4,12 +4,16 @@
 //! `extractJson` / `matchCategory` / `normalizeOcrResult`, `reports.js` lifecycle). MIT,
 //! HeyPuter/everything @ 06802a1. Golden vectors: `tools/golden/specs/expense-claims.mjs`.
 //!
-//! Amounts here are `f64` exactly as the original computes them (two-decimal `round2`); the HTTP
-//! layer stores them as `Decimal` with two places. Additions for SutraERP (policy checks, GST)
+//! Amounts here are exact `Decimal`s (audit M2) rounded with the original's two-decimal
+//! `round2` (`Math.round`, halves up); the original's `+ Number.EPSILON` nudge only countered
+//! binary drift. Request and response bodies still carry them as JSON numbers. Additions for SutraERP (policy checks, GST)
 //! live in [`policy_flags`] and are not part of the golden port.
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use std::str::FromStr;
+use sutra_kernel::money::{decimal_from_f64, js_round_dp};
 use unicode_normalization::UnicodeNormalization;
 
 // ------------------------------------------------------------------ util.js
@@ -19,8 +23,14 @@ fn js_round(x: f64) -> f64 {
     (x + 0.5).floor()
 }
 
-/// `round2(n)`: `Math.round((n + EPSILON) * 100) / 100`.
-pub fn round2(n: f64) -> f64 {
+/// `round2(n)` of an amount: `Math.round(n * 100) / 100` on the exact value.
+pub fn round2(n: Decimal) -> Decimal {
+    js_round_dp(n, 2)
+}
+
+/// `round2(n)` of a ratio (OCR confidence), which stays `f64`:
+/// `Math.round((n + EPSILON) * 100) / 100`.
+pub fn round2_f64(n: f64) -> f64 {
     js_round((n + f64::EPSILON) * 100.0) / 100.0
 }
 
@@ -107,7 +117,7 @@ pub fn tokens(s: &str) -> Vec<String> {
 // ------------------------------------------------------------------ money.js
 
 /// `parseAmount(input)` of a string: "1,234.56", "1.234,56", "₹ 12", "(12.34)", "12.34-".
-pub fn parse_amount_str(input: &str) -> Option<f64> {
+pub fn parse_amount_str(input: &str) -> Option<Decimal> {
     let mut s = input.trim().to_owned();
     if s.is_empty() {
         return None;
@@ -166,18 +176,33 @@ pub fn parse_amount_str(input: &str) -> Option<f64> {
         }
         (None, None) => {}
     }
-    // JS `Number("")` is 0: only commas ("," or "₹ ,") leave nothing behind.
-    let n: f64 = if s.is_empty() { 0.0 } else { s.parse().ok()? };
-    if !n.is_finite() {
-        return None;
-    }
+    // JS `Number("")` is 0: only commas ("," or "₹ ,") leave nothing behind. The digits are
+    // parsed straight to `Decimal` (no float in between); `Number(".")` is NaN, `"5."` and `".5"`
+    // are numbers. More than 28 significant digits is not an amount (`None`).
+    let n = match s.as_str() {
+        "" => Decimal::ZERO,
+        "." => return None,
+        t => {
+            let t = t.strip_suffix('.').unwrap_or(t);
+            let t = if t.starts_with('.') {
+                format!("0{t}")
+            } else {
+                t.to_owned()
+            };
+            Decimal::from_str(&t).ok()?
+        }
+    };
     Some(round2(if negative { -n } else { n }))
 }
 
-/// `parseAmount(input)` of any JSON value (numbers pass through `round2`).
-pub fn parse_amount(input: &Value) -> Option<f64> {
+/// `parseAmount(input)` of any JSON value (numbers pass through `round2`, from their shortest
+/// decimal form: `4.505` is 4.505, so it rounds to 4.51).
+pub fn parse_amount(input: &Value) -> Option<Decimal> {
     match input {
-        Value::Number(n) => n.as_f64().filter(|f| f.is_finite()).map(round2),
+        Value::Number(n) => n
+            .as_f64()
+            .and_then(|f| decimal_from_f64(f, "amount").ok())
+            .map(round2),
         Value::Null => None,
         other => parse_amount_str(&js_string(other)),
     }
@@ -185,11 +210,10 @@ pub fn parse_amount(input: &Value) -> Option<f64> {
 
 /// `totalsByCurrency`: currency → total, in first-seen order.
 pub fn totals_by_currency<'a>(
-    items: impl IntoIterator<Item = (&'a str, f64)>,
-) -> Vec<(String, f64)> {
-    let mut out: Vec<(String, f64)> = Vec::new();
+    items: impl IntoIterator<Item = (&'a str, Decimal)>,
+) -> Vec<(String, Decimal)> {
+    let mut out: Vec<(String, Decimal)> = Vec::new();
     for (cur, amount) in items {
-        let amount = if amount.is_nan() { 0.0 } else { amount };
         if let Some(slot) = out.iter_mut().find(|(c, _)| c == cur) {
             slot.1 = round2(slot.1 + amount);
         } else {
@@ -456,7 +480,9 @@ pub const PAYMENT_METHODS: [&str; 5] = ["Card", "Cash", "Bank transfer", "Mobile
 #[serde(rename_all = "camelCase")]
 pub struct OcrItem {
     pub name: String,
-    pub amount: Option<f64>,
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub amount: Option<Decimal>,
 }
 
 /// What a receipt read pre-fills (`normalizeOcrResult`); the claimant confirms every field.
@@ -465,9 +491,15 @@ pub struct OcrItem {
 pub struct OcrFields {
     pub merchant: Option<String>,
     pub date: Option<String>,
-    pub total: Option<f64>,
-    pub tax: Option<f64>,
-    pub tip: Option<f64>,
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub total: Option<Decimal>,
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub tax: Option<Decimal>,
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub tip: Option<Decimal>,
     pub currency: String,
     pub category_id: Option<String>,
     pub payment_method: Option<String>,
@@ -581,7 +613,7 @@ pub fn normalize_ocr_result(
     OcrFields {
         merchant: text_field("merchant", 120),
         date,
-        total: total.filter(|t| *t >= 0.0),
+        total: total.filter(|t| *t >= Decimal::ZERO),
         tax: parse_amount(get("tax")),
         tip: parse_amount(get("tip")),
         currency,
@@ -657,7 +689,7 @@ pub fn stamp_for(to: &str) -> Option<&'static str> {
 /// One expense line as the claim totals see it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LineFacts {
-    pub amount: f64,
+    pub amount: Decimal,
     pub currency: String,
     pub has_receipt: bool,
     pub reconciled: bool,
@@ -667,7 +699,7 @@ pub struct LineFacts {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClaimTotals {
     pub count: usize,
-    pub by_currency: Vec<(String, f64)>,
+    pub by_currency: Vec<(String, Decimal)>,
     pub with_receipt: usize,
     pub reconciled: usize,
 }
@@ -688,15 +720,15 @@ pub fn claim_totals(lines: &[LineFacts]) -> ClaimTotals {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct CategoryPolicy {
     /// Most one expense of this category may claim.
-    pub limit: Option<f64>,
+    pub limit: Option<Decimal>,
     /// A receipt is required above this amount (the institution default when `None`).
-    pub receipt_above: Option<f64>,
+    pub receipt_above: Option<Decimal>,
 }
 
 /// One expense as the policy checks see it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PolicyInput<'a> {
-    pub amount: f64,
+    pub amount: Decimal,
     pub date: &'a str,
     pub has_receipt: bool,
     pub category: Option<&'a CategoryPolicy>,
@@ -707,7 +739,7 @@ pub struct PolicyInput<'a> {
 /// submission by themselves except `receipt_missing` and `too_old` (see [`blocking`]).
 pub fn policy_flags(
     e: &PolicyInput<'_>,
-    receipt_above: f64,
+    receipt_above: Decimal,
     max_age_days: i64,
     today: &str,
 ) -> Vec<&'static str> {
@@ -716,7 +748,7 @@ pub fn policy_flags(
         out.push("uncategorised");
     }
     if let Some(limit) = e.category.and_then(|c| c.limit) {
-        if e.amount > limit + 1e-9 {
+        if e.amount > limit {
             out.push("over_limit");
         }
     }
@@ -724,7 +756,7 @@ pub fn policy_flags(
         .category
         .and_then(|c| c.receipt_above)
         .unwrap_or(receipt_above);
-    if !e.has_receipt && e.amount > threshold + 1e-9 {
+    if !e.has_receipt && e.amount > threshold {
         out.push("receipt_missing");
     }
     if let (Ok(d), Ok(t)) = (
@@ -750,6 +782,10 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    fn d(x: &str) -> Decimal {
+        Decimal::from_str(x).unwrap()
+    }
+
     fn cats() -> Vec<Category> {
         [
             ("meals", "Meals"),
@@ -766,14 +802,53 @@ mod tests {
 
     #[test]
     fn amounts_parse_like_the_original() {
-        assert_eq!(parse_amount_str("1,234.56"), Some(1234.56));
-        assert_eq!(parse_amount_str("1.234,56"), Some(1234.56));
-        assert_eq!(parse_amount_str("₹ 1,23,456.50"), Some(123_456.5));
-        assert_eq!(parse_amount_str("(12.34)"), Some(-12.34));
-        assert_eq!(parse_amount_str("12.34-"), Some(-12.34));
-        assert_eq!(parse_amount_str("12,5"), Some(12.5));
+        assert_eq!(parse_amount_str("1,234.56"), Some(d("1234.56")));
+        assert_eq!(parse_amount_str("1.234,56"), Some(d("1234.56")));
+        assert_eq!(parse_amount_str("₹ 1,23,456.50"), Some(d("123456.5")));
+        assert_eq!(parse_amount_str("(12.34)"), Some(d("-12.34")));
+        assert_eq!(parse_amount_str("12.34-"), Some(d("-12.34")));
+        assert_eq!(parse_amount_str("12,5"), Some(d("12.5")));
         assert_eq!(parse_amount_str("abc"), None);
-        assert_eq!(parse_amount(&json!(4.505)), Some(4.51));
+        assert_eq!(parse_amount_str("."), None);
+        assert_eq!(parse_amount_str("5."), Some(d("5")));
+        assert_eq!(parse_amount_str(".5"), Some(d("0.5")));
+        assert_eq!(parse_amount_str(","), Some(Decimal::ZERO));
+        assert_eq!(parse_amount(&json!(4.505)), Some(d("4.51")));
+    }
+
+    #[test]
+    fn money_is_exact_where_floats_drift() {
+        // 1234.005 is 1234.00499.. as a double: the original's round2 gave 1234; exact is 1234.01.
+        assert_eq!(parse_amount_str("1234.005"), Some(d("1234.01")));
+        assert_eq!(parse_amount(&json!(1234.005)), Some(d("1234.01")));
+        // Ten lines of 0.10 total exactly 1.00; a thousand of 0.01 exactly 10.
+        let ten: Vec<(&str, Decimal)> = (0..10).map(|_| ("INR", d("0.10"))).collect();
+        assert_eq!(totals_by_currency(ten), vec![("INR".to_owned(), Decimal::ONE)]);
+        let many: Vec<(&str, Decimal)> = (0..1000).map(|_| ("INR", d("0.01"))).collect();
+        assert_eq!(totals_by_currency(many)[0].1, d("10"));
+        // Negative halves round towards +inf, as Math.round does.
+        assert_eq!(round2(d("-2.345")), d("-2.34"));
+        // A limit is compared exactly: 500.00 is within a 500 limit, 500.01 is over.
+        let pol = CategoryPolicy {
+            limit: Some(d("500")),
+            receipt_above: Some(d("250")),
+        };
+        let flags = |amount: Decimal| {
+            policy_flags(
+                &PolicyInput {
+                    amount,
+                    date: "2026-10-01",
+                    has_receipt: true,
+                    category: Some(&pol),
+                    category_known: true,
+                },
+                d("100"),
+                90,
+                "2026-10-17",
+            )
+        };
+        assert!(flags(d("500.00")).is_empty());
+        assert_eq!(flags(d("500.01")), vec!["over_limit"]);
     }
 
     #[test]
@@ -789,7 +864,7 @@ mod tests {
         );
         assert_eq!(r.merchant.as_deref(), Some("Blue Fern Cafe"));
         assert_eq!(r.date.as_deref(), Some("2026-08-20"));
-        assert_eq!((r.total, r.currency.as_str()), (Some(14.6), "USD"));
+        assert_eq!((r.total, r.currency.as_str()), (Some(d("14.6")), "USD"));
         assert_eq!(r.category_id.as_deref(), Some("meals"));
         assert_eq!(r.payment_method.as_deref(), Some("Card"));
         assert_eq!(r.card_last4.as_deref(), Some("4471"));
@@ -816,18 +891,18 @@ mod tests {
         assert_eq!(next_status("approved"), Some("reimbursed"));
         assert_eq!(next_status("reimbursed"), None);
         let pol = CategoryPolicy {
-            limit: Some(500.0),
+            limit: Some(d("500")),
             receipt_above: None,
         };
         let flags = policy_flags(
             &PolicyInput {
-                amount: 800.0,
+                amount: d("800"),
                 date: "2026-06-01",
                 has_receipt: false,
                 category: Some(&pol),
                 category_known: true,
             },
-            250.0,
+            d("250"),
             90,
             "2026-10-17",
         );
