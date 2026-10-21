@@ -1064,7 +1064,7 @@ pub struct Budget {
     #[serde(with = "rust_decimal::serde::float")]
     #[schema(value_type = f64)]
     pub value: Decimal,
-    /// `spent / value` — a ratio, so `f64`.
+    // `spent / value`: a ratio, so `f64`.
     pub ratio: f64,
 }
 

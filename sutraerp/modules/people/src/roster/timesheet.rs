@@ -675,13 +675,13 @@ pub struct Line {
 pub struct Totals {
     pub shifts: i64,
     #[serde(with = "rust_decimal::serde::float")]
-    #[schema(value_type = f64)]
+    #[schema(value_type = f64, default = 0.0)]
     pub scheduled_minutes: Decimal,
     #[serde(with = "rust_decimal::serde::float")]
-    #[schema(value_type = f64)]
+    #[schema(value_type = f64, default = 0.0)]
     pub worked_minutes: Decimal,
     #[serde(with = "rust_decimal::serde::float")]
-    #[schema(value_type = f64)]
+    #[schema(value_type = f64, default = 0.0)]
     pub overtime_minutes: Decimal,
     pub late_count: i64,
     pub late_minutes: i64,
@@ -694,7 +694,7 @@ pub struct Totals {
     /// absent (those reach payroll through the leave reader; counting them here would charge
     /// them twice).
     #[serde(with = "rust_decimal::serde::float")]
-    #[schema(value_type = f64)]
+    #[schema(value_type = f64, default = 0.0)]
     pub lop_days: Decimal,
     pub night_shifts: i64,
     pub holiday_shifts: i64,
