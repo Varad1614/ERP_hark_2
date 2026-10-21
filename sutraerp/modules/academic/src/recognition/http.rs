@@ -171,6 +171,7 @@ pub async fn self_recognitions(
 // ============================================================== credit mapping rules (L3-D-046)
 
 /// Credit mapping rule versions of an institution (`?opportunityId=`, `?status=`).
+/// Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
 #[utoipa::path(get, path = "/api/v1/academic/institutions/{id}/credit-mapping-rules", operation_id = "credit_mapping_list", tag = "credit-recognition",
     params(("id" = String, Path, format = Uuid), MappingFilter), security(("session_cookie" = [])),
     responses((status = 200, body = CreditMappingRuleList), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -180,7 +181,7 @@ pub async fn mapping_list(
     Path(id): Path<Uuid>,
     Query(f): Query<MappingFilter>,
 ) -> ApiResult<Json<CreditMappingRuleList>> {
-    let ctx = auth.require(Permission::AcademicRead)?;
+    let ctx = auth.require(Permission::FlexibleLearningManage)?;
     Ok(Json(CreditMappingRuleList {
         items: mapping::list(&st, ctx.scope.tenant_id, id, &f).await?,
     }))
@@ -205,6 +206,7 @@ pub async fn mapping_create(
 }
 
 /// A mapping rule version with its history.
+/// Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
 #[utoipa::path(get, path = "/api/v1/academic/credit-mapping-rules/{id}", operation_id = "credit_mapping_get", tag = "credit-recognition",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = CreditMappingRule, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -213,7 +215,7 @@ pub async fn mapping_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::AcademicRead)?;
+    let ctx = auth.require(Permission::FlexibleLearningManage)?;
     let r = mapping::get(&st, ctx.scope.tenant_id, id).await?;
     Ok(ok(&r, r.version))
 }
@@ -378,6 +380,7 @@ pub async fn recognition_post(
 // ============================================================== reconciliation (L3-D-049)
 
 /// Reconciliation runs of an institution.
+/// Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
 #[utoipa::path(get, path = "/api/v1/academic/institutions/{id}/reconciliation-runs", operation_id = "reconciliation_list", tag = "credit-recognition",
     params(("id" = String, Path, format = Uuid), RecognitionStatusFilter), security(("session_cookie" = [])),
     responses((status = 200, body = ReconciliationRunList), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -387,7 +390,7 @@ pub async fn reconciliation_list(
     Path(id): Path<Uuid>,
     Query(f): Query<RecognitionStatusFilter>,
 ) -> ApiResult<Json<ReconciliationRunList>> {
-    let ctx = auth.require(Permission::AcademicRead)?;
+    let ctx = auth.require(Permission::FlexibleLearningManage)?;
     Ok(Json(ReconciliationRunList {
         items: reconciliation::list(&st, ctx.scope.tenant_id, id, f.status.as_deref()).await?,
     }))
@@ -412,6 +415,7 @@ pub async fn reconciliation_run(
 }
 
 /// A reconciliation run with both evidence sets and its discrepancies.
+/// Audit C3: administrative configuration — `flexible_learning.manage` (was `academic.read`).
 #[utoipa::path(get, path = "/api/v1/academic/reconciliation-runs/{id}", operation_id = "reconciliation_get", tag = "credit-recognition",
     params(("id" = String, Path, format = Uuid)), security(("session_cookie" = [])),
     responses((status = 200, body = ReconciliationRun, headers(("ETag" = String))), (status = "4XX", body = Problem, content_type = "application/problem+json")))]
@@ -420,7 +424,7 @@ pub async fn reconciliation_get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::AcademicRead)?;
+    let ctx = auth.require(Permission::FlexibleLearningManage)?;
     let r = reconciliation::get(&st, ctx.scope.tenant_id, id).await?;
     Ok(ok(&r, r.version))
 }

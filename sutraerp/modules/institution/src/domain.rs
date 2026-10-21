@@ -25,6 +25,25 @@ pub struct Institution {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Institution {
+    /// Audit C3: the public subset a student-only session reads — the administrator's contact
+    /// e-mail and the regulatory registration number are blanked (`null`).
+    pub fn public_subset(mut self) -> Self {
+        self.profile.administrator_email = None;
+        self.profile.registration_number = None;
+        self
+    }
+
+    /// [`Institution::public_subset`] for student-only sessions, the full record otherwise.
+    pub fn for_viewer(self, ctx: &sutra_kernel::auth::AuthContext) -> Self {
+        if ctx.is_student_only() {
+            self.public_subset()
+        } else {
+            self
+        }
+    }
+}
+
 /// Allowed institution lifecycle transitions (L2-B01 §6 + activation-authority amendment):
 /// `draft → configured → pending_approval → {active | returned | rejected}`,
 /// `returned | rejected → configured` (a new request cycle; never directly active),

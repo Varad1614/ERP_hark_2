@@ -5,6 +5,7 @@ use super::domain::*;
 use super::repo;
 use super::support::{body, read_student, standing_of, StepDecision, StepDecisionBody, StepReason};
 use crate::shared::http::{actor, if_match, with_etag};
+use crate::shared::read_scope::require_student_read;
 use crate::shared::scope::{institution_scope, tenant};
 use crate::shared::student::me;
 use crate::shared::StudentState;
@@ -481,7 +482,8 @@ pub async fn create(
     Ok(etag_reg(StatusCode::CREATED, &r))
 }
 
-/// Registrations of a student, newest first (`student.read`).
+/// Registrations of a student, newest first (`student.read`, or `student.read.assigned` for a
+/// student the caller teaches).
 #[utoipa::path(
     get,
     path = "/api/v1/student/students/{id}/registrations",
@@ -500,7 +502,8 @@ pub async fn list(
     Path(id): Path<StudentId>,
     Query(q): Query<RegistrationQuery>,
 ) -> ApiResult<Json<RegistrationList>> {
-    let ctx = auth.require(Permission::StudentRead)?;
+    // Audit C3: faculty list the registrations of students they teach only (404 otherwise).
+    let ctx = require_student_read(&st, &auth, id).await?;
     let items = repo::list_registrations(&st.pool, tenant(ctx), id, q.status).await?;
     Ok(Json(RegistrationList { items }))
 }

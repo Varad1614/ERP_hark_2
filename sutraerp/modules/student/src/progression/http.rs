@@ -7,6 +7,7 @@ use super::domain::*;
 use super::{eligibility, mobility, repo};
 use crate::registration::support::{body, StepDecision, StepDecisionBody, StepReason};
 use crate::shared::http::{actor, if_match, with_etag};
+use crate::shared::read_scope::{require_any_student_read, require_student_read};
 use crate::shared::scope::{institution_scope, tenant};
 use crate::shared::StudentState;
 use axum::body::Bytes;
@@ -305,7 +306,8 @@ pub async fn policy_create(
     Ok(ok(StatusCode::CREATED, &p))
 }
 
-/// Progression policies of an institution, every version (`student.read`).
+/// Progression policies of an institution, every version (`student.read` or
+/// `student.read.assigned`).
 #[utoipa::path(
     get,
     path = "/api/v1/student/institutions/{id}/progression-policies",
@@ -324,19 +326,37 @@ pub async fn policy_list(
     Path(id): Path<InstitutionId>,
     Query(q): Query<PolicyQuery>,
 ) -> ApiResult<Json<ProgressionPolicyList>> {
-    let ctx = auth.require(Permission::StudentRead)?;
+    // Audit C3: any student-read permission (faculty included).
+    let ctx = require_any_student_read(&auth)?;
     let items = repo::list_policies(&st, &institution_scope(ctx, id), id, q.status).await?;
     Ok(Json(ProgressionPolicyList { items }))
 }
 
-get_one!(
-    policy_get,
-    "/api/v1/student/progression-policies/{id}",
-    "progression_policy_get",
-    "One progression policy version.",
-    ProgressionPolicy,
-    |st, t, id| repo::get_policy(&st.pool, t, id)
-);
+/// One progression policy version (`student.read` or `student.read.assigned`: policies are
+/// institution rules, not student data).
+#[utoipa::path(
+    get,
+    path = "/api/v1/student/progression-policies/{id}",
+    operation_id = "progression_policy_get",
+    tag = "progression",
+    params(("id" = String, Path, format = Uuid)),
+    security(("session_cookie" = [])),
+    responses(
+        (status = 200, body = ProgressionPolicy, headers(("ETag" = String))),
+        (status = 403, body = Problem, content_type = "application/problem+json"),
+        (status = 404, body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn policy_get(
+    State(st): State<StudentState>,
+    auth: Authenticated,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Response> {
+    // Audit C3: any student-read permission (faculty included).
+    let ctx = require_any_student_read(&auth)?;
+    let p = repo::get_policy(&st.pool, tenant(ctx), id).await?;
+    Ok(ok(StatusCode::OK, &p))
+}
 
 /// Change a draft policy version.
 #[utoipa::path(
@@ -488,7 +508,8 @@ create_for_student!(decision_create, "/api/v1/student/students/{id}/progression-
     CreateDecision, ProgressionDecision, Permission::ProgressionManage,
     |st, t, sid, b, a| repo::create_decision(&st, t, sid, b, &a));
 
-/// Progression decisions of a student, newest first.
+/// Progression decisions of a student, newest first (`student.read`, or `student.read.assigned`
+/// for a student the caller teaches).
 #[utoipa::path(
     get,
     path = "/api/v1/student/students/{id}/progression-decisions",
@@ -507,7 +528,8 @@ pub async fn decision_list(
     Path(id): Path<StudentId>,
     Query(q): Query<DecisionQuery>,
 ) -> ApiResult<Json<ProgressionDecisionList>> {
-    let ctx = auth.require(Permission::StudentRead)?;
+    // Audit C3: faculty list the decisions of students they teach only (404 otherwise).
+    let ctx = require_student_read(&st, &auth, id).await?;
     let items = repo::list_decisions(&st.pool, tenant(ctx), id, q.status).await?;
     Ok(Json(ProgressionDecisionList { items }))
 }

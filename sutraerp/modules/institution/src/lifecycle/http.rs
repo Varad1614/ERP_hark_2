@@ -242,7 +242,8 @@ pub async fn revise_profile(
     ok(r)
 }
 
-/// Applied profile revisions, newest first (`institution.read`).
+/// Applied profile revisions, newest first (`institution.read`; `403` for student-only
+/// sessions — revisions carry the full master information, Audit C3).
 #[utoipa::path(
     get,
     path = "/api/v1/institution/institutions/{id}/profile/revisions",
@@ -258,6 +259,12 @@ pub async fn list_profile_revisions(
     Path(id): Path<InstitutionId>,
 ) -> ApiResult<Json<ProfileRevisionList>> {
     let ctx = auth.require(Permission::InstitutionRead)?;
+    if ctx.is_student_only() {
+        return Err(KernelError::Forbidden(
+            "profile revisions are not available to student sessions".into(),
+        )
+        .into());
+    }
     let scope = institution_scope(ctx, id);
     let items = repo::list_profile_revisions(&st.pool, &scope, id).await?;
     Ok(Json(ProfileRevisionList { items }))

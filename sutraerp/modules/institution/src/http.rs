@@ -79,7 +79,12 @@ pub async fn list(
     axum::extract::Query(q): axum::extract::Query<InstitutionListQuery>,
 ) -> ApiResult<Json<InstitutionList>> {
     let ctx = auth.require(Permission::InstitutionRead)?;
-    let items = repo::list(&st.pool, &ctx.scope, q.status).await?;
+    let items = repo::list(&st.pool, &ctx.scope, q.status)
+        .await?
+        .into_iter()
+        // Audit C3: student-only sessions read the public subset.
+        .map(|i| i.for_viewer(ctx))
+        .collect();
     Ok(Json(InstitutionList { items }))
 }
 
@@ -155,13 +160,14 @@ pub async fn get(
     if let Some(hit) = st.cache.get_json::<Institution>(&key).await {
         // Defence in depth: never serve an entry whose tenant differs from the session's.
         if hit.tenant_id == ctx.scope.tenant_id && hit.id == id {
-            return Ok(with_etag(StatusCode::OK, hit));
+            // Audit C3: the cache holds the full record; redact on the way out.
+            return Ok(with_etag(StatusCode::OK, hit.for_viewer(ctx)));
         }
         st.cache.invalidate(&key).await;
     }
     let inst = repo::get(&st.pool, &ctx.scope, id).await?;
     st.cache.put_json(&key, &inst).await;
-    Ok(with_etag(StatusCode::OK, inst))
+    Ok(with_etag(StatusCode::OK, inst.for_viewer(ctx)))
 }
 
 /// Rename an institution of the caller's session tenant (optimistic concurrency via `If-Match`).

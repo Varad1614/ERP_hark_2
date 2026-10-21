@@ -314,7 +314,9 @@ async fn pending_for_update(
 // ---------------------------------------------------------------------------------------------
 
 /// Active modules and licence state of the caller's institution (drives navigation and the
-/// renewal / expiry banner).
+/// renewal / expiry banner). Audit C3: the full record (package, add-ons, validity window,
+/// grace) only for `platform.entitlement.manage` / `platform.entitlement.approve`; every other
+/// session gets [`EffectiveEntitlement::summary_only`] (modules, status, read-only flag).
 #[utoipa::path(
     get,
     path = "/api/v1/platform/entitlement",
@@ -331,7 +333,15 @@ pub async fn get_entitlement(
     State(st): State<EntitlementState>,
     auth: Authenticated,
 ) -> ApiResult<Json<EffectiveEntitlement>> {
-    Ok(Json(st.policy.effective(auth.scope().tenant_id).await?))
+    let full = st.policy.effective(auth.scope().tenant_id).await?;
+    let ctx = &auth.0;
+    if ctx.has_permission(Permission::EntitlementManage)
+        || ctx.has_permission(Permission::EntitlementApprove)
+    {
+        Ok(Json(full))
+    } else {
+        Ok(Json(full.summary_only()))
+    }
 }
 
 /// The module / package registry (modules, dependencies, packages, always-available core).

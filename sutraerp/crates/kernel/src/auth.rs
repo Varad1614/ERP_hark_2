@@ -1017,6 +1017,12 @@ impl AuthContext {
         is_granted(&self.roles, permission)
     }
 
+    /// Audit C3: `true` when the session holds the `student` role and no staff role — the
+    /// session that sees only the public subset of institution / entitlement records.
+    pub fn is_student_only(&self) -> bool {
+        !self.roles.is_empty() && self.roles.iter().all(|r| *r == Role::Student)
+    }
+
     /// Deny-by-default permission check: `Forbidden` unless one of the caller's roles grants it;
     /// `StepUpRequired` when the permission is admin-sensitive, step-up is enforced and the
     /// session has not verified a second factor.
@@ -1297,10 +1303,23 @@ mod tests {
         }
         // Audit C3: faculty read only the students they teach; never the tenant-wide read.
         assert!(!is_granted(&[Role::Faculty], Permission::StudentRead));
-        assert!(is_granted(&[Role::Faculty], Permission::StudentReadAssigned));
+        assert!(is_granted(
+            &[Role::Faculty],
+            Permission::StudentReadAssigned
+        ));
         assert!(!is_granted(&[Role::Student], Permission::StudentRead));
-        assert!(!is_granted(&[Role::Student], Permission::StudentReadAssigned));
-        assert!(!is_granted(&[Role::Administrator], Permission::StudentReadAssigned));
+        assert!(!is_granted(
+            &[Role::Student],
+            Permission::StudentReadAssigned
+        ));
+        assert!(!is_granted(
+            &[Role::Administrator],
+            Permission::StudentReadAssigned
+        ));
+        assert!(ctx(vec![Role::Student]).is_student_only());
+        assert!(!ctx(vec![Role::Student, Role::Faculty]).is_student_only());
+        assert!(!ctx(vec![Role::Faculty]).is_student_only());
+        assert!(!ctx(Vec::new()).is_student_only());
         for p in [Permission::StudentSelfService, Permission::RegistrationSelf] {
             assert!(is_granted(&[Role::Student], p), "{p:?}");
             assert!(!is_granted(&[Role::Faculty], p), "{p:?}");

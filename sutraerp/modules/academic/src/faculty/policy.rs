@@ -361,7 +361,8 @@ pub async fn create(
     Ok(with_etag(StatusCode::CREATED, &p, Version(p.version)))
 }
 
-/// Policy versions of an institution, newest first (`academic.read`).
+/// Policy versions of an institution, newest first (`faculty_assignment.manage`; Audit C3 —
+/// was `academic.read`).
 #[utoipa::path(
     get,
     path = "/api/v1/academic/institutions/{id}/faculty-assignment-policies",
@@ -376,7 +377,7 @@ pub async fn list(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<FacultyAssignmentPolicyList>> {
-    let ctx = auth.require(Permission::AcademicRead)?;
+    let ctx = auth.require(Permission::FacultyAssignmentManage)?;
     let rows: Vec<PolicyRow> = sqlx::query_as(&format!("SELECT {POLICY_COLUMNS} FROM academic.faculty_assignment_policy WHERE tenant_id = $1 AND institution_id = $2 ORDER BY version_no DESC"))
         .bind(tenant(ctx).as_uuid()).bind(id).fetch_all(&st.pool).await.map_err(map_db_error)?;
     Ok(Json(FacultyAssignmentPolicyList {
@@ -384,7 +385,7 @@ pub async fn list(
     }))
 }
 
-/// One policy version (`academic.read`).
+/// One policy version (`faculty_assignment.manage`; Audit C3 — was `academic.read`).
 #[utoipa::path(
     get,
     path = "/api/v1/academic/faculty-assignment-policies/{id}",
@@ -399,7 +400,7 @@ pub async fn get(
     auth: Authenticated,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::AcademicRead)?;
+    let ctx = auth.require(Permission::FacultyAssignmentManage)?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let p = load(&mut conn, tenant(ctx), id, false).await?;
     Ok(with_etag(StatusCode::OK, &p, Version(p.version)))

@@ -11,6 +11,10 @@
 //!   operation id `platform_search_query`): always filtered on the session's tenant; permission
 //!   per projection (`students` → `student.read`, `staff` → `people.read`,
 //!   `library-catalogue` → `campus.read`); `503 search_disabled` when `SUTRA_SEARCH=off`.
+//!   Audit C3 (M-2): the `students` projection needs the tenant-wide `student.read`; a
+//!   faculty-only caller (`student.read.assigned`) gets `403` — the index carries no section
+//!   membership, so own-section filtering is not possible here (faculty use the scoped
+//!   `GET /student/institutions/{id}/students` directory instead).
 
 pub mod projector;
 
@@ -177,6 +181,11 @@ mod tests {
             Some(Permission::CampusRead)
         );
         assert_eq!(permission_for("audit"), None);
+        // Audit C3: student search is tenant-wide; faculty (own sections only) never reach it.
+        assert!(!sutra_kernel::auth::is_granted(
+            &[sutra_kernel::auth::Role::Faculty],
+            permission_for("students").unwrap()
+        ));
         assert!(!SearchState::disabled().is_enabled());
     }
 }

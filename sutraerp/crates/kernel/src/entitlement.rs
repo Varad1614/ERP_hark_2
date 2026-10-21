@@ -472,6 +472,23 @@ impl EffectiveEntitlement {
     pub fn has_module(&self, key: &str) -> bool {
         self.modules.iter().any(|m| m == key)
     }
+
+    /// Audit C3: the subset every session needs for navigation and the read-only banner —
+    /// active `modules`, `status`, `readOnly`, `origin` and `asOf`. The commercial terms
+    /// (package, add-ons, stored status, validity window, grace, version) are blanked:
+    /// `validFrom` becomes the Unix epoch, the optional dates `null`, numbers `0`.
+    pub fn summary_only(mut self) -> Self {
+        self.package = None;
+        self.add_on_modules = Vec::new();
+        self.stored_status = self.status;
+        self.valid_from = DateTime::<Utc>::UNIX_EPOCH;
+        self.valid_until = None;
+        self.grace_days = 0;
+        self.grace_ends_at = None;
+        self.days_remaining = None;
+        self.version = 0;
+        self
+    }
 }
 
 impl TenantEntitlement {
