@@ -190,6 +190,16 @@ describe("Student 360 (3A tabs)", () => {
     await renderScreen(wrap(inst, api, <Student360 />), { path: "/students/record/:studentId/:tab?", entry: `/students/record/${studentId}`, role: "faculty" });
     expect(await screen.findByRole("heading", { name: "Aarav Desai", level: 1 })).toBeTruthy();
     expect(document.querySelector('[data-action="student-suspend"]')).toBeNull();
+    // Audit C3: the admin-only sections are not offered to faculty.
+    expect(document.querySelector(`a[href="/students/record/${studentId}/documents"]`)).toBeNull();
+  });
+
+  it("opens the overview when faculty ask for an admin-only section", async () => {
+    const { api: inst, inst: i } = await institution();
+    const { api, studentId } = await seededMockRecordApi(i.id);
+    await renderScreen(wrap(inst, api, <Student360 />), { path: "/students/record/:studentId/:tab?", entry: `/students/record/${studentId}/guardians`, role: "faculty" });
+    expect(await screen.findByRole("heading", { name: "Aarav Desai", level: 1 })).toBeTruthy();
+    expect(document.querySelector('[data-screen="student-360"]')?.getAttribute("data-tab")).toBe("overview");
   });
 });
 

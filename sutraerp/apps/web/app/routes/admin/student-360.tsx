@@ -2,7 +2,7 @@ import { AreaHeader, BentoGrid, BentoTile, MenuButton, StatusBadge, type MenuIte
 import { ChevronDown } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { useSession } from "../../lib/auth";
-import { activeTab, STUDENT_360_TABS, student360Path } from "../../features/student";
+import { activeTab, student360Path, student360TabsFor } from "../../features/student";
 import { TabLink } from "../../features/student/StudentsArea";
 import { Student360Completion, Student360Guardians, Student360Scholarships } from "../../features/student/completion";
 import {
@@ -29,12 +29,15 @@ export function meta() {
  * Student 360 (`/students/record/:studentId/:tab?`), re-skin v2 (R2): back link "Students", the
  * student's name, a live meta line (roll no. · programme · semester · fee / status badge), the five
  * prototype tabs right-aligned and a "More" menu with the lifecycle sections and the record
- * actions. Staff only (faculty read-only, administrators get the actions).
+ * actions. Staff only (faculty read-only and only the sections of `student.read.assigned` —
+ * Audit C3; administrators get every section and the actions).
  */
 export default function Student360() {
   const { studentId = "", tab } = useParams();
   const { role } = useSession();
-  const current = activeTab(STUDENT_360_TABS, tab);
+  // Audit C3: faculty never see the admin-only sections (unknown / hidden tab → overview).
+  const tabs = student360TabsFor(role);
+  const current = activeTab(tabs, tab);
   const student = useStudent(role === "student" ? "" : studentId);
   const fig = useStudentFigures(student.data);
   const { name: progName } = useProgrammeNames(fig.inst);
@@ -77,8 +80,8 @@ export default function Student360() {
   };
   const s = student.data;
   const c = s?.currentContext;
-  const main = STUDENT_360_TABS.filter((t) => t.group === "main");
-  const record = STUDENT_360_TABS.filter((t) => t.group === "record");
+  const main = tabs.filter((t) => t.group === "main");
+  const record = tabs.filter((t) => t.group === "record");
   const inRecord = record.find((t) => t.key === current.key);
   const sections: MenuItem[] = record.map((t, i) => ({
     id: `section-${t.key}`,
