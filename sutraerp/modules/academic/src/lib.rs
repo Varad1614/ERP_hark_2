@@ -23,6 +23,7 @@ pub mod directory;
 pub mod exam_facts;
 pub mod faculty_workload;
 pub mod shared;
+pub mod taught_students; // Audit C3
 
 // ---- slice areas (router mount points are pre-registered in `router_with_state`) ----
 pub mod assessment; // 4B
@@ -49,6 +50,7 @@ pub use directory::PgOfferingDirectory;
 pub use exam_facts::PgAcademicExamFacts;
 pub use faculty_workload::PgFacultyWorkload;
 pub use shared::AcademicState;
+pub use taught_students::PgTaughtStudents;
 
 pub const MODULE: ModuleDescriptor = ModuleDescriptor {
     domain: "D",

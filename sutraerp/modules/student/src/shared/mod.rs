@@ -14,6 +14,8 @@
 //!   (legal transition check, history row, `student.status_changed` event).
 //! * [`publish`] — outbox + audit in the owner-local transaction (ADR-L5-0006/0007).
 //! * [`approval`] — WorkflowPort approval steps (auto-approve in Batch 3).
+//! * [`read_scope`] — Audit C3: tenant-wide (`student.read`) vs own-section
+//!   (`student.read.assigned`) read scope of staff reads.
 //! * [`time`] — business-local "today" in the institution timezone.
 
 pub mod approval;
@@ -21,6 +23,7 @@ pub mod guard;
 pub mod http;
 pub mod lifecycle;
 pub mod publish;
+pub mod read_scope; // Audit C3
 pub mod scope;
 pub mod state;
 pub mod student;

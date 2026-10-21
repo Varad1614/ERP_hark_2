@@ -194,6 +194,11 @@ pub enum Permission {
     // ---- Batch 3 (Domain C). Staff reads use `StudentRead`; students use `StudentSelfService`. ----
     /// Read students, StudentContexts, Student 360 and every Domain C record of the tenant (staff).
     StudentRead,
+    /// Audit C3 (M-2): read students **the caller teaches** — students holding an `enrolled` seat
+    /// in a section where the caller has an **active** faculty assignment (Faculty). Handlers
+    /// resolve the set through `TaughtStudentsReader`; anyone else is `404`, tenant-wide lists
+    /// (admissions, documents, ledgers, guardians, …) stay on `student.read`.
+    StudentReadAssigned,
     /// Self-service on one's **own** student record (resolved from the session subject): view Student 360, request documents/certificates, update communication preferences.
     StudentSelfService,
     /// 3A: applications, review, offers, admission documents and verification, cancellation, withdrawal, expiry, readmission initiation.
@@ -410,7 +415,7 @@ pub enum Permission {
 }
 
 impl Permission {
-    pub const ALL: [Permission; 123] = [
+    pub const ALL: [Permission; 124] = [
         Permission::InstitutionRead,
         Permission::InstitutionRegister,
         Permission::InstitutionRename,
@@ -434,6 +439,7 @@ impl Permission {
         Permission::CalendarPublish,
         Permission::InstitutionReadinessRead,
         Permission::StudentRead,
+        Permission::StudentReadAssigned,
         Permission::StudentSelfService,
         Permission::AdmissionManage,
         Permission::AdmissionDecide,
@@ -561,6 +567,7 @@ impl Permission {
             Permission::CalendarPublish => "calendar.publish",
             Permission::InstitutionReadinessRead => "institution.readiness.read",
             Permission::StudentRead => "student.read",
+            Permission::StudentReadAssigned => "student.read.assigned",
             Permission::StudentSelfService => "student.self",
             Permission::AdmissionManage => "admission.manage",
             Permission::AdmissionDecide => "admission.decide",
@@ -862,8 +869,9 @@ pub fn role_permissions(role: Role) -> &'static [Permission] {
             TodoUse,
             TodoAssign,
             ProfileManage,
-            // Batch 3: read-only student directory / Student 360 (mentors, advisors).
-            StudentRead,
+            // Audit C3 (M-2): read-only directory / Student 360 of the students they teach only
+            // (own sections); tenant-wide `StudentRead` is staff-office only.
+            StudentReadAssigned,
             // Batch 4: academic reads + teaching on sections with an active faculty assignment.
             AcademicRead,
             AcademicTeach,
@@ -1202,6 +1210,7 @@ mod tests {
                     | Permission::RegistrationSelf
                     | Permission::AcademicSelfService
                     | Permission::AcademicTeach
+                    | Permission::StudentReadAssigned
                     | Permission::FinanceSelfService
                     | Permission::ExamSelfService
             )
@@ -1286,8 +1295,12 @@ mod tests {
             assert!(is_granted(&[Role::Administrator], p), "{p:?}");
             assert!(!is_granted(&[Role::Faculty, Role::Student], p), "{p:?}");
         }
-        assert!(is_granted(&[Role::Faculty], Permission::StudentRead));
+        // Audit C3: faculty read only the students they teach; never the tenant-wide read.
+        assert!(!is_granted(&[Role::Faculty], Permission::StudentRead));
+        assert!(is_granted(&[Role::Faculty], Permission::StudentReadAssigned));
         assert!(!is_granted(&[Role::Student], Permission::StudentRead));
+        assert!(!is_granted(&[Role::Student], Permission::StudentReadAssigned));
+        assert!(!is_granted(&[Role::Administrator], Permission::StudentReadAssigned));
         for p in [Permission::StudentSelfService, Permission::RegistrationSelf] {
             assert!(is_granted(&[Role::Student], p), "{p:?}");
             assert!(!is_granted(&[Role::Faculty], p), "{p:?}");

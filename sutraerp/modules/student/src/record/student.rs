@@ -19,6 +19,7 @@ use crate::shared::approval::{business_key, process, request_approval};
 use crate::shared::guard::{require_institution_writable, require_student_writable};
 use crate::shared::http::actor;
 use crate::shared::lifecycle::{change_context_status, change_student_status, StatusChange};
+use crate::shared::read_scope::{read_scope, require_student_read};
 use crate::shared::scope::{institution_scope, tenant};
 use crate::shared::student::{
     contexts_in_institution, contexts_of, load_student, lock_context, lock_student, me,
@@ -72,7 +73,8 @@ pub struct StudentDirectory {
     pub next_cursor: Option<Uuid>,
 }
 
-/// Students with a context in the institution, newest first (`student.read`). `currentContext`
+/// Students with a context in the institution, newest first (`student.read`; with
+/// `student.read.assigned` only the students the caller teaches). `currentContext`
 /// is the student's context **in this institution** (live preferred).
 #[utoipa::path(
     get,
@@ -89,7 +91,8 @@ pub async fn directory(
     Path(id): Path<InstitutionId>,
     Query(q): Query<DirectoryQuery>,
 ) -> ApiResult<Json<StudentDirectory>> {
-    let ctx = auth.require(Permission::StudentRead)?;
+    // Audit C3: faculty (`student.read.assigned`) list only the students they teach.
+    let (ctx, scope) = read_scope(&st, &auth).await?;
     let limit = q.limit.unwrap_or(50).clamp(1, 200);
     let pattern = norm(q.q.as_deref()).map(|s| {
         format!(
@@ -111,6 +114,7 @@ pub async fn directory(
              OR EXISTS (SELECT 1 FROM student.student_context e WHERE e.student_id = s.id \
                  AND e.institution_id = $2 AND e.enrolment_number ILIKE $5)) \
          AND ($6::uuid IS NULL OR s.id < $6) \
+         AND ($8::uuid[] IS NULL OR s.id = ANY($8)) \
          ORDER BY s.id DESC LIMIT $7"
     );
     // One connection for the page: the students, then their contexts in one batch (was one
@@ -124,6 +128,7 @@ pub async fn directory(
         .bind(pattern)
         .bind(q.cursor)
         .bind(limit + 1)
+        .bind(scope.student_ids())
         .fetch_all(&mut *conn)
         .await
         .map_err(map_db_error)?;
@@ -159,7 +164,8 @@ pub async fn directory(
     Ok(Json(StudentDirectory { items, next_cursor }))
 }
 
-/// Student 360 read model: persona, current context and every context (`student.read`).
+/// Student 360 read model: persona, current context and every context (`student.read`, or
+/// `student.read.assigned` for a student the caller teaches).
 #[utoipa::path(
     get,
     path = "/api/v1/student/students/{id}",
@@ -174,7 +180,8 @@ pub async fn get(
     auth: Authenticated,
     Path(id): Path<StudentId>,
 ) -> ApiResult<Response> {
-    let ctx = auth.require(Permission::StudentRead)?;
+    // Audit C3: faculty read the 360 of students they teach only (404 otherwise).
+    let ctx = require_student_read(&st, &auth, id).await?;
     let mut conn = st.pool.acquire().await.map_err(map_db_error)?;
     let s = view(&mut conn, tenant(ctx), id).await?;
     Ok(respond(StatusCode::OK, &s, s.version))
@@ -222,7 +229,8 @@ pub struct StatusHistory {
     pub items: Vec<StatusHistoryEntry>,
 }
 
-/// Persona and context status history, oldest first (`student.read`).
+/// Persona and context status history, oldest first (`student.read`, or `student.read.assigned`
+/// for a student the caller teaches).
 #[utoipa::path(
     get,
     path = "/api/v1/student/students/{id}/status-history",
@@ -237,7 +245,7 @@ pub async fn status_history(
     auth: Authenticated,
     Path(id): Path<StudentId>,
 ) -> ApiResult<Json<StatusHistory>> {
-    let ctx = auth.require(Permission::StudentRead)?;
+    let ctx = require_student_read(&st, &auth, id).await?;
     load_student(&st.pool, tenant(ctx), id).await?;
     let rows = sqlx::query(
         "SELECT student_context_id, institution_id, scope, from_status, to_status, reason, \

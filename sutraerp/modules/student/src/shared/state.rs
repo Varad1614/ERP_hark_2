@@ -3,6 +3,7 @@
 use crate::shared::approval::ApprovalMode;
 use sqlx::PgPool;
 use std::sync::Arc;
+use sutra_contracts::academic::ports::TaughtStudentsReader;
 use sutra_contracts::exams::ResultsPort;
 use sutra_contracts::finance::FinanceClearancePort;
 use sutra_contracts::institution::reference::InstitutionReferencePort;
@@ -29,4 +30,6 @@ pub struct StudentState {
     pub external_scholarships: Arc<dyn ExternalScholarshipPort>,
     /// Part 2 · S4-docs: platform document service (files of admission / record documents).
     pub documents: Arc<dyn DocumentVault>,
+    /// Audit C3: students a faculty member teaches (Domain D), scoping `student.read.assigned`.
+    pub taught: Arc<dyn TaughtStudentsReader>,
 }

@@ -40,6 +40,7 @@ pub mod scholarship; // 3C
 
 use sqlx::PgPool;
 use std::sync::Arc;
+use sutra_contracts::academic::ports::TaughtStudentsReader;
 use sutra_contracts::exams::ResultsPort;
 use sutra_contracts::finance::FinanceClearancePort;
 use sutra_contracts::institution::reference::InstitutionReferencePort;
@@ -86,6 +87,9 @@ pub struct StudentDeps {
     /// Part 2 · S4-docs: platform document service (S3-compatible object storage; disabled vault
     /// when no storage is configured).
     pub documents: Arc<dyn DocumentVault>,
+    /// Audit C3: students a faculty member teaches (`sutra_academic::PgTaughtStudents`), the
+    /// scope of `student.read.assigned` reads.
+    pub taught: Arc<dyn TaughtStudentsReader>,
 }
 
 impl StudentDeps {
@@ -101,6 +105,7 @@ impl StudentDeps {
             abc: self.abc,
             external_scholarships: self.external_scholarships,
             documents: self.documents,
+            taught: self.taught,
         }
     }
 }

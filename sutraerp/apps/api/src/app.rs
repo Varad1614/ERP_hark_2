@@ -916,6 +916,8 @@ pub fn student_deps_with(
         external_scholarships: Arc::new(sutra_student::adapters::NoopExternalScholarships),
         // Part 2 · S4-docs: `build` hands in the configured document service.
         documents: Arc::new(sutra_platform::documents::DisabledDocumentVault),
+        // Audit C3 (M-2): faculty read only the students seated in sections they teach.
+        taught: Arc::new(sutra_academic::PgTaughtStudents::new(pool.clone())),
         workflow,
         approvals,
         pool,

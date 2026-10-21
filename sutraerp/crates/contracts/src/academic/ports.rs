@@ -245,3 +245,50 @@ pub trait FacultyWorkloadPort: Send + Sync + 'static {
         academic_term_id: Option<Uuid>,
     ) -> Result<FacultyWorkload, KernelError>;
 }
+
+// ---- Audit C3 (M-2): faculty read scope over Domain C ----
+
+/// Which students a faculty member teaches, as Domain C (Student) needs it to scope
+/// `student.read.assigned` reads to the caller's own sections. Implemented by
+/// `sutra_academic::PgTaughtStudents` over `academic.faculty_assignment` (status `active`) ×
+/// `academic.section_enrolment` (status `enrolled`) — **real**. Domain C never reads the
+/// `academic` schema; it receives this port through `sutra_api::app::student_deps`.
+#[async_trait::async_trait]
+pub trait TaughtStudentsReader: Send + Sync + 'static {
+    /// Every student holding an `enrolled` seat in a section the subject actively teaches
+    /// (distinct, any institution of the tenant).
+    async fn taught_students(
+        &self,
+        scope: &ExecutionScope,
+        faculty_subject_ref: &str,
+    ) -> Result<Vec<StudentId>, KernelError>;
+
+    /// `true` when the student holds an `enrolled` seat in a section the subject actively teaches.
+    async fn teaches_student(
+        &self,
+        scope: &ExecutionScope,
+        faculty_subject_ref: &str,
+        student_id: StudentId,
+    ) -> Result<bool, KernelError> {
+        Ok(self
+            .taught_students(scope, faculty_subject_ref)
+            .await?
+            .contains(&student_id))
+    }
+}
+
+/// [`TaughtStudentsReader`] for compositions without Domain D (teaches nobody: faculty-scoped
+/// reads see no student).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NoTaughtStudents;
+
+#[async_trait::async_trait]
+impl TaughtStudentsReader for NoTaughtStudents {
+    async fn taught_students(
+        &self,
+        _scope: &ExecutionScope,
+        _faculty_subject_ref: &str,
+    ) -> Result<Vec<StudentId>, KernelError> {
+        Ok(Vec::new())
+    }
+}
