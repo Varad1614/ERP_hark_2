@@ -24,13 +24,20 @@ whether separation of duties (SoD) and an audit trail are enforced. Branches `pa
 
 ## Separation of duties (DEF-X-002, completed in Stage 3)
 
-Every governed decision endpoint of the API (128 POST operations whose path ends in `…/decision`,
-`…-decision`, `/authorise`, `/approve` or — since Part 2 · S6-pilot — `/approval` in `openapi/openapi.json`) is either **guarded** or
+Every governed decision endpoint of the API (POST operations whose path ends in `…/decision`,
+`…-decision`, `/authorise`, `/approve` or — since Part 2 · S6-pilot — `/approval`, and — since audit C1
+(2026-10) — `/approve-…` and `/reject`; enumerated from `openapi/openapi.json` **and** the router source
+in `modules/`, so an endpoint not yet in the OpenAPI document is caught too) is either **guarded** or
 **allowlisted with a written reason**. The fitness test `apps/api/tests/approval_matrix.rs` enforces
 it on every CI run: a new decision endpoint without a guard, a stale allowlist entry, or an
 operation missing from this document fails the build.
 
-Two guard mechanisms refuse a decision with **403**:
+Two guard mechanisms refuse a decision with **403**. Since audit C1 (2026-10) both **fail closed**:
+when no maker at all is recorded for the decided item (no ledger request, no status-history maker,
+no maker column — e.g. a row written by a background job, import or seed, or a lookup that found no
+row) the decision is refused with **409** instead of letting any identified human decide it. There is
+no break-glass path; re-submit the item for approval. Since audit C2 the ledger row is written in the
+owning transaction (with its outbox event), so it never outlives a failed submission.
 
 * **Approval request ledger** (S3, `platform.approval_request`, migration `20261202004100`,
   append-only — UPDATE/DELETE raise, no runtime role holds UPDATE/DELETE/TRUNCATE). Every module's
@@ -223,6 +230,12 @@ the fitness test plus the DB / e2e tests that call the endpoint.
 | `services_regulatory_package_decide` | `POST /services/submission-packages/{id}/decision` | ReportManage | ReportApprove | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b8c::reports_await_decision_dashboard_and_submission_approval` | `modules/services/src/regulatory/cycles.rs` |
 | `student_transfer_decide` | `POST /student/transfers/{id}/decision` | StudentManage | StudentRead | Y (approval ledger `guard_decision*`) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b3a::intra_and_inter_institute_transfers` | `modules/student/src/record/transfer.rs` |
 | `timetable_decision` | `POST /academic/timetables/{id}/decision` | TimetableManage | TimetablePublish | N — allowlisted: scheduling of teaching slots; no money, grade or status change | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/academic/src/timetable/http.rs` |
+| `admission_application_reject` | `POST /student/admission-applications/{id}/reject` | applicant (portal) | AdmissionManage | N — allowlisted (audit C1): screening rejection of an applicant's application before any admission; grants nothing — admission itself is the guarded admission decision | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/admission/application.rs` |
+| `document_request_reject` | `POST /student/document-requests/{id}/reject` | student (self-service) | StudentManage | N — allowlisted (audit C1): refuses a student's document request; grants nothing | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/student/src/record/documents.rs` |
+| `exam_revaluation_approve_marks` | `POST /exams/revaluation-requests/{id}/approve-marks` | ResultManage (complete review / verify outcome) | ResultManage | Y (`ensure_independent_decider`: status history — creator, review completer, outcome verifier) — added audit C1 (the `/approve-marks` path escaped the enumeration and had no guard) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented`; `db_b6c` (verifier refused 403, dean approves) | `modules/exams/src/revaluation/repo.rs` |
+| `people_recruitment_candidate_reject` | `POST /people/candidates/{id}/reject` | StaffManage | StaffManage | N — allowlisted (audit C1): recruitment pipeline step; grants nothing — the hire goes through the guarded offer approval | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/people/src/hr/recruitment.rs` |
+| `resources_receipt_reject` | `POST /resources/goods-receipts/{id}/reject` | ProcurementManage | ProcurementManage | N — allowlisted (audit C1): goods-receipt inspection rejecting a delivery; grants nothing — supplier payment only follows the guarded invoice / payment approvals | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/resources/src/receipts/mod.rs` |
+| `services_regulatory_snapshot_reject` | `POST /services/report-snapshots/{id}/reject` | ReportManage | ReportManage | N — allowlisted (audit C1): sends a report snapshot back; grants nothing (a self-rejection equals withdrawal) | `approval_matrix::every_decision_endpoint_is_guarded_or_documented` | `modules/services/src/regulatory/cycles.rs` |
 
 ### Allowlisted (no SoD guard) — why a self-decision is acceptable
 

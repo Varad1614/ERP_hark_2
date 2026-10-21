@@ -856,9 +856,26 @@ async fn revaluation_supplementary_completion_and_closure() {
     )
     .await;
     assert_eq!(s, StatusCode::OK, "{rev}");
-    let (s, rev) = call(
+    // Audit C1: the administrator completed and verified the review, so the second
+    // administrator (dean) approves the revised marks; the verifier is refused.
+    let (s, _) = call(
         &app,
         &admin,
+        "POST",
+        &rr_path("approve-marks"),
+        json!({}),
+        Some(ver(&rev)),
+    )
+    .await;
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "SoD: the verifier never approves the marks"
+    );
+    let dean = login(&app, "dean@sutra.dev").await;
+    let (s, rev) = call(
+        &app,
+        &dean,
         "POST",
         &rr_path("approve-marks"),
         json!({}),

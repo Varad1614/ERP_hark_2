@@ -792,6 +792,22 @@ pub async fn approve_marks(
             r.kind, r.request_number, r.status
         )));
     }
+    // Audit C1: whoever raised the request, completed the review or verified its outcome never
+    // approves the revised marks (fails closed when no maker is recorded).
+    crate::shared::approval::ensure_independent_decider(
+        &mut tx,
+        tenant,
+        "revaluation_request",
+        r.id,
+        &[
+            RevaluationStatus::ReviewCompleted.as_str(),
+            RevaluationStatus::OutcomeVerified.as_str(),
+        ],
+        &[],
+        actor.id.as_deref(),
+        "revaluation marks approval",
+    )
+    .await?;
     let to = r
         .to_marks
         .ok_or_else(|| KernelError::Conflict("the review outcome has no revised marks".into()))?;

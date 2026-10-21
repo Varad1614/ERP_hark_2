@@ -1,8 +1,10 @@
 //! Part 1 · Stage 3 (S3-appr) — the approval control matrix as a fitness test.
 //!
-//! Enumerates **every** decision endpoint of the API (`openapi/openapi.json`: POST operations
-//! whose path ends in `…/decision`, `…-decision`, `/authorise`, `/approve` or `/approval`) and
-//! fails when one
+//! Enumerates **every** decision endpoint of the API — POST operations whose path ends in
+//! `…/decision`, `…-decision`, `/authorise`, `/approve`, `/approve-…`, `/approval` or `/reject` —
+//! from both `openapi/openapi.json` **and the router source** (every `#[utoipa::path(post, …)]`
+//! and macro-generated route in `modules/`, so a new decision endpoint is caught before the
+//! OpenAPI document is regenerated; audit C1) and fails when one
 //! is neither
 //!
 //! * **guarded** — its handler (or a function it calls in the same module, one level deep, or the
@@ -49,6 +51,12 @@ const ALLOWLIST: &[(&str, &str)] = &[
     ("services_accreditation_framework_decide", "reporting configuration: accreditation framework"),
     ("services_dashboard_decide", "reporting configuration: dashboard publication (read-only analytics)"),
     ("services_regulatory_framework_decide", "reporting configuration: regulatory framework"),
+    // Audit C1 (2026-10): `/reject` and `/approve-…` joined the enumeration.
+    ("people_recruitment_candidate_reject", "recruitment pipeline step (screening out a candidate); grants nothing — the hire goes through the guarded offer approval"),
+    ("resources_receipt_reject", "goods-receipt inspection rejecting a supplier delivery; grants nothing — supplier payment only follows the guarded invoice / payment approvals"),
+    ("services_regulatory_snapshot_reject", "sends a regulatory report snapshot back; grants nothing (a self-rejection equals withdrawing it)"),
+    ("admission_application_reject", "screening rejection of an applicant's application before any admission; grants nothing — admission itself is the guarded admission decision"),
+    ("document_request_reject", "refuses a student's document request; grants nothing (no money, grade or status change)"),
 ];
 
 const GUARDS: &[&str] = &["guard_decision", "ensure_independent_decider"];
@@ -68,8 +76,23 @@ fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Decision operations: operationId → path.
-fn decision_operations() -> BTreeMap<String, String> {
+/// Whether the last path segment names a checker decision.
+fn is_decision_path(path: &str) -> bool {
+    let last = path.rsplit('/').next().unwrap_or_default();
+    // Part 2 · S6-pilot (DEF-P2-PILOT-001): `…/approval` too — the malpractice approval
+    // (`exam_malpractice_approval`) escaped this enumeration and had no guard.
+    // Audit C1: `/approve-…` (e.g. revaluation `approve-marks`) and `/reject` too.
+    last == "decision"
+        || last.ends_with("-decision")
+        || last == "authorise"
+        || last == "approve"
+        || last.starts_with("approve-")
+        || last == "approval"
+        || last == "reject"
+}
+
+/// Decision operations of the committed OpenAPI document: operationId → path.
+fn openapi_decision_operations() -> BTreeMap<String, String> {
     let spec: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(root().join("openapi/openapi.json")).unwrap())
             .unwrap();
@@ -78,21 +101,87 @@ fn decision_operations() -> BTreeMap<String, String> {
         let Some(post) = item.get("post") else {
             continue;
         };
-        let last = path.rsplit('/').next().unwrap_or_default();
-        // Part 2 · S6-pilot (DEF-P2-PILOT-001): `…/approval` too — the malpractice approval
-        // (`exam_malpractice_approval`) escaped this enumeration and had no guard.
-        if last == "decision"
-            || last.ends_with("-decision")
-            || last == "authorise"
-            || last == "approve"
-            || last == "approval"
-        {
+        if is_decision_path(path) {
             ops.insert(
                 post["operationId"].as_str().unwrap().to_owned(),
                 path.clone(),
             );
         }
     }
+    ops
+}
+
+/// The string literal starting at `s[at] == '"'`, and the index after its closing quote.
+fn literal(s: &str, at: usize) -> Option<(&str, usize)> {
+    let rest = s.get(at..)?.strip_prefix('"')?;
+    let end = rest.find('"')?;
+    Some((&rest[..end], at + 1 + end + 1))
+}
+
+/// Audit C1: decision operations declared in the router source of `modules/` — every
+/// `#[utoipa::path(post, path = "…", operation_id = "…")]` handler and every macro-generated
+/// route `name!(handler, "/api/v1/…", "operation_id", …)` — operationId → path.
+fn source_decision_operations(files: &[(PathBuf, String)]) -> BTreeMap<String, String> {
+    let mut ops = BTreeMap::new();
+    for (_, text) in files {
+        let mut from = 0;
+        while let Some(i) = text[from..].find("#[utoipa::path(") {
+            let at = from + i + "#[utoipa::path".len();
+            let Some((b0, b1)) = block(text, at, '(', ')') else {
+                break;
+            };
+            let attr = &text[b0 + 1..b1 - 1];
+            from = b1;
+            if !attr.trim_start().starts_with("post") {
+                continue;
+            }
+            let field = |name: &str| {
+                let k = attr.find(&format!("{name} = "))? + name.len() + 3;
+                literal(attr, k).map(|(v, _)| v.to_owned())
+            };
+            if let (Some(path), Some(op)) = (field("path"), field("operation_id")) {
+                if is_decision_path(&path) {
+                    ops.insert(op, path);
+                }
+            }
+        }
+        // macro-generated routes: a path literal directly followed by an operation id literal
+        for (i, _) in text.match_indices("\"/api/v1/") {
+            let Some((path, after)) = literal(text, i) else {
+                continue;
+            };
+            let rest = &text[after..];
+            let Some(r) = rest.strip_prefix(',') else {
+                continue;
+            };
+            let skipped = after + 1 + (r.len() - r.trim_start().len());
+            if let Some((op, _)) = literal(text, skipped) {
+                if is_decision_path(path) && !op.is_empty() && !op.contains(' ') {
+                    ops.insert(op.to_owned(), path.to_owned());
+                }
+            }
+        }
+    }
+    ops
+}
+
+fn module_files() -> Vec<(PathBuf, String)> {
+    let mut paths = Vec::new();
+    rust_files(&root().join("modules"), &mut paths);
+    paths.sort();
+    paths
+        .into_iter()
+        .map(|p| {
+            let t = fs::read_to_string(&p).unwrap();
+            (p, t)
+        })
+        .collect()
+}
+
+/// Decision operations: the committed OpenAPI document ∪ the router source.
+fn decision_operations() -> BTreeMap<String, String> {
+    let mut ops = openapi_decision_operations();
+    ops.extend(source_decision_operations(&module_files()));
     ops
 }
 
@@ -253,16 +342,7 @@ fn every_decision_endpoint_is_guarded_or_documented() {
         "expected the full set of decision endpoints, found {}",
         ops.len()
     );
-    let mut paths = Vec::new();
-    rust_files(&root().join("modules"), &mut paths);
-    paths.sort();
-    let files: Vec<(PathBuf, String)> = paths
-        .into_iter()
-        .map(|p| {
-            let t = fs::read_to_string(&p).unwrap();
-            (p, t)
-        })
-        .collect();
+    let files = module_files();
     let allow: BTreeMap<&str, &str> = ALLOWLIST.iter().copied().collect();
     let mut failures = Vec::new();
     for (op, path) in &ops {
@@ -314,4 +394,21 @@ fn allowlist_reasons_are_documented() {
             "{op}: give the reason a self-decision is acceptable"
         );
     }
+}
+
+/// Audit C1: the router scan sees every decision endpoint the OpenAPI document has (so the
+/// source scan is trustworthy for endpoints not yet in the document).
+#[test]
+fn the_router_scan_finds_every_documented_decision_endpoint() {
+    let source = source_decision_operations(&module_files());
+    let missed: Vec<String> = openapi_decision_operations()
+        .into_iter()
+        .filter(|(op, _)| !source.contains_key(op))
+        .map(|(op, path)| format!("{op} ({path})"))
+        .collect();
+    assert!(
+        missed.is_empty(),
+        "the router scan missed: {}",
+        missed.join(", ")
+    );
 }

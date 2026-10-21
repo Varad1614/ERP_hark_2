@@ -17,7 +17,8 @@ for path, item in spec["paths"].items():
     if not post:
         continue
     last = path.rsplit("/", 1)[-1]
-    if last == "decision" or last.endswith("-decision") or last in ("authorise", "approve"):
+    if (last == "decision" or last.endswith("-decision") or last.startswith("approve-")
+            or last in ("authorise", "approve", "approval", "reject")):
         ops[post["operationId"]] = path
 
 files = []

@@ -241,3 +241,51 @@ supports caller-chosen sorting), so nothing further was needed there.
 - Ran locally: `tsc --noEmit` (web), ESLint on the changed files, and Vitest for the new suites
   plus institution, academic offering, finance, checkout, student record / screens, imports, XSS.
   Not run locally: `cargo check` / the db-tests (CI runs them).
+
+## C1 / C2 — separation of duties fails closed; approval ledger in the owning transaction
+
+Findings closed: **C2** (ERP_EXTENSIONS audit §3.4: SoD fail-open for unrecorded requests, guard
+coverage not provably complete) and **M1** (approval ledger written outside the owning transaction).
+
+**C1 — fail closed.** `sutra_kernel::approval::ensure_independent_decider` — the one check every
+guard ends in (`sutra_persistence::approval::guard_decision*`, each module's status-history
+`ensure_independent_decider`, and the direct callers in offers, timesheets, expenses, admission,
+entitlements, identity roles, exam results/publication) — now refuses with **409** when no maker at
+all is known (no ledger request, no status-history maker, no maker column, or the row lookup found
+nothing). Previously `latest_requesters(...).unwrap_or_default()` / a missing row meant "anyone may
+decide". Order: unidentified/system decider 403 → no recorded maker 409 → self-decision 403. There is
+no break-glass path in the codebase (none existed; FEATURE_GAPS A-025); the remedy is to re-submit the
+item for approval. Unit test: `kernel::approval::tests::a_decision_without_a_recorded_maker_fails_closed`.
+
+Coverage: `apps/api/tests/approval_matrix.rs` now enumerates decision endpoints from the committed
+OpenAPI **and the router source** (`#[utoipa::path(post, …)]` + macro-generated routes in `modules/`),
+so a new decision endpoint fails CI before OpenAPI is regenerated; the path matcher also covers
+`/approve-…` and `/reject`. New test `the_router_scan_finds_every_documented_decision_endpoint` keeps the
+scan honest (verified locally: a probe `…/decision` endpoint with no guard and no OpenAPI entry fails
+both the guard and the matrix-document tests). The widened matcher surfaced six endpoints:
+`exam_revaluation_approve_marks` had **no guard** (applies revised marks) — now guarded (creator,
+review completer and outcome verifier never approve; `db_b6c` asserts the verifier gets 403 and dean
+approves); five `/reject` endpoints are allowlisted with reasons (a rejection grants nothing; the
+grant goes through a guarded decision). APPROVAL_CONTROL_MATRIX.md + its generator updated.
+
+**C2 — ledger in the owning transaction.** Fixed in the shared helper, no module changes:
+`sutra_persistence::approval::record_request` (called by every module's `request_approval`) now
+*queues* the row in a request-scoped task-local (`sutra_kernel::approval::with_request_ledger`, set by
+the web auth middleware next to `with_requester`). The next `sutra_persistence::outbox::enqueue` — the
+event every governed state change emits inside its own transaction — writes the queued rows in the
+**same SQL statement** (`WITH approval_ledger AS (INSERT … UNNEST …) INSERT INTO platform.outbox …`).
+A ledger failure fails that statement and rolls the decision back; a rolled-back decision leaves no
+ledger row. Rows left queued when a request ends (a flow that emitted no event) are written by the
+middleware only if the response is 2xx; on an error response they are dropped. Background work (no
+request scope) writes immediately, as before. `flush_pending(&mut conn)` exists for a transaction that
+emits no event. The external workflow process start itself still cannot join the DB transaction.
+DB tests (`crates/persistence/tests/postgres.rs::approval_ledger`, run by CI's persistence db-tests):
+commit together, rollback leaves no row, **ledger failure (transaction-local failing trigger) rolls the
+decision back**, background immediate write + leftovers returned. Kernel unit test
+`ledger_rows_queue_only_inside_a_request`.
+
+Risks / follow-ups: (1) any seeded/imported pending item without a recorded maker can no longer be
+decided (409) until re-submitted — E2E/demo journeys that decide seed data may need their seeds to
+record the request; (2) "losing concurrent submissions count as makers" (rest of M1) is unchanged —
+it only over-restricts; (3) if a request's first outbox event after `request_approval` is in a
+different transaction than the owning one, the rows ride with that transaction.
