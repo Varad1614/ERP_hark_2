@@ -238,8 +238,64 @@ pub fn allocate(
     floors.into_iter().map(from_minor).collect()
 }
 
+/// Exact conversion of a legacy binary float (JSON body, ported JS logic, old `double precision`
+/// column) to [`Decimal`] (audit M2). A NaN, an infinity or an out-of-range value is a
+/// validation error naming `field` — never a silent zero.
+pub fn decimal_from_f64(x: f64, field: &str) -> Result<Decimal, crate::error::KernelError> {
+    use rust_decimal::prelude::FromPrimitive;
+    Decimal::from_f64(x).ok_or_else(|| {
+        crate::error::KernelError::Validation(vec![crate::error::FieldViolation::new(
+            field,
+            "not-a-finite-number",
+            format!("{field} must be a finite number"),
+        )])
+    })
+}
+
+/// [`decimal_from_f64`] for an optional value.
+pub fn decimal_from_opt_f64(
+    x: Option<f64>,
+    field: &str,
+) -> Result<Option<Decimal>, crate::error::KernelError> {
+    x.map(|v| decimal_from_f64(v, field)).transpose()
+}
+
+/// JavaScript `Math.round(x * 10^dp) / 10^dp`, computed exactly: halves round towards positive
+/// infinity (`2.5 -> 3`, `-2.5 -> -2`), unlike banker's rounding. Ported Everything logic keeps
+/// its rounding rule while the arithmetic stops drifting (`1.005` rounds to `1.01`).
+#[must_use]
+pub fn js_round_dp(x: Decimal, dp: u32) -> Decimal {
+    // For a negative value "towards zero" is "towards +inf"; non-midpoints round to nearest.
+    let strategy = if x.is_sign_negative() {
+        RoundingStrategy::MidpointTowardZero
+    } else {
+        RoundingStrategy::MidpointAwayFromZero
+    };
+    x.round_dp_with_strategy(dp, strategy)
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn js_round_dp_matches_math_round_without_float_drift() {
+        use std::str::FromStr;
+        let d = |x: &str| Decimal::from_str(x).unwrap();
+        assert_eq!(super::js_round_dp(d("2.5"), 0), d("3"));
+        assert_eq!(super::js_round_dp(d("-2.5"), 0), d("-2"));
+        assert_eq!(super::js_round_dp(d("-2.51"), 0), d("-3"));
+        assert_eq!(super::js_round_dp(d("1.005"), 2), d("1.01"));
+        assert_eq!(super::js_round_dp(d("0.125"), 2), d("0.13"));
+    }
+
+    #[test]
+    fn decimal_from_f64_rejects_non_finite_instead_of_zeroing() {
+        assert!(super::decimal_from_f64(f64::NAN, "rate").is_err());
+        assert!(super::decimal_from_f64(f64::INFINITY, "rate").is_err());
+        assert!(super::decimal_from_opt_f64(Some(f64::NEG_INFINITY), "rate").is_err());
+        assert_eq!(super::decimal_from_opt_f64(None, "rate").unwrap(), None);
+        assert_eq!(super::decimal_from_f64(7.5, "h").unwrap(), Decimal::new(75, 1));
+    }
+
     use super::*;
     use rust_decimal::Decimal;
     use std::str::FromStr;
