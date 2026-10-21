@@ -49,7 +49,7 @@ const EMAIL = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[A-Za-z]{2,}$/;
 const AMOUNT = /^\d+(?:\.\d{1,2})?$/;
 
 function rangeOf(f: ValidatedField): { min?: number; max?: number } {
-  const base = f.rule === "seats" ? LIMITS.seats : f.rule === "amount" ? LIMITS.amount : {};
+  const base: { min?: number; max?: number } = f.rule === "seats" ? LIMITS.seats : f.rule === "amount" ? LIMITS.amount : {};
   return { min: f.min ?? base.min, max: f.max ?? base.max };
 }
 
