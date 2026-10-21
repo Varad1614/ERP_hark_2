@@ -530,8 +530,11 @@ pub async fn request(
     };
     for (i, (u, role, from, to)) in entries.iter().enumerate() {
         sqlx::query(
-            "INSERT INTO institution.org_restructure_move (restructure_id, org_unit_id, role, from_parent_id, \
-               to_parent_id, baseline_version, ordinal) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            // Audit C3/M9: tenant + institution copied from the parent restructure (RLS key).
+            "INSERT INTO institution.org_restructure_move (restructure_id, tenant_id, institution_id, \
+               org_unit_id, role, from_parent_id, to_parent_id, baseline_version, ordinal) \
+             SELECT r.id, r.tenant_id, r.institution_id, $2, $3, $4, $5, $6, $7 \
+               FROM institution.org_restructure r WHERE r.id = $1",
         )
         .bind(id.as_uuid())
         .bind(u.as_uuid())

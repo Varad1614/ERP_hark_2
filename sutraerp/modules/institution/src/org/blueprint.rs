@@ -137,8 +137,11 @@ async fn write_types(
         .map_err(map_db_error)?;
     for (i, t) in types.iter().enumerate() {
         sqlx::query(
+            // Audit C3/M9: tenant + institution copied from the parent blueprint (RLS key).
             "INSERT INTO institution.org_type_blueprint_unit_type \
-               (blueprint_id, key, label, allow_root, allowed_parent_types, ordinal) VALUES ($1, $2, $3, $4, $5, $6)",
+               (blueprint_id, tenant_id, institution_id, key, label, allow_root, allowed_parent_types, ordinal) \
+             SELECT b.id, b.tenant_id, b.institution_id, $2, $3, $4, $5, $6 \
+               FROM institution.org_type_blueprint b WHERE b.id = $1",
         )
         .bind(id.as_uuid())
         .bind(t.key.trim())
