@@ -333,3 +333,87 @@ always runs inside `authenticate`. (2) Decision handlers that run the SoD guard 
 existence / ownership checks answer `409` for an unknown id (fixed only for imports and leave
 self-approval). (3) Other aggregates whose approval business key names a different entity than the
 decision path id would be refused like separations were; none other surfaced in CI.
+
+## C5 — money and hours as `rust_decimal::Decimal` (M2)
+
+Finding closed: **M2** (money and paid hours computed in `f64` in the ported roster, time-tracking
+and expense logic; silent `0` on failed float↔decimal conversions).
+
+**Kernel** (`sutra_kernel::money`): `decimal_from_f64(x, field)` / `decimal_from_opt_f64` turn a
+legacy float (JSON body, stored JSON, ported JS input) into `Decimal`; NaN, ±∞ or out of range is a
+`Validation` error `not-a-finite-number` naming the field — never `0`. `js_round_dp(x, dp)` is
+JavaScript `Math.round(x·10^dp)/10^dp` on the exact value (halves towards +∞: `2.5 → 3`,
+`-2.5 → -2`, `1.005 → 1.01`), so ported rules keep their rounding while the arithmetic stops
+drifting. Workspace `rust_decimal` gained `serde-with-float`.
+
+### What changed
+
+| Area | Now `Decimal` | Notes |
+|---|---|---|
+| Roster timesheets (`people/src/roster/timesheet.rs`) | `Row` (break, scheduled/worked hours, rate, pay), `Summary`, `Bucket`, `LaborCost`, `Budget`, `Limits` (daily/weekly OT hours), reconciliation `Line` / `Totals` (scheduled/worked/overtime minutes, `lop_days`), `payroll_quantities` | Pay = `round2(minutes × rate / 60)` — multiplied first, then `js_round_dp`. Overtime cost = `minutes × rate × multiplier / 60`. Daily/weekly OT compares exact minutes. |
+| Roster reports (`reports.rs`) | `State` OT threshold/multiplier, `Person` hours/pay, `RoleRow`, `Open`, `ReportTotals` | CSV cells print a `Decimal` as JS `String(n)` would (`normalize()`, `-0` → `0`). |
+| Roster HTTP (`shifts_http.rs`, `http.rs`) | `RosterTimesheetSettings` (OT hours, multiplier, flat OT rate, standard hours/day, night/holiday allowances), `RosterExportItem.quantities`, department-hours and overtime report rows | Removed silent zeros: `Decimal::from_f64(..).unwrap_or_default()` on the timesheet snapshot store and the payroll-variable insert (values are already exact); `to_f64().unwrap_or(2.0/8.0)` on the settings read (columns read as `numeric` directly); `http::dec` returns a validation error naming the field instead of dropping a limit. |
+| Time tracking (`people/src/timetrack/logic.rs`, `http.rs`) | `entry_amount`, `Tracked` / `Totals` / `Group` amounts, `Budget` spent/value, `hourly_from_monthly`, staff-rate `payroll_hourly` / `effective_today`, settings `standard_monthly_hours`, effort report hours / standard monthly hours | `hours_of(seconds, 4)` replaces float `toHours` in money. Payroll gross / period / payable days read as `numeric` (no `::float8`); full-month gross = `gross × period / payable`. Stored JSON rates (`RateValue`) convert with `decimal_from_f64`; a stored rate that no longer parses is an error instead of "no rate" (cost 0). `price`, `rate`, `rate_item` and `entries_csv` are fallible. |
+| Expenses (`resources/src/expenses/rules.rs`, `http.rs`, `receipt_text.rs`) | `parse_amount(_str)`, `totals_by_currency`, `OcrItem.amount`, `OcrFields` total/tax/tip, `LineFacts`, `ClaimTotals`, `CategoryPolicy`, `PolicyInput`, `policy_flags` threshold, receipt total/GST | `round2` = `js_round_dp(·, 2)`; the `+ f64::EPSILON` nudge is gone. Amount strings parse straight to `Decimal` (`"5."`, `".5"` accepted; `"."` and > 28 digits → `None`). Limits compare exactly (no `+ 1e-9`). `http.rs` no longer has `to_f64().unwrap_or_default()` or the `format!("{:.2}")` re-parse. |
+
+**Wire format unchanged.** Every converted field serialises as a JSON number
+(`rust_decimal::serde::float` / `float_option`, `serde(default)` on optional request members) and
+carries `#[schema(value_type = f64)]` (or `Option<f64>` / `BTreeMap<String, f64>`), so the OpenAPI
+document does not change (not regenerated). Request bodies parse a JSON number through its shortest
+decimal form (`333.33` is exactly 333.33).
+
+### Behaviour changes (intended)
+
+Exact arithmetic rounds a true half-paisa up where the original's binary product sat a hair below
+it: `1350 min × ₹333.33/h = 7499.925 → 7499.93` (floats: 7499.92); `1.2547 h × ₹250 = 313.675 →
+313.68`; expense `"1234.005" → 1234.01`. The golden fixtures are unchanged (`generate.mjs --check`
+passes) and still hold the JS values, so the golden tests accept exactly this and nothing else: time
+tracking corrects an entry only when the exact product is a half-paisa midpoint and the difference is
+one paisa (totals and groups adjusted by the same paise); the roster test requires each differing
+row's pay to be exactly ₹0.01 above the JS value and then allows at most that many paise upward in
+the range's summaries, report and CSVs. The expense golden matches exactly.
+
+### Remaining `f64` (kept on purpose)
+
+- **Whole-minute scheduling rules** (`roster/rules.rs`, `clock.rs`, the rule-engine `fo()` in
+  `roster/http.rs`, profile target/max hours, rest/daily-hours rules, `minutes_late`, late minutes
+  in reports): constraints and punctuality counts in whole minutes, not money; `fo()` reads bounded
+  `numeric` columns (`Decimal::to_f64` is total); request hours go through `http::dec`.
+- **Ratios and percentages**: show-up / attendance rate, budget `ratio`, effort `percent` and
+  `person_months`, `utilisation_percent`, `commitment_percent`, OCR `confidence`, category match
+  score (`round2_f64` where the original rounds them).
+- **Duration formatting and parsing**: `fmt_clock` / `fmt_timer` / `fmt_duration`, `to_hours`,
+  `parse_duration`, `duration_patch`, importer `parse_amount` / `js_number` (JS `Number()` on CSV
+  text before validation).
+- **Timer cap** (`timer_cap_hours`, `cap_hours`): a whole-hour cap on a running timer.
+- **`RateValue` / `RatePeriod` stored shape** and the rate-edit body: Everything's effective-dated
+  JSON shape (`with_rate_from`, `rate_at`, `resolve_rate` stay pure ports); validated finite and
+  0–10 lakh on write, converted with `decimal_from_f64` at every use in costing.
+- **Golden-test plumbing**: JS fixture numbers compared as `f64` to 1e-9.
+
+### Tests
+
+- Kernel: `js_round_dp_matches_math_round_without_float_drift`,
+  `decimal_from_f64_rejects_non_finite_instead_of_zeroing`.
+- Roster (`timesheet.rs`): `pay_is_exact_where_floats_drift` (7 min at 0.30/h = 0.04; ten 0.1 h sum
+  to exactly 1; 1.005 → 1.01; 1350 min × 333.33 = 7499.93), `overtime_cost_is_exact` (50 h at
+  ₹123.45, 40 h threshold, 1.5× = 4938.00 + 1851.75, by-employee buckets reconcile),
+  `overtime_over_the_daily_limit_is_exact` (11.5 h day, 9 h limit → 150 min = 2.5 h),
+  `many_small_shifts_sum_exactly` (1000 shifts), existing tests on `Decimal`.
+- Time tracking (`logic.rs`): `money_is_exact_where_floats_drift`, `effort_and_cost`
+  (`hourly_from_monthly` 50000/176 = 284.09, zero hours → none), `budgets_and_windows`.
+- Expenses (`rules.rs`): `amounts_parse_like_the_original`, `money_is_exact_where_floats_drift`
+  (1234.005, ten 0.10 / a thousand 0.01 lines, negative half, exact limit 500.00 / 500.01).
+- Golden: `golden_shift_swaps_timesheets.rs`, `golden_time_tracking.rs`, `golden_expense_claims.rs`.
+- Ran in the sandbox: `cargo check -p sutra-people --tests`, `cargo check -p sutra-resources
+  --tests`, `cargo fmt --check`, `cargo test -p sutra-resources` (expense unit + golden: pass),
+  `node tools/golden/generate.mjs --check`. People tests, `sutra-api` and DB tests run in CI.
+
+### Risks
+
+- A stored default/staff rate JSON that no longer parses now fails the costing request instead of
+  silently costing at 0 (rows written through the API always parse).
+- Request numbers `Decimal` cannot hold (|x| ≥ 7.9·10²⁸) are rejected at deserialisation instead
+  of reaching the range check.
+- Pay, cost and expense totals can differ from the previous release by ₹0.01 on true half-paisa
+  values (now rounded up, as the exact value demands).
