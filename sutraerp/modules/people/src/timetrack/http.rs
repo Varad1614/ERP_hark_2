@@ -31,7 +31,7 @@ use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::{Duration, NaiveDate, NaiveDateTime};
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -77,8 +77,17 @@ fn pd(s: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
 }
 
-fn money(x: f64) -> Decimal {
-    Decimal::from_f64(x).unwrap_or_default().round_dp(2)
+/// A stored rate (`RateValue`, JSON numbers) as an exact decimal; a value `Decimal` cannot hold
+/// is an error, never a silent zero (audit M2).
+fn rate_dec(x: f64, field: &str) -> Result<Decimal, KernelError> {
+    sutra_kernel::money::decimal_from_f64(x, field)
+}
+
+/// A stored JSON rate that no longer parses is an error, not "no rate" (which would cost at 0).
+fn stored_rate(v: Value, what: &str) -> Result<RateValue, KernelError> {
+    serde_json::from_value(v).map_err(|e| {
+        KernelError::Internal(format!("stored {what} is not a rate: {e}").into())
+    })
 }
 
 fn get<'r, T: sqlx::Decode<'r, sqlx::Postgres> + sqlx::Type<sqlx::Postgres>>(
@@ -151,7 +160,7 @@ fn csv_response(name: &str, body: String) -> Result<Response, KernelError> {
 struct Settings {
     week_start: u32,
     rounding: i64,
-    standard_monthly_hours: f64,
+    standard_monthly_hours: Decimal,
     default_rate: Option<RateValue>,
     timer_cap_hours: f64,
 }
@@ -161,7 +170,7 @@ impl Default for Settings {
         Self {
             week_start: 1,
             rounding: 0,
-            standard_monthly_hours: 176.0,
+            standard_monthly_hours: Decimal::from(176),
             default_rate: None,
             timer_cap_hours: 12.0,
         }
@@ -173,8 +182,8 @@ async fn load_settings(
     t: TenantId,
     inst: Uuid,
 ) -> Result<Settings, KernelError> {
-    let row: Option<(i16, i32, f64, Option<Value>, f64)> = sqlx::query_as(
-        "SELECT week_start, rounding_minutes, standard_monthly_hours::float8, default_hourly_rate, \
+    let row: Option<(i16, i32, Decimal, Option<Value>, f64)> = sqlx::query_as(
+        "SELECT week_start, rounding_minutes, standard_monthly_hours, default_hourly_rate, \
          timer_cap_hours::float8 FROM people.time_settings WHERE tenant_id = $1 AND institution_id = $2",
     )
     .bind(t.as_uuid())
@@ -182,15 +191,16 @@ async fn load_settings(
     .fetch_optional(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    Ok(
-        row.map_or_else(Settings::default, |(w, r, h, d, c)| Settings {
-            week_start: u32::from(w == 1),
-            rounding: i64::from(r),
-            standard_monthly_hours: h,
-            default_rate: d.and_then(|x| serde_json::from_value(x).ok()),
-            timer_cap_hours: c,
-        }),
-    )
+    let Some((w, r, h, d, c)) = row else {
+        return Ok(Settings::default());
+    };
+    Ok(Settings {
+        week_start: u32::from(w == 1),
+        rounding: i64::from(r),
+        standard_monthly_hours: h,
+        default_rate: d.map(|x| stored_rate(x, "default hourly rate")).transpose()?,
+        timer_cap_hours: c,
+    })
 }
 
 /// Time-tracking settings of an institution.
@@ -202,7 +212,9 @@ pub struct TimeSettings {
     /// Default rounding of chargeable time, minutes, always up (0, 5, 6, 10, 15, 30).
     pub rounding_minutes: i64,
     /// Working hours in a month for salary-derived hourly rates (default 176 = 22 days × 8 h).
-    pub standard_monthly_hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub standard_monthly_hours: Decimal,
     /// Fallback hourly rate in ₹ (a number or effective-dated periods); null = none.
     pub default_hourly_rate: Option<RateValue>,
     /// A running timer is trimmed to this many hours when stopped (default 12).
@@ -253,7 +265,8 @@ pub async fn settings_put(
     if !ROUNDINGS.contains(&b.rounding_minutes) {
         return Err(invalid("roundingMinutes", "invalid", "one of 0, 5, 6, 10, 15, 30").into());
     }
-    if !(b.standard_monthly_hours >= 1.0 && b.standard_monthly_hours <= 400.0) {
+    if !(b.standard_monthly_hours >= Decimal::ONE && b.standard_monthly_hours <= Decimal::from(400))
+    {
         return Err(invalid("standardMonthlyHours", "invalid", "between 1 and 400 hours").into());
     }
     if !(b.timer_cap_hours >= 1.0 && b.timer_cap_hours <= 24.0) {
@@ -277,7 +290,7 @@ pub async fn settings_put(
     .bind(id)
     .bind(b.week_start as i16)
     .bind(b.rounding_minutes as i32)
-    .bind(b.standard_monthly_hours)
+    .bind(b.standard_monthly_hours.round_dp(2))
     .bind(b.default_hourly_rate.as_ref().map(|r| json!(r)))
     .bind(b.timer_cap_hours)
     .execute(&mut *tx)
@@ -584,16 +597,19 @@ async fn project_views(
             )
             .await?;
             let spent = if kind == "amount" {
-                lg::round2(es.iter().map(|e| costing.price(e).2).sum())
+                let mut sum = Decimal::ZERO;
+                for e in &es {
+                    sum += costing.price(e)?.2;
+                }
+                lg::round2(sum)
             } else {
-                es.iter().map(|e| e.seconds as f64).sum()
+                Decimal::from(es.iter().map(|e| e.seconds).sum::<i64>())
             };
-            if let Some(b) = lg::budget_progress(
-                &kind,
-                &period,
-                p.budget_value.and_then(|v| v.to_f64()).unwrap_or(0.0),
-                spent,
-            ) {
+            // No stored value = no budget (the CHECK keeps kind, period and value together).
+            if let Some(b) = p
+                .budget_value
+                .and_then(|v| lg::budget_progress(&kind, &period, v, spent))
+            {
                 progress.insert(p.id, b);
             }
         }
@@ -1181,7 +1197,7 @@ struct Costing {
     settings: Settings,
     staff_rates: HashMap<Uuid, RateValue>,
     /// (period start, full-month gross) of finalised payroll results, oldest first.
-    payroll: HashMap<Uuid, Vec<(NaiveDate, f64)>>,
+    payroll: HashMap<Uuid, Vec<(NaiveDate, Decimal)>>,
 }
 
 impl Costing {
@@ -1196,10 +1212,11 @@ impl Costing {
         .await
         .map_err(map_db_error)?
         .into_iter()
-        .filter_map(|(s, v)| serde_json::from_value(v).ok().map(|r| (s, r)))
-        .collect();
-        let rows: Vec<(Uuid, NaiveDate, f64, f64, f64)> = sqlx::query_as(
-            "SELECT staff_id, period_start, gross_earnings::float8, period_days::float8, payable_days::float8 \
+        .map(|(s, v)| stored_rate(v, "staff rate").map(|r| (s, r)))
+        .collect::<Result<_, _>>()?;
+        // `numeric` read as `Decimal`: no `::float8` round trip for salaries.
+        let rows: Vec<(Uuid, NaiveDate, Decimal, Decimal, Decimal)> = sqlx::query_as(
+            "SELECT staff_id, period_start, gross_earnings, period_days, payable_days \
              FROM people.payroll_result WHERE tenant_id = $1 AND institution_id = $2 AND status = 'finalized' \
              ORDER BY period_start, revision",
         )
@@ -1208,9 +1225,10 @@ impl Costing {
         .fetch_all(&mut *conn)
         .await
         .map_err(map_db_error)?;
-        let mut payroll: HashMap<Uuid, Vec<(NaiveDate, f64)>> = HashMap::new();
+        let mut payroll: HashMap<Uuid, Vec<(NaiveDate, Decimal)>> = HashMap::new();
         for (s, start, gross, period, payable) in rows {
-            let full = if payable > 0.0 {
+            // Multiply first so a whole-rupee month stays exact.
+            let full = if payable > Decimal::ZERO {
                 gross * period / payable
             } else {
                 gross
@@ -1226,7 +1244,7 @@ impl Costing {
 
     /// Hourly rate from the latest finalised payroll that started on or before `date` (else the
     /// earliest one).
-    fn payroll_hourly(&self, staff: Uuid, date: NaiveDate) -> Option<f64> {
+    fn payroll_hourly(&self, staff: Uuid, date: NaiveDate) -> Option<Decimal> {
         let list = self.payroll.get(&staff)?;
         let gross = list
             .iter()
@@ -1237,40 +1255,32 @@ impl Costing {
         lg::hourly_from_monthly(gross, self.settings.standard_monthly_hours)
     }
 
-    /// (rate, source) on `date`: staff rate → payroll → default → none.
-    fn rate(&self, staff: Uuid, date: NaiveDate) -> (f64, &'static str) {
+    /// (rate, source) on `date`: staff rate → payroll → default → none (0, Everything's
+    /// `resolveRate` floor). The cascade of [`lg::resolve_rate`], walked here on exact values: the
+    /// payroll-derived rate is a `Decimal` and never passes through `f64`.
+    fn rate(&self, staff: Uuid, date: NaiveDate) -> Result<(Decimal, &'static str), KernelError> {
         let d = ds(date);
-        let own = self.staff_rates.get(&staff);
-        if let Some(r) = lg::rate_at(own, &d) {
-            return (r, "staff");
+        if let Some(r) = lg::rate_at(self.staff_rates.get(&staff), &d) {
+            return Ok((rate_dec(r, "staffRate")?, "staff"));
         }
-        let derived = self.payroll_hourly(staff, date).map(RateValue::Plain);
-        let levels = lg::RateLevels {
-            entry: None,
-            project: own,
-            client: derived.as_ref(),
-            default: self.settings.default_rate.as_ref(),
-        };
-        let r = lg::resolve_rate(&levels, &d, &d);
-        let source = if derived.is_some() {
-            "payroll"
-        } else if lg::rate_at(self.settings.default_rate.as_ref(), &d).is_some() {
-            "default"
-        } else {
-            "none"
-        };
-        (r, source)
+        if let Some(h) = self.payroll_hourly(staff, date) {
+            return Ok((h, "payroll"));
+        }
+        if let Some(r) = lg::rate_at(self.settings.default_rate.as_ref(), &d) {
+            return Ok((rate_dec(r, "defaultHourlyRate")?, "default"));
+        }
+        Ok((Decimal::ZERO, "none"))
     }
 
     /// (billed seconds, rate, amount) of an entry.
-    fn price(&self, e: &EntryRow) -> (i64, f64, f64) {
+    fn price(&self, e: &EntryRow) -> Result<(i64, Decimal, Decimal), KernelError> {
         let rounding = lg::resolve_rounding(
             e.rounding.map(|x| x as f64),
             Some(self.settings.rounding as f64),
         );
         let billed = lg::billed_seconds(e.billable, e.seconds, rounding, e.minimum.unwrap_or(0));
-        let (rate, _) = self.rate(e.staff_id, e.date);
-        (billed, rate, lg::entry_amount(e.billable, billed, rate))
+        let (rate, _) = self.rate(e.staff_id, e.date)?;
+        Ok((billed, rate, lg::entry_amount(e.billable, billed, rate)))
     }
 }
 
@@ -1345,7 +1355,7 @@ fn tracked(e: &EntryRow) -> Tracked {
         seconds: e.seconds,
         billable: e.billable,
         billed: 0,
-        amount: 0.0,
+        amount: Decimal::ZERO,
         started_at: e.started_at.map(lg::ms_of),
         ended_at: e.ended_at.map(lg::ms_of),
     }
@@ -2445,7 +2455,10 @@ pub async fn timesheet_submit(
     }
     let costing = Costing::load(&mut tx, t, me.inst).await?;
     let total: i64 = mine.iter().map(|e| e.seconds).sum();
-    let billed: i64 = mine.iter().map(|e| costing.price(e).0).sum();
+    let mut billed: i64 = 0;
+    for e in &mine {
+        billed += costing.price(e)?.0;
+    }
     let a = actor(ctx);
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO people.time_timesheet (tenant_id, institution_id, staff_id, project_id, week_start, status, \
@@ -2782,9 +2795,13 @@ pub struct TimeStaffRate {
     pub rate: Option<RateValue>,
     pub periods: Vec<RatePeriod>,
     /// Gross salary of the last finalised payroll ÷ standard monthly hours.
-    pub payroll_hourly: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub payroll_hourly: Option<Decimal>,
     /// The rate costing uses today.
-    pub effective_today: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub effective_today: Decimal,
     /// `staff | payroll | default | none`.
     pub source: String,
 }
@@ -2821,10 +2838,10 @@ fn rate_item(
     name: String,
     staff_number: String,
     today: NaiveDate,
-) -> TimeStaffRate {
+) -> Result<TimeStaffRate, KernelError> {
     let own = c.staff_rates.get(&staff);
-    let (eff, source) = c.rate(staff, today);
-    TimeStaffRate {
+    let (eff, source) = c.rate(staff, today)?;
+    Ok(TimeStaffRate {
         staff_id: staff,
         name,
         staff_number,
@@ -2833,7 +2850,7 @@ fn rate_item(
         payroll_hourly: c.payroll_hourly(staff, today),
         effective_today: eff,
         source: source.into(),
-    }
+    })
 }
 
 /// Hourly cost rates of active staff (`people.read`).
@@ -2865,7 +2882,7 @@ pub async fn rate_list(
     let items = staff
         .into_iter()
         .map(|(s, n, no)| rate_item(&c, s, n, no, today))
-        .collect();
+        .collect::<Result<_, _>>()?;
     Ok(Json(TimeStaffRateList { items }))
 }
 
@@ -2961,7 +2978,7 @@ pub async fn rate_put(
     .await?;
     let c = Costing::load(&mut tx, t, inst_id).await?;
     tx.commit().await.map_err(map_db_error)?;
-    Ok(Json(rate_item(&c, sid, name, number, today)))
+    Ok(Json(rate_item(&c, sid, name, number, today)?))
 }
 
 // ------------------------------------------------------------------ effort report
@@ -2994,7 +3011,9 @@ pub struct EffortRow {
     /// `YYYY-MM`.
     pub month: String,
     pub seconds: i64,
-    pub hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub hours: Decimal,
     /// Chargeable seconds after rounding.
     pub billed_seconds: i64,
     /// Share of the staff member's tracked time that month, %.
@@ -3014,7 +3033,9 @@ pub struct EffortStaffTotal {
     pub staff_name: String,
     pub project_id: Uuid,
     pub project_code: String,
-    pub hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub hours: Decimal,
     pub person_months: f64,
     #[schema(value_type = String)]
     pub cost: Decimal,
@@ -3033,7 +3054,9 @@ pub struct EffortProjectSummary {
     pub sanctioned_amount: Option<Decimal>,
     #[schema(value_type = Option<String>)]
     pub manpower_budget: Option<Decimal>,
-    pub hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub hours: Decimal,
     pub person_months: f64,
     #[schema(value_type = String)]
     pub cost: Decimal,
@@ -3049,7 +3072,9 @@ pub struct EffortReport {
     pub from: String,
     pub to: String,
     pub approved_only: bool,
-    pub standard_monthly_hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub standard_monthly_hours: Decimal,
     pub rows: Vec<EffortRow>,
     pub staff_totals: Vec<EffortStaffTotal>,
     pub projects: Vec<EffortProjectSummary>,
@@ -3111,7 +3136,7 @@ async fn effort(
             .entry((e.staff_id, lg::month_key_of(&ds(e.date))))
             .or_default() += e.seconds;
     }
-    let mut cells: BTreeMap<(String, String, String, Uuid, Uuid), (i64, i64, f64, &EntryRow)> =
+    let mut cells: BTreeMap<(String, String, String, Uuid, Uuid), (i64, i64, Decimal, &EntryRow)> =
         BTreeMap::new();
     for e in all
         .iter()
@@ -3119,7 +3144,7 @@ async fn effort(
         .filter(|e| q.project_id.is_none_or(|p| p == e.project_id))
     {
         let month = lg::month_key_of(&ds(e.date));
-        let (billed, _, amount) = costing.price(e);
+        let (billed, _, amount) = costing.price(e)?;
         let c = cells
             .entry((
                 e.project_code.clone(),
@@ -3128,13 +3153,13 @@ async fn effort(
                 e.staff_id,
                 e.project_id,
             ))
-            .or_insert((0, 0, 0.0, e));
+            .or_insert((0, 0, Decimal::ZERO, e));
         c.0 += e.seconds;
         c.1 += billed;
         c.2 = lg::round2(c.2 + amount);
     }
     let mut rows = Vec::new();
-    let mut staff_totals: BTreeMap<(String, String, Uuid, Uuid), (f64, f64, f64, String)> =
+    let mut staff_totals: BTreeMap<(String, String, Uuid, Uuid), (i64, f64, Decimal, String)> =
         BTreeMap::new();
     for ((code, name, month, staff, project), (secs, billed, amount, e)) in &cells {
         let total = month_total
@@ -3144,8 +3169,8 @@ async fn effort(
         let ef = lg::effort(*secs, total);
         let tt = staff_totals
             .entry((code.clone(), name.clone(), *staff, *project))
-            .or_insert((0.0, 0.0, 0.0, e.staff_name.clone()));
-        tt.0 += *secs as f64;
+            .or_insert((0, 0.0, Decimal::ZERO, e.staff_name.clone()));
+        tt.0 += *secs;
         tt.1 += ef.person_months;
         tt.2 = lg::round2(tt.2 + amount);
         rows.push(EffortRow {
@@ -3157,11 +3182,11 @@ async fn effort(
             project_name: e.project_name.clone(),
             month: month.clone(),
             seconds: *secs,
-            hours: lg::to_hours(*secs as f64, 2),
+            hours: lg::hours_of(*secs, 2),
             billed_seconds: *billed,
             percent: ef.percent,
             person_months: ef.person_months,
-            cost: money(*amount),
+            cost: amount.round_dp(2),
         });
     }
     let staff_totals: Vec<EffortStaffTotal> = staff_totals
@@ -3172,9 +3197,9 @@ async fn effort(
                 staff_name: name,
                 project_id: project,
                 project_code: code,
-                hours: lg::to_hours(secs, 2),
+                hours: lg::hours_of(secs, 2),
                 person_months: lg::js_round(pm * 1000.0) / 1000.0,
-                cost: money(amount),
+                cost: amount.round_dp(2),
             },
         )
         .collect();
@@ -3274,7 +3299,7 @@ pub async fn effort_report_csv(
             x.staff_name.clone(),
             x.project_code.clone(),
             x.project_name.clone(),
-            x.hours.to_string(),
+            x.hours.normalize().to_string(),
             x.percent.to_string(),
             x.person_months.to_string(),
             x.cost.to_string(),
@@ -3319,10 +3344,10 @@ pub const CSV_HEADER: [&str; 15] = [
     "Amount (INR)",
 ];
 
-fn entries_csv(es: &[EntryRow], c: &Costing) -> String {
+fn entries_csv(es: &[EntryRow], c: &Costing) -> Result<String, KernelError> {
     let mut lines = vec![lg::to_csv_line(&CSV_HEADER)];
     for e in es {
-        let (_, rate, amount) = c.price(e);
+        let (_, rate, amount) = c.price(e)?;
         lines.push(lg::to_csv_line(&[
             ds(e.date),
             hm(e.started_at).unwrap_or_default(),
@@ -3335,10 +3360,10 @@ fn entries_csv(es: &[EntryRow], c: &Costing) -> String {
             e.task.clone(),
             e.notes.clone(),
             duration_text(e.seconds),
-            lg::to_hours(e.seconds as f64, 2).to_string(),
+            lg::hours_of(e.seconds, 2).normalize().to_string(),
             (if e.billable { "yes" } else { "no" }).to_owned(),
             if e.billable {
-                rate.to_string()
+                rate.normalize().to_string()
             } else {
                 String::new()
             },
@@ -3349,7 +3374,7 @@ fn entries_csv(es: &[EntryRow], c: &Costing) -> String {
             },
         ]));
     }
-    lines.join("\r\n")
+    Ok(lines.join("\r\n"))
 }
 
 fn export_range(q: &ExportQuery, today: NaiveDate) -> Result<(NaiveDate, NaiveDate), KernelError> {
@@ -3397,7 +3422,7 @@ pub async fn entries_csv_admin(
     .collect();
     Ok(csv_response(
         &format!("time-{from}-{to}.csv"),
-        entries_csv(&es, &c),
+        entries_csv(&es, &c)?,
     )?)
 }
 
@@ -3434,7 +3459,7 @@ pub async fn me_csv(
     .collect();
     Ok(csv_response(
         &format!("my-time-{from}-{to}.csv"),
-        entries_csv(&es, &c),
+        entries_csv(&es, &c)?,
     )?)
 }
 
@@ -3648,7 +3673,7 @@ pub async fn import(
             seconds: it.seconds,
             billable: it.billable,
             billed: 0,
-            amount: 0.0,
+            amount: Decimal::ZERO,
             started_at: it.started_at,
             ended_at: it.ended_at,
         });

@@ -19,13 +19,13 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
 use super::clock::{self as ck, Record};
-use super::http::{clean, ds, fo, load, pd, range, window, RosterRange, World};
+use super::http::{clean, ds, load, pd, range, window, RosterRange, World};
 use super::ics::{build_schedule_ics, CalendarShift};
 use super::reports::{build_report, previous_range, report_csv, State};
 use super::rules::{self as r, Context, Shift};
 use super::swaps::{self as sw, Kind};
 use super::timesheet::{
-    payroll_quantities, reconcile, round2, timesheet_csv, to_csv, totals, Actual, Cell, Limits,
+    hours, payroll_quantities, reconcile, timesheet_csv, to_csv, totals, Actual, Cell, Limits,
     Line, PayEmployee, Totals,
 };
 use crate::leave::common::{audit, ensure_version, expected, invalid, LeaveDecisionBody};
@@ -41,7 +41,6 @@ use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -1334,8 +1333,8 @@ async fn limits_of(
     Ok(row.map_or_else(Limits::default, |(l, e, d, w)| Limits {
         late_grace_minutes: i64::from(l),
         early_leave_grace_minutes: i64::from(e),
-        daily_overtime_hours: fo(d),
-        weekly_overtime_hours: fo(w),
+        daily_overtime_hours: d,
+        weekly_overtime_hours: w,
     }))
 }
 
@@ -1601,7 +1600,7 @@ async fn store_snapshot(
     lines: &[Line],
     t: &Totals,
 ) -> Result<(), KernelError> {
-    let d = |x: f64| Decimal::from_f64(x).unwrap_or_default().round_dp(1);
+    let d = |x: Decimal| x.round_dp(1);
     sqlx::query(
         "UPDATE people.timesheet SET scheduled_minutes = $2, worked_minutes = $3, overtime_minutes = $4, \
          late_minutes = $5, early_leave_minutes = $6, missed_punches = $7, absences = $8, lop_days = $9, \
@@ -1615,7 +1614,7 @@ async fn store_snapshot(
     .bind(i32::try_from(t.early_leave_minutes).unwrap_or(i32::MAX))
     .bind(i32::try_from(t.missed_punches).unwrap_or(i32::MAX))
     .bind(i32::try_from(t.absences).unwrap_or(i32::MAX))
-    .bind(Decimal::from_f64(t.lop_days).unwrap_or_default().round_dp(2))
+    .bind(t.lop_days.round_dp(2))
     .bind(i32::try_from(t.night_shifts).unwrap_or(i32::MAX))
     .bind(i32::try_from(t.holiday_shifts).unwrap_or(i32::MAX))
     .bind(json!({"lines": lines, "totals": t}))
@@ -2037,6 +2036,11 @@ pub struct RosterExportRange {
     pub to: NaiveDate,
 }
 
+/// A payroll quantity: exact, on the wire as a JSON number (as before).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct Quantity(#[serde(with = "rust_decimal::serde::float")] pub Decimal);
+
 /// One timesheet handed to payroll.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -2047,7 +2051,8 @@ pub struct RosterExportItem {
     pub period_from: NaiveDate,
     pub period_to: NaiveDate,
     /// `overtime_hours | lop_days | night_shifts | holiday_shifts` → quantity (non-zero only).
-    pub quantities: BTreeMap<String, f64>,
+    #[schema(value_type = BTreeMap<String, f64>)]
+    pub quantities: BTreeMap<String, Quantity>,
 }
 
 /// What the export did.
@@ -2147,7 +2152,7 @@ pub async fn payroll_export(
             .bind(v.period_from)
             .bind(v.period_to)
             .bind(*code)
-            .bind(Decimal::from_f64(*qty).unwrap_or_default().round_dp(2))
+            .bind(qty.round_dp(2))
             .bind(v.id)
             .bind(&ctx.subject)
             .execute(&mut *tx)
@@ -2166,7 +2171,7 @@ pub async fn payroll_export(
             staff_name: v.staff_name,
             period_from: v.period_from,
             period_to: v.period_to,
-            quantities: q.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
+            quantities: q.into_iter().map(|(k, v)| (k.to_owned(), Quantity(v))).collect(),
         });
     }
     let a = actor(ctx);
@@ -2224,7 +2229,7 @@ pub async fn payroll_export_csv(
     .fetch_all(&mut *conn)
     .await
     .map_err(map_db_error)?;
-    let h = |m: f64| round2(m / 60.0);
+    let h = hours;
     let table: Vec<Vec<Cell>> = rows
         .into_iter()
         .map(|x| {
@@ -2336,9 +2341,15 @@ pub struct RosterDepartmentHours {
     pub department: String,
     pub staff: usize,
     pub shifts: i64,
-    pub scheduled_minutes: f64,
-    pub worked_minutes: f64,
-    pub overtime_minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub scheduled_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub worked_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub overtime_minutes: Decimal,
 }
 
 /// One person's overtime and punctuality.
@@ -2348,8 +2359,12 @@ pub struct RosterOvertimeRow {
     pub staff_id: Uuid,
     pub name: String,
     pub department: String,
-    pub worked_minutes: f64,
-    pub overtime_minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub worked_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub overtime_minutes: Decimal,
     pub late_minutes: i64,
     pub early_leave_minutes: i64,
     pub missed_punches: i64,
@@ -2530,9 +2545,9 @@ async fn build(
                 department: dept.clone(),
                 staff: 0,
                 shifts: 0,
-                scheduled_minutes: 0.0,
-                worked_minutes: 0.0,
-                overtime_minutes: 0.0,
+                scheduled_minutes: Decimal::ZERO,
+                worked_minutes: Decimal::ZERO,
+                overtime_minutes: Decimal::ZERO,
             });
         e.staff += 1;
         e.shifts += tt.shifts;
@@ -2627,7 +2642,7 @@ pub async fn report_csv_get(
     let section = q.section.clone().unwrap_or_else(|| "hours".to_owned());
     let (rep, full) = build(&st, ctx, id, &q).await?;
     let text = if section == "departments" {
-        let h = |m: f64| round2(m / 60.0);
+        let h = hours;
         let rows: Vec<Vec<Cell>> = rep
             .departments
             .iter()
@@ -2752,19 +2767,33 @@ pub struct RosterTimesheetSettings {
     /// Minutes before the end that do not count as leaving early.
     pub early_leave_grace_minutes: i64,
     /// Paid hours a day before overtime (default 9; null = none).
-    pub daily_overtime_hours: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub daily_overtime_hours: Option<Decimal>,
     /// Paid hours a week before overtime (default 48; null = none).
-    pub weekly_overtime_hours: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub weekly_overtime_hours: Option<Decimal>,
     /// Overtime pays this times the ordinary hourly rate (default 2).
-    pub overtime_multiplier: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub overtime_multiplier: Decimal,
     /// A flat ₹ per overtime hour instead (null = from BASIC + DA).
-    pub overtime_rate_per_hour: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub overtime_rate_per_hour: Option<Decimal>,
     /// Hours of an ordinary day (ordinary hourly rate = (BASIC + DA) / days / hours).
-    pub standard_hours_per_day: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub standard_hours_per_day: Decimal,
     /// ₹ per night shift (one running past midnight).
-    pub night_shift_allowance: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub night_shift_allowance: Option<Decimal>,
     /// ₹ per shift worked on a holiday.
-    pub holiday_shift_allowance: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    #[schema(value_type = Option<f64>)]
+    pub holiday_shift_allowance: Option<Decimal>,
 }
 
 impl Default for RosterTimesheetSettings {
@@ -2772,11 +2801,11 @@ impl Default for RosterTimesheetSettings {
         Self {
             late_grace_minutes: 10,
             early_leave_grace_minutes: 10,
-            daily_overtime_hours: Some(9.0),
-            weekly_overtime_hours: Some(48.0),
-            overtime_multiplier: 2.0,
+            daily_overtime_hours: Some(Decimal::from(9)),
+            weekly_overtime_hours: Some(Decimal::from(48)),
+            overtime_multiplier: Decimal::TWO,
             overtime_rate_per_hour: None,
-            standard_hours_per_day: 8.0,
+            standard_hours_per_day: Decimal::from(8),
             night_shift_allowance: None,
             holiday_shift_allowance: None,
         }
@@ -2803,13 +2832,13 @@ async fn ts_settings(
         RosterTimesheetSettings {
             late_grace_minutes: i64::from(x.0),
             early_leave_grace_minutes: i64::from(x.1),
-            daily_overtime_hours: fo(x.2),
-            weekly_overtime_hours: fo(x.3),
-            overtime_multiplier: x.4.to_f64().unwrap_or(2.0),
-            overtime_rate_per_hour: fo(x.5),
-            standard_hours_per_day: x.6.to_f64().unwrap_or(8.0),
-            night_shift_allowance: fo(x.7),
-            holiday_shift_allowance: fo(x.8),
+            daily_overtime_hours: x.2,
+            weekly_overtime_hours: x.3,
+            overtime_multiplier: x.4,
+            overtime_rate_per_hour: x.5,
+            standard_hours_per_day: x.6,
+            night_shift_allowance: x.7,
+            holiday_shift_allowance: x.8,
         }
     }))
 }
@@ -2851,7 +2880,8 @@ pub async fn ts_settings_put(
     if !grace(b.early_leave_grace_minutes) {
         return Err(invalid("earlyLeaveGraceMinutes", "out_of_range", "0 to 240").into());
     }
-    if b.daily_overtime_hours.is_some_and(|x| x <= 0.0 || x > 24.0) {
+    let n = Decimal::from;
+    if b.daily_overtime_hours.is_some_and(|x| x <= Decimal::ZERO || x > n(24)) {
         return Err(invalid(
             "dailyOvertimeHours",
             "out_of_range",
@@ -2860,7 +2890,7 @@ pub async fn ts_settings_put(
         .into());
     }
     if b.weekly_overtime_hours
-        .is_some_and(|x| x <= 0.0 || x > 168.0)
+        .is_some_and(|x| x <= Decimal::ZERO || x > n(168))
     {
         return Err(invalid(
             "weeklyOvertimeHours",
@@ -2869,10 +2899,10 @@ pub async fn ts_settings_put(
         )
         .into());
     }
-    if !(1.0..=5.0).contains(&b.overtime_multiplier) {
+    if !(Decimal::ONE..=n(5)).contains(&b.overtime_multiplier) {
         return Err(invalid("overtimeMultiplier", "out_of_range", "1 to 5").into());
     }
-    if !(b.standard_hours_per_day > 0.0 && b.standard_hours_per_day <= 24.0) {
+    if !(b.standard_hours_per_day > Decimal::ZERO && b.standard_hours_per_day <= n(24)) {
         return Err(invalid(
             "standardHoursPerDay",
             "out_of_range",
@@ -2885,11 +2915,11 @@ pub async fn ts_settings_put(
         ("nightShiftAllowance", b.night_shift_allowance),
         ("holidayShiftAllowance", b.holiday_shift_allowance),
     ] {
-        if v.is_some_and(|x| !(0.0..=10_000_000.0).contains(&x)) {
+        if v.is_some_and(|x| !(Decimal::ZERO..=n(10_000_000)).contains(&x)) {
             return Err(invalid(k, "out_of_range", "0 or more (₹)").into());
         }
     }
-    let money = |x: Option<f64>| x.and_then(Decimal::from_f64).map(|d| d.round_dp(2));
+    let money = |x: Option<Decimal>| x.map(|d| d.round_dp(2));
     let t = ctx.scope.tenant_id;
     let mut tx = st.pool.begin().await.map_err(map_db_error)?;
     sqlx::query(
@@ -2907,11 +2937,11 @@ pub async fn ts_settings_put(
     .bind(id)
     .bind(i32::try_from(b.late_grace_minutes).unwrap_or(0))
     .bind(i32::try_from(b.early_leave_grace_minutes).unwrap_or(0))
-    .bind(super::http::dec(b.daily_overtime_hours))
-    .bind(super::http::dec(b.weekly_overtime_hours))
-    .bind(Decimal::from_f64(b.overtime_multiplier).unwrap_or(Decimal::TWO).round_dp(2))
+    .bind(b.daily_overtime_hours.map(|d| d.round_dp(1)))
+    .bind(b.weekly_overtime_hours.map(|d| d.round_dp(1)))
+    .bind(b.overtime_multiplier.round_dp(2))
     .bind(money(b.overtime_rate_per_hour))
-    .bind(Decimal::from_f64(b.standard_hours_per_day).unwrap_or(Decimal::from(8)).round_dp(1))
+    .bind(b.standard_hours_per_day.round_dp(1))
     .bind(money(b.night_shift_allowance))
     .bind(money(b.holiday_shift_allowance))
     .execute(&mut *tx)

@@ -5,11 +5,13 @@
 
 use super::clock::{worked_minutes, Record, ABSENT};
 use super::rules::{
-    add_days, break_minutes, coverage_gaps, js_round, net_minutes, num, Requirement, Shift,
+    add_days, coverage_gaps, js_round, num, Requirement, Shift,
 };
 use super::timesheet::{
-    blank, employee_summaries, labor_cost, round2, timesheet_rows, to_csv, Cell, PayEmployee,
+    blank, break_dec, employee_summaries, hours, labor_cost, net_dec, round2, timesheet_rows,
+    to_csv, Cell, PayEmployee,
 };
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -39,8 +41,10 @@ pub struct State {
     pub shifts: Vec<Shift>,
     pub attendance: BTreeMap<String, Record>,
     pub coverage: Vec<Requirement>,
-    pub overtime_threshold_hours: Option<f64>,
-    pub overtime_multiplier: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub overtime_threshold_hours: Option<Decimal>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub overtime_multiplier: Option<Decimal>,
 }
 
 /// A person in a report.
@@ -50,14 +54,16 @@ pub struct Person {
     pub employee_id: String,
     pub employee: String,
     pub shifts: i64,
-    pub scheduled_hours: f64,
-    pub worked_hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub scheduled_hours: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub worked_hours: Decimal,
     pub present: i64,
     pub late: i64,
     pub absent: i64,
     pub not_recorded: i64,
     #[serde(serialize_with = "blank")]
-    pub pay: Option<f64>,
+    pub pay: Option<Decimal>,
     pub name: String,
     /// `null` (active), `Archived` or `Former employee`.
     pub label: Option<String>,
@@ -70,8 +76,10 @@ pub struct Person {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct RoleRow {
     pub role: String,
-    pub minutes: f64,
-    pub cost: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub cost: Decimal,
     pub shifts: i64,
 }
 
@@ -109,7 +117,8 @@ pub struct Coverage {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Open {
     pub count: usize,
-    pub minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub minutes: Decimal,
 }
 
 /// Totals of a report.
@@ -118,12 +127,18 @@ pub struct Open {
 pub struct ReportTotals {
     pub shifts: usize,
     pub people: usize,
-    pub scheduled_minutes: f64,
-    pub worked_minutes: f64,
-    pub cost: f64,
-    pub overtime_cost: f64,
-    pub overtime_minutes: f64,
-    pub pay: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub scheduled_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub worked_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub cost: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub overtime_cost: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub overtime_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub pay: Decimal,
     pub rated_count: usize,
     pub employee_count: usize,
 }
@@ -142,24 +157,24 @@ pub struct Report {
     pub totals: ReportTotals,
 }
 
-fn recorded_minutes(shift: &Shift, r: Option<&Record>) -> Option<f64> {
+fn recorded_minutes(shift: &Shift, r: Option<&Record>) -> Option<Decimal> {
     let r = r?;
     if r.is_absent() {
-        return Some(0.0);
+        return Some(Decimal::ZERO);
     }
     worked_minutes(
         r.clock_in.as_deref().unwrap_or(""),
         r.clock_out.as_deref().unwrap_or(""),
     )
-    .map(|g| (g as f64 - break_minutes(shift)).max(0.0))
+    .map(|g| (Decimal::from(g) - break_dec(shift)).max(Decimal::ZERO))
 }
 
 fn assigned(s: &Shift) -> bool {
     s.assignee_id.as_deref().is_some_and(|a| !a.is_empty())
 }
 
-fn desc(a: f64, b: f64) -> std::cmp::Ordering {
-    b.partial_cmp(&a).unwrap_or(std::cmp::Ordering::Equal)
+fn desc(a: Decimal, b: Decimal) -> std::cmp::Ordering {
+    b.cmp(&a)
 }
 
 /// `buildReport`: one period's people, roles, attendance, coverage, open shifts and totals.
@@ -235,13 +250,13 @@ pub fn build_report(state: &State, from: &str, to: &str) -> Report {
             .then_with(|| desc(a.minutes, b.minutes))
             .then_with(|| a.role.cmp(&b.role))
     });
-    let mut scheduled = 0.0;
-    let mut worked_total = 0.0;
+    let mut scheduled = Decimal::ZERO;
+    let mut worked_total = Decimal::ZERO;
     let (mut present, mut late, mut absent, mut not_recorded) = (0, 0, 0, 0);
     let mut n_assigned = 0;
     for s in state.shifts.iter().filter(|s| assigned(s)).filter(in_range) {
         n_assigned += 1;
-        scheduled += net_minutes(s);
+        scheduled += net_dec(s);
         let r = state.attendance.get(&s.id);
         match r.map(|r| r.status.as_deref().unwrap_or("")) {
             None => not_recorded += 1,
@@ -278,7 +293,7 @@ pub fn build_report(state: &State, from: &str, to: &str) -> Report {
         .filter(in_range)
         .collect();
     let recorded = present + late + absent;
-    let pay: f64 = people.iter().map(|p| p.pay.unwrap_or(0.0)).sum();
+    let pay: Decimal = people.iter().filter_map(|p| p.pay).sum();
     let gap_days: HashSet<&str> = gaps.iter().map(|g| g.date.as_str()).collect();
     Report {
         from: from.to_owned(),
@@ -300,7 +315,7 @@ pub fn build_report(state: &State, from: &str, to: &str) -> Report {
         },
         open: Open {
             count: open.len(),
-            minutes: open.iter().map(|s| net_minutes(s)).sum(),
+            minutes: open.iter().map(|s| net_dec(s)).sum(),
         },
         totals: ReportTotals {
             shifts: n_assigned,
@@ -379,7 +394,7 @@ pub fn report_csv(r: &Report, section: &str) -> Result<String, String> {
                     vec![
                         x.role.clone().into(),
                         x.shifts.into(),
-                        round2(x.minutes / 60.0).into(),
+                        hours(x.minutes).into(),
                         round2(x.cost).into(),
                     ]
                 })

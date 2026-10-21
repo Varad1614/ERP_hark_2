@@ -6,11 +6,15 @@
 //! → institution default), client rounding / minimum → global rounding.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::cast_precision_loss)]
 
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use serde_json::{json, Value};
+use std::collections::HashMap;
+use sutra_kernel::money::decimal_from_f64;
 use sutra_people::timetrack::logic::{
     add_days, billed_seconds, billing_filter, csv_field, days_apart, detect_mapping,
     duration_patch, elapsed_seconds, entry_amount, fmt_clock, fmt_duration, fmt_timer,
-    group_entries, month_days, month_key_of, month_keys_between, ms_at, overlapping, parse_amount,
+    group_entries, hours_of, month_days, month_key_of, month_keys_between, ms_at, overlapping, parse_amount,
     parse_csv, parse_duration, parse_import_date, parse_import_duration, rate_at, resolve_rate,
     resolve_rounding, round2, round_seconds, rows_to_items, shift_month, task_key, text_matches,
     time_part_of, to_csv_line, to_hours, totals, week_days, week_start_of, with_rate_from, Mapping,
@@ -143,7 +147,7 @@ fn time_tracking_matches_everything() {
         eq(
             json!(secs
                 .iter()
-                .map(|v| round2(*v as f64 / 7.0))
+                .map(|v| round2(Decimal::from(*v) / Decimal::from(7)).to_f64())
                 .collect::<Vec<_>>()),
             &x["round2"],
             &at("round2"),
@@ -259,7 +263,13 @@ fn time_tracking_matches_everything() {
         let mut per = Vec::new();
         let entries = i["entries"].as_array().cloned().unwrap_or_default();
         let patch = i["patchSeconds"].as_f64().unwrap_or(0.0);
-        for e in &entries {
+        // Amounts are exact decimals in the port (audit M2). Where the original's binary product
+        // sat a hair under a half paisa (`1.2547 × 250 = 313.67499…`), JavaScript rounded down
+        // and the port rounds the exact `313.675` up: the expected entry, totals and group
+        // amounts are corrected by exactly that paisa, and only for such a midpoint.
+        let mut xa = x.clone();
+        let mut drift: HashMap<String, Decimal> = HashMap::new();
+        for (k, e) in entries.iter().enumerate() {
             let project = by_id(&i["projects"], &e["projectId"]);
             let client = project.and_then(|p| by_id(&i["clients"], &p["clientId"]));
             let (prate, crate_) = (
@@ -281,14 +291,26 @@ fn time_tracking_matches_everything() {
             let billable = e["billable"].as_bool().unwrap_or(false);
             let seconds = e["seconds"].as_i64().unwrap_or(0);
             let billed = billed_seconds(billable, seconds, rounding, minimum);
-            let amount = entry_amount(billable, billed, r);
+            let rd = decimal_from_f64(r, "rate").unwrap();
+            let amount = entry_amount(billable, billed, rd);
+            let js = decimal_from_f64(x["entries"][k]["amount"].as_f64().unwrap(), "js").unwrap();
+            if amount != js {
+                let exact = hours_of(billed, 4) * rd * Decimal::ONE_HUNDRED;
+                assert!(
+                    (amount - js).abs() == Decimal::new(1, 2)
+                        && exact.fract().abs() == Decimal::new(5, 1),
+                    "case {n}: entry {k} amount {amount} vs {js} is not a half-paisa float drift"
+                );
+                xa["entries"][k]["amount"] = json!(amount.to_f64());
+                drift.insert(s(&e["id"]), amount - js);
+            }
             let (st, en) = (e["startedAt"].as_i64(), e["endedAt"].as_i64());
             let (ps, pe) = duration_patch(st, en, patch);
             let p = pe.map_or_else(
                 || json!({"seconds": ps}),
                 |end| json!({"seconds": ps, "endedAt": end}),
             );
-            per.push(json!({"rate": r, "rounding": rounding, "minimum": minimum, "billed": billed, "amount": amount, "patch": p}));
+            per.push(json!({"rate": r, "rounding": rounding, "minimum": minimum, "billed": billed, "amount": amount.to_f64(), "patch": p}));
             tracked.push(Tracked {
                 id: s(&e["id"]),
                 seconds,
@@ -299,6 +321,20 @@ fn time_tracking_matches_everything() {
                 ended_at: en,
             });
         }
+        if !drift.is_empty() {
+            let add = |v: &mut Value, d: Decimal| {
+                let base = decimal_from_f64(v.as_f64().unwrap(), "js").unwrap();
+                *v = json!((base + d).to_f64());
+            };
+            add(&mut xa["totals"]["amount"], drift.values().sum());
+            for by in xa["groups"].as_array_mut().unwrap() {
+                for g in by.as_array_mut().unwrap() {
+                    let d: Decimal = strs(&g["ids"]).iter().filter_map(|id| drift.get(id)).sum();
+                    add(&mut g["amount"], d);
+                }
+            }
+        }
+        let x = &xa;
         eq(json!(per), &x["entries"], &at("entries"));
         eq(json!(totals(&tracked)), &x["totals"], &at("totals"));
         let meta = |t: &Tracked| {

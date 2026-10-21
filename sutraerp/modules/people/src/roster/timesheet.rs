@@ -14,17 +14,63 @@
 //! that daily attendance does not already carry.
 
 use super::clock::{early_leave_minutes, late_minutes, worked_minutes, Record, ABSENT};
-use super::rules::{break_minutes, is_overnight, js_round, net_minutes, num, start_of_week, Shift};
+use super::rules::{duration_minutes, is_overnight, num, start_of_week, Shift};
+use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize, Serializer};
+use sutra_kernel::money::js_round_dp;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-/// `round2`.
-pub fn round2(n: f64) -> f64 {
-    js_round(n * 100.0) / 100.0
+// Hours, rates, pay and cost are `Decimal` (audit M2): arithmetic is exact and rounding is
+// Everything's `Math.round` applied to the exact value. They still go on the wire as JSON numbers
+// (`rust_decimal::serde::float`), as before.
+
+const SIXTY: Decimal = Decimal::from_parts(60, 0, 0, false, 0);
+
+/// `round2`: `Math.round(n * 100) / 100`, exact.
+pub fn round2(n: Decimal) -> Decimal {
+    js_round_dp(n, 2)
 }
 
-/// Serialises `None` as `""` — Everything's blank cell.
-pub fn blank<S: Serializer>(v: &Option<f64>, s: S) -> Result<S::Ok, S::Error> {
+/// Minutes as hours to two places (`round2(minutes / 60)`).
+pub fn hours(minutes: Decimal) -> Decimal {
+    round2(minutes / SIXTY)
+}
+
+/// `minutes / 60 * rate`, multiplied first so a whole-cent result stays exact.
+pub fn minutes_cost(minutes: Decimal, rate: Decimal) -> Decimal {
+    minutes * rate / SIXTY
+}
+
+/// `shiftBreakMinutes` as an exact decimal: a missing, non-finite or non-positive break is no
+/// break (Everything's rule, not a conversion default).
+pub fn break_dec(s: &Shift) -> Decimal {
+    s.break_minutes
+        .filter(|b| b.is_finite() && *b > 0.0)
+        .and_then(Decimal::from_f64)
+        .unwrap_or(Decimal::ZERO)
+}
+
+/// `shiftNetMinutes` as an exact decimal. A finite break too large for `Decimal` is longer than
+/// any shift, so nothing is paid (what the float version computed too).
+pub fn net_dec(s: &Shift) -> Decimal {
+    let dur = Decimal::from(duration_minutes(&s.start, &s.end).unwrap_or(0));
+    match s.break_minutes.filter(|b| b.is_finite() && *b > 0.0) {
+        None => dur,
+        Some(b) => Decimal::from_f64(b).map_or(Decimal::ZERO, |b| (dur - b).max(Decimal::ZERO)),
+    }
+}
+
+/// Serialises `None` as `""` — Everything's blank cell — and a value as a JSON number.
+pub fn blank<S: Serializer>(v: &Option<Decimal>, s: S) -> Result<S::Ok, S::Error> {
+    match v {
+        Some(x) => rust_decimal::serde::float::serialize(x, s),
+        None => s.serialize_str(""),
+    }
+}
+
+/// `blank` for whole-number cells (minutes late).
+pub fn blank_f64<S: Serializer>(v: &Option<f64>, s: S) -> Result<S::Ok, S::Error> {
     match v {
         Some(x) => s.serialize_f64(*x),
         None => s.serialize_str(""),
@@ -38,7 +84,8 @@ pub struct PayEmployee {
     pub id: String,
     pub name: String,
     pub active: bool,
-    pub hourly_rate: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub hourly_rate: Option<Decimal>,
 }
 
 /// One payroll-ready row (`timesheetRows`).
@@ -51,19 +98,21 @@ pub struct Row {
     pub role: String,
     pub start: String,
     pub end: String,
-    pub break_minutes: f64,
-    pub scheduled_hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub break_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub scheduled_hours: Decimal,
     pub status: String,
     pub clock_in: String,
     pub clock_out: String,
     #[serde(serialize_with = "blank")]
-    pub worked_hours: Option<f64>,
-    #[serde(serialize_with = "blank")]
+    pub worked_hours: Option<Decimal>,
+    #[serde(serialize_with = "blank_f64")]
     pub minutes_late: Option<f64>,
     #[serde(serialize_with = "blank")]
-    pub hourly_rate: Option<f64>,
+    pub hourly_rate: Option<Decimal>,
     #[serde(serialize_with = "blank")]
-    pub pay: Option<f64>,
+    pub pay: Option<Decimal>,
 }
 
 fn assigned(s: &Shift) -> bool {
@@ -86,7 +135,7 @@ pub fn timesheet_rows(
             let who = shift.assignee_id.clone().unwrap_or_default();
             let employee = by_id.get(who.as_str());
             let record = attendance.get(&shift.id);
-            let brk = break_minutes(shift);
+            let brk = break_dec(shift);
             let absent = record.is_some_and(Record::is_absent);
             let gross = match record {
                 Some(r) if !absent => worked_minutes(
@@ -95,12 +144,12 @@ pub fn timesheet_rows(
                 ),
                 _ => None,
             };
-            let worked = gross.map(|g| (g as f64 - brk).max(0.0));
+            let worked = gross.map(|g| (Decimal::from(g) - brk).max(Decimal::ZERO));
             let rate = employee.and_then(|e| e.hourly_rate);
             let paid = if absent {
-                0.0
+                Decimal::ZERO
             } else {
-                worked.unwrap_or_else(|| net_minutes(shift))
+                worked.unwrap_or_else(|| net_dec(shift))
             };
             let text = |v: Option<&String>| {
                 if absent {
@@ -117,13 +166,13 @@ pub fn timesheet_rows(
                 start: shift.start.clone(),
                 end: shift.end.clone(),
                 break_minutes: brk,
-                scheduled_hours: round2(net_minutes(shift) / 60.0),
+                scheduled_hours: hours(net_dec(shift)),
                 status: record
                     .and_then(|r| r.status.clone())
                     .unwrap_or_else(|| "not recorded".to_owned()),
                 clock_in: text(record.and_then(|r| r.clock_in.as_ref())),
                 clock_out: text(record.and_then(|r| r.clock_out.as_ref())),
-                worked_hours: worked.map(|w| round2(w / 60.0)),
+                worked_hours: worked.map(hours),
                 minutes_late: match record {
                     Some(r) if !absent => Some(late_minutes(
                         &shift.start,
@@ -133,7 +182,7 @@ pub fn timesheet_rows(
                     _ => None,
                 },
                 hourly_rate: rate,
-                pay: rate.map(|r| round2(paid / 60.0 * r)),
+                pay: rate.map(|r| round2(minutes_cost(paid, r))),
             }
         })
         .collect();
@@ -153,14 +202,16 @@ pub struct Summary {
     pub employee_id: String,
     pub employee: String,
     pub shifts: i64,
-    pub scheduled_hours: f64,
-    pub worked_hours: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub scheduled_hours: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub worked_hours: Decimal,
     pub present: i64,
     pub late: i64,
     pub absent: i64,
     pub not_recorded: i64,
     #[serde(serialize_with = "blank")]
-    pub pay: Option<f64>,
+    pub pay: Option<Decimal>,
 }
 
 /// `employeeSummaries`: keyed by id (two people sharing a name stay apart), sorted by name.
@@ -174,8 +225,8 @@ pub fn employee_summaries(rows: &[Row]) -> Vec<Summary> {
                     employee_id: row.employee_id.clone(),
                     employee: row.employee.clone(),
                     shifts: 0,
-                    scheduled_hours: 0.0,
-                    worked_hours: 0.0,
+                    scheduled_hours: Decimal::ZERO,
+                    worked_hours: Decimal::ZERO,
                     present: 0,
                     late: 0,
                     absent: 0,
@@ -188,9 +239,9 @@ pub fn employee_summaries(rows: &[Row]) -> Vec<Summary> {
         let e = &mut order[i];
         e.shifts += 1;
         e.scheduled_hours = round2(e.scheduled_hours + row.scheduled_hours);
-        e.worked_hours = round2(e.worked_hours + row.worked_hours.unwrap_or(0.0));
+        e.worked_hours = round2(e.worked_hours + row.worked_hours.unwrap_or(Decimal::ZERO));
         if let Some(p) = row.pay {
-            e.pay = Some(round2(e.pay.unwrap_or(0.0) + p));
+            e.pay = Some(round2(e.pay.unwrap_or(Decimal::ZERO) + p));
         }
         match row.status.as_str() {
             "present" => e.present += 1,
@@ -208,6 +259,8 @@ pub fn employee_summaries(rows: &[Row]) -> Vec<Summary> {
 pub enum Cell {
     Text(String),
     Num(f64),
+    /// An exact amount or hours, written as JavaScript's `String(n)` would.
+    Dec(Decimal),
 }
 
 impl From<&str> for Cell {
@@ -230,6 +283,16 @@ impl From<i64> for Cell {
         Cell::Num(x as f64)
     }
 }
+impl From<Decimal> for Cell {
+    fn from(x: Decimal) -> Self {
+        Cell::Dec(x)
+    }
+}
+impl From<Option<Decimal>> for Cell {
+    fn from(x: Option<Decimal>) -> Self {
+        x.map_or(Cell::Text(String::new()), Cell::Dec)
+    }
+}
 impl From<Option<f64>> for Cell {
     fn from(x: Option<f64>) -> Self {
         x.map_or(Cell::Text(String::new()), Cell::Num)
@@ -242,6 +305,9 @@ pub fn csv_field(c: &Cell) -> String {
     let mut s = match c {
         Cell::Text(t) => t.clone(),
         Cell::Num(n) => num(*n),
+        // JavaScript prints `-0` as `0`.
+        Cell::Dec(d) if d.is_zero() => "0".to_owned(),
+        Cell::Dec(d) => d.normalize().to_string(),
     };
     if matches!(c, Cell::Text(_)) && s.starts_with(['=', '+', '-', '@', '\t', '\r']) {
         s = format!("'{s}");
@@ -354,19 +420,26 @@ pub fn timesheet_csv(
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Bucket {
     pub key: String,
-    pub minutes: f64,
-    pub cost: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub cost: Decimal,
 }
 
 /// `laborCost`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LaborCost {
-    pub cost: f64,
-    pub base_cost: f64,
-    pub overtime_cost: f64,
-    pub minutes: f64,
-    pub overtime_minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub cost: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub base_cost: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub overtime_cost: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub overtime_minutes: Decimal,
     pub rated_count: usize,
     pub employee_count: usize,
     pub by_day: Vec<Bucket>,
@@ -378,7 +451,7 @@ pub struct LaborCost {
 struct Buckets(Vec<Bucket>);
 
 impl Buckets {
-    fn add(&mut self, key: &str, net: f64, money: f64) {
+    fn add(&mut self, key: &str, net: Decimal, money: Decimal) {
         match self.0.iter_mut().find(|b| b.key == key) {
             Some(b) => {
                 b.minutes += net;
@@ -393,8 +466,8 @@ impl Buckets {
     }
 }
 
-fn desc(a: f64, b: f64) -> std::cmp::Ordering {
-    b.partial_cmp(&a).unwrap_or(std::cmp::Ordering::Equal)
+fn desc(a: Decimal, b: Decimal) -> std::cmp::Ordering {
+    b.cmp(&a)
 }
 
 /// `laborCost`: net hours × the holder's hourly rate over `dates`; with a weekly threshold and a
@@ -404,15 +477,14 @@ pub fn labor_cost(
     shifts: &[Shift],
     employees: &[PayEmployee],
     dates: &[String],
-    threshold_hours: Option<f64>,
-    multiplier: Option<f64>,
+    threshold_hours: Option<Decimal>,
+    multiplier: Option<Decimal>,
 ) -> LaborCost {
     let days: HashSet<&str> = dates.iter().map(String::as_str).collect();
     let by_id: HashMap<&str, &PayEmployee> = employees.iter().map(|e| (e.id.as_str(), e)).collect();
-    let threshold = threshold_hours.map(|h| h * 60.0);
-    let overtime_on = matches!((threshold, multiplier),
-        (Some(t), Some(m)) if t.is_finite() && m.is_finite() && m > 1.0);
-    let rate = multiplier.unwrap_or(1.0);
+    let threshold = threshold_hours.map(|h| h * SIXTY);
+    let overtime_on = matches!((threshold, multiplier), (Some(_), Some(m)) if m > Decimal::ONE);
+    let rate = multiplier.unwrap_or(Decimal::ONE);
     let weeks: HashSet<String> = days.iter().map(|d| start_of_week(d)).collect();
     let mut ordered: Vec<&Shift> = shifts
         .iter()
@@ -432,31 +504,33 @@ pub fn labor_cost(
     let mut rated: HashSet<&str> = HashSet::new();
     let (mut by_day, mut by_role, mut by_emp) =
         (Buckets::default(), Buckets::default(), Buckets::default());
-    let mut week_minutes: HashMap<String, f64> = HashMap::new();
+    let mut week_minutes: HashMap<String, Decimal> = HashMap::new();
+    let z = Decimal::ZERO;
     let (mut cost, mut base_cost, mut overtime_cost, mut minutes, mut overtime_minutes) =
-        (0.0, 0.0, 0.0, 0.0, 0.0);
+        (z, z, z, z, z);
     for shift in ordered {
         let who = shift.assignee_id.as_deref().unwrap_or("");
-        let net = net_minutes(shift);
+        let net = net_dec(shift);
         let key = format!("{who}|{}", start_of_week(&shift.date));
-        let before = week_minutes.get(&key).copied().unwrap_or(0.0);
+        let before = week_minutes.get(&key).copied().unwrap_or(Decimal::ZERO);
         week_minutes.insert(key, before + net);
         if !days.contains(shift.date.as_str()) {
             continue;
         }
         involved.insert(who);
         minutes += net;
-        let mut money = 0.0;
+        let mut money = Decimal::ZERO;
         if let Some((e, hr)) = by_id.get(who).and_then(|e| e.hourly_rate.map(|r| (e, r))) {
             rated.insert(e.id.as_str());
-            let mut overtime = 0.0;
+            let mut overtime = Decimal::ZERO;
             if overtime_on {
-                let t = threshold.unwrap_or(0.0);
-                overtime = (before + net - t).max(0.0) - (before - t).max(0.0);
+                let t = threshold.unwrap_or(Decimal::ZERO);
+                overtime = (before + net - t).max(z) - (before - t).max(z);
             }
             let base = net - overtime;
-            let base_money = base / 60.0 * hr;
-            let overtime_money = overtime / 60.0 * hr * if overtime_on { rate } else { 1.0 };
+            let base_money = minutes_cost(base, hr);
+            let overtime_money =
+                minutes_cost(overtime, hr * if overtime_on { rate } else { Decimal::ONE });
             money = base_money + overtime_money;
             base_cost += base_money;
             overtime_cost += overtime_money;
@@ -495,20 +569,23 @@ pub fn labor_cost(
 /// `budgetStatus`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Budget {
-    pub budget: Option<f64>,
-    pub ratio: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub budget: Option<Decimal>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub ratio: Option<Decimal>,
     pub over: bool,
-    pub difference: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub difference: Decimal,
 }
 
 /// `budgetStatus`: a cost against an optional weekly budget (none set = nothing to show).
-pub fn budget_status(cost: f64, budget: Option<f64>) -> Budget {
-    match budget.filter(|b| *b > 0.0 && b.is_finite()) {
+pub fn budget_status(cost: Decimal, budget: Option<Decimal>) -> Budget {
+    match budget.filter(|b| *b > Decimal::ZERO) {
         None => Budget {
             budget: None,
             ratio: None,
             over: false,
-            difference: 0.0,
+            difference: Decimal::ZERO,
         },
         Some(t) => Budget {
             budget: Some(t),
@@ -530,9 +607,11 @@ pub struct Limits {
     /// Minutes before the end that do not count as leaving early.
     pub early_leave_grace_minutes: i64,
     /// Paid hours a day before overtime (Factories Act s.54: 9); `None` = no daily limit.
-    pub daily_overtime_hours: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub daily_overtime_hours: Option<Decimal>,
     /// Paid hours a week before overtime (s.51: 48); `None` = no weekly limit.
-    pub weekly_overtime_hours: Option<f64>,
+    #[serde(with = "rust_decimal::serde::float_option")]
+    pub weekly_overtime_hours: Option<Decimal>,
 }
 
 impl Default for Limits {
@@ -540,8 +619,8 @@ impl Default for Limits {
         Self {
             late_grace_minutes: 10,
             early_leave_grace_minutes: 10,
-            daily_overtime_hours: Some(9.0),
-            weekly_overtime_hours: Some(48.0),
+            daily_overtime_hours: Some(Decimal::from(9)),
+            weekly_overtime_hours: Some(Decimal::from(48)),
         }
     }
 }
@@ -568,10 +647,14 @@ pub struct Line {
     pub start: String,
     pub end: String,
     pub role: String,
-    pub scheduled_minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub scheduled_minutes: Decimal,
     /// Paid minutes: punched time net of the break; the schedule when punches are incomplete;
     /// nothing for an absence or leave; half for a half day.
-    pub worked_minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub worked_minutes: Decimal,
     pub clock_in: Option<String>,
     pub clock_out: Option<String>,
     /// `present | late | absent | half_day | on_leave | missed_punch | not_recorded | upcoming`.
@@ -591,9 +674,15 @@ pub struct Line {
 #[schema(as = RosterTimesheetTotals)]
 pub struct Totals {
     pub shifts: i64,
-    pub scheduled_minutes: f64,
-    pub worked_minutes: f64,
-    pub overtime_minutes: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub scheduled_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub worked_minutes: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub overtime_minutes: Decimal,
     pub late_count: i64,
     pub late_minutes: i64,
     pub early_leave_count: i64,
@@ -604,7 +693,9 @@ pub struct Totals {
     /// Loss-of-pay days from shift absences that daily attendance does not already show as
     /// absent (those reach payroll through the leave reader; counting them here would charge
     /// them twice).
-    pub lop_days: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub lop_days: Decimal,
     pub night_shifts: i64,
     pub holiday_shifts: i64,
 }
@@ -624,8 +715,8 @@ pub fn reconcile(actuals: &[Actual<'_>], limits: &Limits, today: &str) -> Vec<Li
 
 fn line(a: &Actual<'_>, l: &Limits, today: &str) -> Line {
     let s = a.shift;
-    let scheduled = net_minutes(s);
-    let brk = break_minutes(s);
+    let scheduled = net_dec(s);
+    let brk = break_dec(s);
     let mut flags: Vec<String> = Vec::new();
     let clock_in = a
         .punch
@@ -646,15 +737,17 @@ fn line(a: &Actual<'_>, l: &Limits, today: &str) -> Line {
         }
     };
     let (status, worked) = if s.date.as_str() > today && a.punch.is_none() {
-        ("upcoming", 0.0)
+        ("upcoming", Decimal::ZERO)
     } else if day == "on_leave" && clock_in.is_none() {
         flags.push("on_leave".into());
-        ("on_leave", 0.0)
+        ("on_leave", Decimal::ZERO)
     } else if punch_absent || (a.punch.is_none() && day == ABSENT) {
         flags.push("absent".into());
-        (ABSENT, 0.0)
+        (ABSENT, Decimal::ZERO)
     } else if let (Some(i), Some(o)) = (&clock_in, &clock_out) {
-        let w = worked_minutes(i, o).map_or(0.0, |g| (g as f64 - brk).max(0.0));
+        let w = worked_minutes(i, o).map_or(Decimal::ZERO, |g| {
+            (Decimal::from(g) - brk).max(Decimal::ZERO)
+        });
         late_check(i, &mut flags);
         let raw_early = early_leave_minutes(&s.start, &s.end, o);
         if raw_early > l.early_leave_grace_minutes {
@@ -676,7 +769,7 @@ fn line(a: &Actual<'_>, l: &Limits, today: &str) -> Line {
         flags.push("missed_punch".into());
         ("missed_punch", scheduled)
     } else if day == "half_day" {
-        ("half_day", scheduled / 2.0)
+        ("half_day", scheduled / Decimal::TWO)
     } else if matches!(day, "present" | "holiday" | "weekly_off") || a.punch.is_some() {
         // A day marked present (or a holiday duty) without both punches.
         flags.push("missed_punch".into());
@@ -688,7 +781,7 @@ fn line(a: &Actual<'_>, l: &Limits, today: &str) -> Line {
     if day == ABSENT && clock_in.is_some() {
         flags.push("day_absent_but_punched".into());
     }
-    let worked_any = worked > 0.0;
+    let worked_any = worked > Decimal::ZERO;
     let holiday = (a.holiday || day == "holiday") && worked_any;
     if holiday {
         flags.push("holiday".into());
@@ -716,7 +809,7 @@ fn line(a: &Actual<'_>, l: &Limits, today: &str) -> Line {
 /// daily limit) and the weekly excess (over the weekly limit), each week counted on its own.
 pub fn totals(lines: &[Line], limits: &Limits, days: &HashMap<String, String>) -> Totals {
     let mut t = Totals::default();
-    let mut per_day: BTreeMap<String, f64> = BTreeMap::new();
+    let mut per_day: BTreeMap<String, Decimal> = BTreeMap::new();
     let mut absent_days: BTreeSet<&str> = BTreeSet::new();
     let mut worked_days: HashSet<&str> = HashSet::new();
     for l in lines {
@@ -744,7 +837,7 @@ pub fn totals(lines: &[Line], limits: &Limits, days: &HashMap<String, String>) -
             }
             _ => {}
         }
-        if l.worked_minutes > 0.0 {
+        if l.worked_minutes > Decimal::ZERO {
             worked_days.insert(&l.date);
         }
         if l.night {
@@ -765,43 +858,49 @@ pub fn totals(lines: &[Line], limits: &Limits, days: &HashMap<String, String>) -
                 Some("absent" | "half_day" | "on_leave" | "holiday" | "weekly_off")
             )
         })
-        .count() as f64;
-    let mut weeks: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+        .count()
+        .into();
+    let mut weeks: BTreeMap<String, (Decimal, Decimal)> = BTreeMap::new();
     for (d, m) in &per_day {
         let w = weeks.entry(start_of_week(d)).or_default();
         if let Some(h) = limits.daily_overtime_hours {
-            w.0 += (m - h * 60.0).max(0.0);
+            w.0 += (*m - h * SIXTY).max(Decimal::ZERO);
         }
-        w.1 += m;
+        w.1 += *m;
     }
     t.overtime_minutes = weeks
         .values()
         .map(|(daily, total)| {
             let weekly = limits
                 .weekly_overtime_hours
-                .map_or(0.0, |h| (total - h * 60.0).max(0.0));
-            daily.max(weekly)
+                .map_or(Decimal::ZERO, |h| (*total - h * SIXTY).max(Decimal::ZERO));
+            (*daily).max(weekly)
         })
         .sum();
     t
 }
 
 /// The quantities the payroll export hands 7C: `(code, quantity)` for the non-zero ones.
-pub fn payroll_quantities(t: &Totals) -> Vec<(&'static str, f64)> {
+pub fn payroll_quantities(t: &Totals) -> Vec<(&'static str, Decimal)> {
     [
-        ("overtime_hours", round2(t.overtime_minutes / 60.0)),
+        ("overtime_hours", hours(t.overtime_minutes)),
         ("lop_days", t.lop_days),
-        ("night_shifts", t.night_shifts as f64),
-        ("holiday_shifts", t.holiday_shifts as f64),
+        ("night_shifts", Decimal::from(t.night_shifts)),
+        ("holiday_shifts", Decimal::from(t.holiday_shifts)),
     ]
     .into_iter()
-    .filter(|(_, q)| *q > 0.0)
+    .filter(|(_, q)| *q > Decimal::ZERO)
     .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
+
+    fn d(x: &str) -> Decimal {
+        Decimal::from_str(x).unwrap()
+    }
 
     fn sh(id: &str, date: &str, s: &str, e: &str, who: Option<&str>) -> Shift {
         Shift {
@@ -831,7 +930,7 @@ mod tests {
                 id: "e1".into(),
                 name: "Ava Chen".into(),
                 active: true,
-                hourly_rate: Some(20.0),
+                hourly_rate: Some(d("20")),
             },
             PayEmployee {
                 id: "e2".into(),
@@ -849,11 +948,11 @@ mod tests {
         att.insert("s1".to_owned(), rec("late", "09:20", "17:00"));
         att.insert("s3".to_owned(), rec("absent", "", ""));
         let rows = timesheet_rows(&emps, &shifts, &att, "2026-08-03", "2026-08-09");
-        assert_eq!(rows[0].worked_hours, Some(7.67));
+        assert_eq!(rows[0].worked_hours, Some(d("7.67")));
         assert_eq!(rows[0].minutes_late, Some(20.0));
-        assert_eq!(rows[2].pay, Some(0.0));
+        assert_eq!(rows[2].pay, Some(Decimal::ZERO));
         let sums = employee_summaries(&rows);
-        assert_eq!(sums[0].scheduled_hours, 12.0);
+        assert_eq!(sums[0].scheduled_hours, d("12"));
         let csv = timesheet_csv(&emps, &shifts, &att, "2026-08-03", "2026-08-09");
         assert!(csv.contains("\"Liam \"\"Lee\"\" Torres, Jr.\""));
         assert_eq!(csv_field(&Cell::from("=SUM(A1)")), "'=SUM(A1)");
@@ -864,8 +963,8 @@ mod tests {
             None,
             None,
         );
-        assert_eq!(cost.cost, 240.0);
-        assert!(budget_status(cost.cost, Some(100.0)).over);
+        assert_eq!(cost.cost, d("240"));
+        assert!(budget_status(cost.cost, Some(d("100"))).over);
     }
 
     #[test]
@@ -903,11 +1002,83 @@ mod tests {
         assert_eq!(lines[3].status, "missed_punch");
         let t = totals(&lines, &l, &HashMap::new());
         // 11.5h on Monday: 2.5h over 9.
-        assert_eq!(t.overtime_minutes, 150.0);
-        assert_eq!((t.night_shifts, t.holiday_shifts, t.lop_days), (1, 1, 1.0));
+        assert_eq!(t.overtime_minutes, Decimal::from(150));
+        assert_eq!((t.night_shifts, t.holiday_shifts, t.lop_days), (1, 1, Decimal::ONE));
         let mut days = HashMap::new();
         days.insert("2026-08-05".to_owned(), "absent".to_owned());
-        assert_eq!(totals(&lines, &l, &days).lop_days, 0.0);
-        assert_eq!(payroll_quantities(&t)[0], ("overtime_hours", 2.5));
+        assert_eq!(totals(&lines, &l, &days).lop_days, Decimal::ZERO);
+        assert_eq!(payroll_quantities(&t)[0], ("overtime_hours", Decimal::new(25, 1)));
+    }
+
+    #[test]
+    fn pay_is_exact_where_floats_drift() {
+        // 7 minutes at 0.30/h: floats give 0.034999.. -> 0.03; exact is 0.035 -> 0.04.
+        let r = d("0.30");
+        assert_eq!(round2(minutes_cost(d("7"), r)), d("0.04"));
+        // Summing ten tenths of an hour is exactly one hour.
+        let total: Decimal = (0..10).map(|_| d("0.1")).sum();
+        assert_eq!(total, Decimal::ONE);
+        // 1.005 rounds half up, as Math.round on the exact value would.
+        assert_eq!(round2(d("1.005")), d("1.01"));
+        assert_eq!(hours(d("50")), d("0.83"));
+        assert_eq!(hours(d("45")), d("0.75"));
+        // 1350 min at 333.33/h = 7499.925 exactly -> 7499.93 (floats: 7499.92).
+        assert_eq!(round2(minutes_cost(d("1350"), d("333.33"))), d("7499.93"));
+    }
+
+    #[test]
+    fn overtime_cost_is_exact() {
+        // 50h in one week at 123.45/h with a 40h threshold and 1.5x: 40h base + 10h overtime.
+        let emps = vec![PayEmployee {
+            id: "e1".into(),
+            name: "A".into(),
+            active: true,
+            hourly_rate: Some(d("123.45")),
+        }];
+        let dates: Vec<String> = (3..8).map(|n| format!("2026-08-0{n}")).collect();
+        let shifts: Vec<Shift> = dates
+            .iter()
+            .enumerate()
+            .map(|(i, day)| sh(&format!("s{i}"), day, "08:00", "18:00", Some("e1")))
+            .collect();
+        let c = labor_cost(&shifts, &emps, &dates, Some(d("40")), Some(d("1.5")));
+        assert_eq!(c.minutes, d("3000"));
+        assert_eq!(c.overtime_minutes, d("600"));
+        assert_eq!(c.base_cost, d("4938.00"));
+        assert_eq!(c.overtime_cost, d("1851.75"));
+        assert_eq!(c.cost, c.base_cost + c.overtime_cost);
+        let by_emp: Decimal = c.by_employee.iter().map(|b| b.cost).sum();
+        assert_eq!(by_emp, c.cost);
+    }
+
+    #[test]
+    fn overtime_over_the_daily_limit_is_exact() {
+        // 11.5 paid hours on one day with a 9h daily limit: 150 minutes = 2.5 h of overtime.
+        let s = sh("s1", "2026-08-03", "08:00", "19:30", Some("e1"));
+        let lines = reconcile(
+            &[Actual {
+                shift: &s,
+                punch: None,
+                day: Some("present"),
+                holiday: false,
+            }],
+            &Limits::default(),
+            "2026-08-31",
+        );
+        let t = totals(&lines, &Limits::default(), &HashMap::new());
+        assert_eq!(t.overtime_minutes, d("150"));
+        assert_eq!(hours(t.overtime_minutes), d("2.5"));
+    }
+
+    #[test]
+    fn many_small_shifts_sum_exactly() {
+        // 1000 shifts of 7 minutes at 10/h: exact 1166.67 after one rounding of the total.
+        let total: Decimal = (0..1000).map(|_| minutes_cost(d("7"), d("10"))).sum();
+        assert_eq!(round2(total), d("1166.67"));
+        let per_row: Decimal = (0..1000).map(|_| round2(minutes_cost(d("7"), d("10")))).sum();
+        assert_eq!(per_row, d("1170.00"));
+        // Hours of a thousand 6-minute shifts: exactly 100.
+        let h: Decimal = (0..1000).map(|_| d("6") / SIXTY).sum();
+        assert_eq!(h, d("100"));
     }
 }

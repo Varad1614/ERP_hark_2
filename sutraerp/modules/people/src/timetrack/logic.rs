@@ -19,9 +19,12 @@
 
 use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use regex::Regex;
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 use std::sync::LazyLock;
+use sutra_kernel::money::js_round_dp;
 use unicode_normalization::UnicodeNormalization;
 
 fn re(p: &str) -> Regex {
@@ -326,9 +329,20 @@ pub fn time_part_of(value: &str) -> Option<String> {
 
 // ------------------------------------------------------------------ money & text (util.js)
 
-/// `round2`: money to two places without float drift on typical inputs.
-pub fn round2(n: f64) -> f64 {
+/// `round2` on an exact amount: `Math.round(n * 100) / 100` (audit M2). The original's
+/// `+ Number.EPSILON` nudge only papered over binary drift, which `Decimal` does not have.
+pub fn round2(n: Decimal) -> Decimal {
+    js_round_dp(n, 2)
+}
+
+/// `round2` for ratios and percentages, which stay `f64` (not money).
+pub fn round2_f64(n: f64) -> f64 {
     js_round((n + f64::EPSILON) * 100.0) / 100.0
+}
+
+/// `toHours` exactly: whole seconds as decimal hours, `Math.round`ed to `decimals` places.
+pub fn hours_of(seconds: i64, decimals: u32) -> Decimal {
+    js_round_dp(Decimal::from(seconds) / Decimal::from(3600), decimals)
 }
 
 static GROUPED: LazyLock<Regex> = LazyLock::new(|| re(r"^-?[0-9]{1,3}(,[0-9]{3})+$"));
@@ -871,12 +885,13 @@ pub fn billed_seconds(billable: bool, seconds: i64, rounding: i64, minimum_minut
     round_seconds(seconds, rounding).max(minimum_minutes * 60)
 }
 
-/// `entryAmount`: rounded billable hours (4 places) times the rate, to the paisa.
-pub fn entry_amount(billable: bool, billed: i64, rate: f64) -> f64 {
+/// `entryAmount`: rounded billable hours (4 places) times the rate, to the paisa — exact, so
+/// `1.2547 h × 250 = 313.675` rounds to `313.68` (the original's floats gave `313.67`).
+pub fn entry_amount(billable: bool, billed: i64, rate: Decimal) -> Decimal {
     if !billable {
-        return 0.0;
+        return Decimal::ZERO;
     }
-    round2(to_hours(billed as f64, 4) * rate)
+    round2(hours_of(billed, 4) * rate)
 }
 
 // ------------------------------------------------------------------ entries (store.js)
@@ -888,7 +903,7 @@ pub struct Tracked {
     pub seconds: i64,
     pub billable: bool,
     pub billed: i64,
-    pub amount: f64,
+    pub amount: Decimal,
     pub started_at: Option<i64>,
     pub ended_at: Option<i64>,
 }
@@ -900,7 +915,8 @@ pub struct Totals {
     pub seconds: i64,
     pub billable_seconds: i64,
     pub tracked_billable_seconds: i64,
-    pub amount: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub amount: Decimal,
 }
 
 /// `totals`: tracked seconds, billed seconds (rounding included), raw seconds on billable
@@ -927,7 +943,8 @@ pub struct Group {
     pub ids: Vec<String>,
     pub seconds: i64,
     pub billable_seconds: i64,
-    pub amount: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    pub amount: Decimal,
 }
 
 /// `groupEntries`: groups in first-seen order, then sorted by tracked seconds, largest first
@@ -949,7 +966,7 @@ where
                 ids: vec![],
                 seconds: 0,
                 billable_seconds: 0,
-                amount: 0.0,
+                amount: Decimal::ZERO,
             });
             groups.len() - 1
         };
@@ -1041,27 +1058,34 @@ pub struct Budget {
     /// `total` | `monthly`.
     pub period: String,
     /// Seconds (hours budget) or rupees (amount budget).
-    pub spent: f64,
-    pub value: f64,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub spent: Decimal,
+    #[serde(with = "rust_decimal::serde::float")]
+    #[schema(value_type = f64)]
+    pub value: Decimal,
+    /// `spent / value` — a ratio, so `f64`.
     pub ratio: f64,
 }
 
 /// `budgetProgress`: `None` without a positive budget; hours budgets compare seconds.
-pub fn budget_progress(kind: &str, period: &str, value: f64, spent: f64) -> Option<Budget> {
-    if value.is_nan() || value <= 0.0 {
+pub fn budget_progress(kind: &str, period: &str, value: Decimal, spent: Decimal) -> Option<Budget> {
+    if value <= Decimal::ZERO {
         return None;
     }
     let v = if kind == "amount" {
         value
     } else {
-        value * 3600.0
+        value * Decimal::from(3600)
     };
+    // `Decimal::to_f64` is total (every decimal has a nearest double); the ratio is display-only.
+    let f = |d: Decimal| d.to_f64().unwrap_or(f64::NAN);
     Some(Budget {
         kind: kind.into(),
         period: period.into(),
         spent,
         value: v,
-        ratio: spent / v,
+        ratio: f(spent) / f(v),
     })
 }
 
@@ -1099,14 +1123,18 @@ pub fn effort(seconds: i64, total_seconds: i64) -> Effort {
     Effort {
         seconds,
         total_seconds,
-        percent: round2(share * 100.0),
+        percent: round2_f64(share * 100.0),
         person_months: js_round(share * 1000.0) / 1000.0,
     }
 }
 
-/// Hourly cost rate derived from a monthly salary: gross ÷ standard working hours a month.
-pub fn hourly_from_monthly(monthly_gross: f64, standard_monthly_hours: f64) -> Option<f64> {
-    (standard_monthly_hours > 0.0 && monthly_gross > 0.0)
+/// Hourly cost rate derived from a monthly salary: gross ÷ standard working hours a month, to the
+/// paisa (exact; `None` without a positive salary and positive hours).
+pub fn hourly_from_monthly(
+    monthly_gross: Decimal,
+    standard_monthly_hours: Decimal,
+) -> Option<Decimal> {
+    (standard_monthly_hours > Decimal::ZERO && monthly_gross > Decimal::ZERO)
         .then(|| round2(monthly_gross / standard_monthly_hours))
 }
 
@@ -1164,6 +1192,11 @@ pub fn distinct<I: IntoIterator<Item = String>>(it: I) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
+
+    fn d(x: &str) -> Decimal {
+        Decimal::from_str(x).unwrap()
+    }
 
     #[test]
     fn durations_follow_everything() {
@@ -1200,9 +1233,12 @@ mod tests {
         let e = effort(36000, 144_000);
         assert!((e.percent - 25.0).abs() < 1e-9);
         assert!((e.person_months - 0.25).abs() < 1e-9);
-        assert_eq!(hourly_from_monthly(88000.0, 176.0), Some(500.0));
+        assert_eq!(hourly_from_monthly(d("88000"), d("176")), Some(d("500")));
+        assert_eq!(hourly_from_monthly(d("50000"), d("176")), Some(d("284.09")));
+        assert_eq!(hourly_from_monthly(d("50000"), Decimal::ZERO), None);
         assert_eq!(billed_seconds(true, 180, 10, 15), 900);
-        assert!((entry_amount(true, 5400, 500.0) - 750.0).abs() < 1e-9);
+        assert_eq!(entry_amount(true, 5400, d("500")), d("750"));
+        assert_eq!(entry_amount(false, 5400, d("500")), Decimal::ZERO);
         assert!(timesheet_locked("approved"));
         assert!(timesheet_can("rejected", "submitted"));
         assert!(!timesheet_can("approved", "draft"));
@@ -1214,8 +1250,38 @@ mod tests {
             budget_window("monthly", "2026-02-10"),
             ("2026-02-01".into(), "2026-02-28".into())
         );
-        let b = budget_progress("hours", "total", 10.0, 18000.0);
-        assert!(b.is_some_and(|b| (b.ratio - 0.5).abs() < 1e-9));
-        assert!(budget_progress("hours", "total", 0.0, 1.0).is_none());
+        let b = budget_progress("hours", "total", d("10"), d("18000"));
+        assert!(b.is_some_and(|b| (b.ratio - 0.5).abs() < 1e-9 && b.value == d("36000")));
+        assert!(budget_progress("hours", "total", Decimal::ZERO, Decimal::ONE).is_none());
+        let a = budget_progress("amount", "monthly", d("1000.10"), d("250.025"));
+        assert!(a.is_some_and(|b| b.spent == d("250.025") && b.value == d("1000.10")));
+    }
+
+    #[test]
+    fn money_is_exact_where_floats_drift() {
+        // 4517 s = 1.2547 h; × 250 = 313.675 exactly -> 313.68 (floats: 313.67499.. -> 313.67).
+        assert_eq!(hours_of(4517, 4), d("1.2547"));
+        assert_eq!(entry_amount(true, 4517, d("250")), d("313.68"));
+        // 7 minutes at 0.30/h: the original rounds hours to 4 places first, 0.1167 × 0.30 -> 0.04.
+        assert_eq!(entry_amount(true, 420, d("0.30")), d("0.04"));
+        // Ten entries of 0.1 h at 1/h total exactly 1.
+        let e = |i: usize| Tracked {
+            id: i.to_string(),
+            seconds: 360,
+            billable: true,
+            billed: 360,
+            amount: entry_amount(true, 360, Decimal::ONE),
+            started_at: None,
+            ended_at: None,
+        };
+        let ten: Vec<Tracked> = (0..10).map(e).collect();
+        assert_eq!(totals(&ten).amount, Decimal::ONE);
+        // A thousand small entries sum without drift.
+        let many: Vec<Tracked> = (0..1000).map(e).collect();
+        assert_eq!(totals(&many).amount, d("100"));
+        let groups = group_entries(&many, |_| ("k".into(), "K".into(), String::new()));
+        assert_eq!(groups[0].amount, d("100"));
+        // Half a paisa rounds up, as Math.round on the exact value.
+        assert_eq!(round2(d("1.005")), d("1.01"));
     }
 }

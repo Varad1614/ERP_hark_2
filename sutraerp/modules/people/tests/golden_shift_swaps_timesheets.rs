@@ -2,7 +2,9 @@
 //! Everything's original `shifts/src/core/{swaps,attendance,timesheet,payroll,reports,ics}.js` by
 //! `tools/golden/generate.mjs` (spec `shift-swaps-timesheets`).
 
+use rust_decimal::Decimal;
 use serde::Deserialize;
+use sutra_kernel::money::decimal_from_f64;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use sutra_people::roster::clock::{
@@ -52,9 +54,14 @@ struct Clock {
 #[derive(Deserialize)]
 struct Cost {
     dates: Vec<String>,
-    threshold: Option<f64>,
-    multiplier: Option<f64>,
-    budget: Option<f64>,
+    // Hours, multiplier and budget are exact decimals in the port (audit M2); the fixture's JSON
+    // numbers parse through their shortest decimal form, as the API's request bodies do.
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    threshold: Option<Decimal>,
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    multiplier: Option<Decimal>,
+    #[serde(default, with = "rust_decimal::serde::float_option")]
+    budget: Option<Decimal>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,6 +97,53 @@ fn norm(v: Value) -> Value {
 
 fn eq(got: Value, want: &Value, what: &str) {
     assert_eq!(norm(got), norm(want.clone()), "{what}");
+}
+
+// Pay is exact in the port (audit M2): `1350 min × 333.33 / 60 = 7499.925` rounds to 7499.93,
+// where the original's floats (`22.5 × 333.33 = 7499.924999…`) gave 7499.92. In a range with
+// `max` such rows every number (and every number in a CSV) may be up to `max` paise above the
+// original's — never below, and only by whole paise; everything else still matches exactly.
+fn paise_up(got: f64, want: f64, max: usize) -> bool {
+    let k = ((got - want) * 100.0).round();
+    (got - want - k / 100.0).abs() < 1e-6 && k >= 0.0 && k <= max as f64
+}
+
+fn drift_text(a: &str, b: &str, max: usize) -> bool {
+    let cells = |s: &str| s.split([',', '\r', '\n']).map(str::to_owned).collect::<Vec<_>>();
+    let (x, y) = (cells(a), cells(b));
+    x.len() == y.len()
+        && x.iter().zip(&y).all(|(p, q)| {
+            p == q
+                || matches!((p.parse::<f64>(), q.parse::<f64>()),
+                    (Ok(m), Ok(n)) if paise_up(m, n, max))
+        })
+}
+
+fn drift_eq(got: &Value, want: &Value, max: usize) -> bool {
+    match (got, want) {
+        (Value::Number(a), Value::Number(b)) => {
+            let (a, b) = (a.as_f64().unwrap_or(0.0), b.as_f64().unwrap_or(0.0));
+            (a - b).abs() < 1e-9 || paise_up(a, b, max)
+        }
+        (Value::String(a), Value::String(b)) => a == b || drift_text(a, b, max),
+        (Value::Array(a), Value::Array(b)) => {
+            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| drift_eq(x, y, max))
+        }
+        (Value::Object(a), Value::Object(b)) => {
+            a.len() == b.len()
+                && a.iter().all(|(k, x)| b.get(k).is_some_and(|y| drift_eq(x, y, max)))
+        }
+        (a, b) => a == b,
+    }
+}
+
+/// [`eq`], or with `max` paise of pay drift allowed (see [`paise_up`]).
+fn eq_pay(got: Value, want: &Value, max: usize, what: &str) {
+    if max == 0 {
+        eq(got, want, what);
+    } else {
+        assert!(drift_eq(&got, want, max), "{what}: {got} vs {want}");
+    }
 }
 
 fn res<T: serde::Serialize>(r: Result<T, String>) -> Value {
@@ -227,21 +281,35 @@ fn shift_swaps_timesheets_match_everything() {
                 .collect();
             eq(json!(fr), &e["forRange"], &w("forRange"));
             let rows = timesheet_rows(&pay, &shifts, &i.attendance, from, to);
-            eq(
+            // Rows whose exact pay is one paisa above the original's float result.
+            let mut drift = 0;
+            for (k, r) in rows.iter().enumerate() {
+                let (Some(p), Some(js)) = (r.pay, e["rows"][k]["pay"].as_f64()) else {
+                    continue;
+                };
+                let js = decimal_from_f64(js, "pay").expect("pay");
+                if p != js {
+                    assert_eq!(p - js, Decimal::new(1, 2), "{}", w(&format!("row {k} pay")));
+                    drift += 1;
+                }
+            }
+            eq_pay(
                 serde_json::to_value(&rows).expect("rows"),
                 &e["rows"],
+                drift,
                 &w("rows"),
             );
-            eq(
+            eq_pay(
                 serde_json::to_value(employee_summaries(&rows)).expect("sum"),
                 &e["summaries"],
+                drift,
                 &w("summaries"),
             );
-            assert_eq!(
-                timesheet_csv(&pay, &shifts, &i.attendance, from, to),
-                e["csv"].as_str().unwrap_or_default(),
-                "{}",
-                w("csv")
+            eq_pay(
+                json!(timesheet_csv(&pay, &shifts, &i.attendance, from, to)),
+                &e["csv"],
+                drift,
+                &w("csv"),
             );
             eq(json!(dates_between(from, to)), &e["dates"], &w("dates"));
             let (pf, pt) = previous_range(from, to);
@@ -251,9 +319,10 @@ fn shift_swaps_timesheets_match_everything() {
                 &w("previous"),
             );
             let report = build_report(&state, from, to);
-            eq(
+            eq_pay(
                 serde_json::to_value(&report).expect("report"),
                 &e["report"],
+                drift,
                 &w("report"),
             );
             let csvs: Vec<Value> = SECTIONS
@@ -262,7 +331,7 @@ fn shift_swaps_timesheets_match_everything() {
                 .chain(["nonsense"])
                 .map(|s| res(report_csv(&report, s)))
                 .collect();
-            eq(json!(csvs), &e["reportCsv"], &w("reportCsv"));
+            eq_pay(json!(csvs), &e["reportCsv"], drift, &w("reportCsv"));
             let (ics, count) = build_schedule_ics(
                 &names,
                 &i.shifts,

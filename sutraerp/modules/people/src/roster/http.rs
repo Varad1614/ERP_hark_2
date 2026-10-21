@@ -23,7 +23,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::{Duration, NaiveDate};
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::PgConnection;
@@ -47,12 +47,16 @@ pub(crate) fn pd(s: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
 }
 
+/// Stored hours (`numeric`) for the scheduling rules engine, which works in `f64` minutes.
+/// `Decimal::to_f64` cannot fail for these bounded columns; `None` stays "no limit".
 pub(crate) fn fo(d: Option<Decimal>) -> Option<f64> {
     d.and_then(|x| x.to_f64())
 }
 
-pub(crate) fn dec(x: Option<f64>) -> Option<Decimal> {
-    x.and_then(Decimal::from_f64).map(|d| d.round_dp(1))
+/// Request hours to the stored one-decimal `numeric`: a value `Decimal` cannot hold is a
+/// validation error naming `field`, never a silently dropped limit (audit M2).
+pub(crate) fn dec(x: Option<f64>, field: &str) -> Result<Option<Decimal>, KernelError> {
+    Ok(sutra_kernel::money::decimal_from_opt_f64(x, field)?.map(|d| d.round_dp(1)))
 }
 
 // ------------------------------------------------------------------ loading
@@ -1148,8 +1152,8 @@ pub async fn settings_put(
     )
     .bind(t.as_uuid())
     .bind(id)
-    .bind(dec(b.rules.min_rest_hours))
-    .bind(dec(b.rules.max_daily_hours))
+    .bind(dec(b.rules.min_rest_hours, "rules.minRestHours")?)
+    .bind(dec(b.rules.max_daily_hours, "rules.maxDailyHours")?)
     .bind(b.rules.max_consecutive_days.map(|x| x as i32))
     .execute(&mut *tx)
     .await
@@ -1278,8 +1282,8 @@ pub async fn profile_put(
     .bind(t.as_uuid())
     .bind(inst_id)
     .bind(&role)
-    .bind(dec(b.target_hours))
-    .bind(dec(b.max_hours))
+    .bind(dec(b.target_hours, "targetHours")?)
+    .bind(dec(b.max_hours, "maxHours")?)
     .bind(b.days.as_ref().map(|d| serde_json::to_value(d).unwrap_or_default()))
     .bind(b.rosterable)
     .execute(&mut *tx)
