@@ -578,11 +578,17 @@ async fn institution_lifecycle_with_readiness_gate_and_auto_approval() {
     assert_eq!(b["status"], "archived");
     let v = ver(&b);
     for verb in ["suspend", "reactivate", "archive", "configure", "submit"] {
+        // Audit A3 (D-2): `configure` / `submit` take no request body, so they get `{}`.
+        let body = if matches!(verb, "configure" | "submit") {
+            json!({})
+        } else {
+            json!({"reason": "r"})
+        };
         let (s, _) = post(
             &app,
             &admin,
             &inst_path(&inst, &format!("/{verb}")),
-            json!({"reason": "r"}),
+            body,
             Some(v),
         )
         .await;

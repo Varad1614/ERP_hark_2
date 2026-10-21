@@ -6,5 +6,7 @@ FROM node:22-alpine
 RUN apk add --no-cache postgresql-client
 WORKDIR /seed
 COPY apps/web/e2e/lib/harness.mjs apps/web/e2e/lib/harness.mjs
+# A1: harness.mjs imports the per-run dev password helper (SUTRA_DEV_AUTH_PASSWORD).
+COPY apps/web/e2e/lib/dev-password.mjs apps/web/e2e/lib/dev-password.mjs
 COPY apps/web/e2e/demo-seed.mjs apps/web/e2e/demo-seed.mjs
 ENTRYPOINT ["node", "apps/web/e2e/demo-seed.mjs"]

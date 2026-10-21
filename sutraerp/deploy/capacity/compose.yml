@@ -247,6 +247,9 @@ services:
     environment:
       <<: *api-env
       DATABASE_URL: postgres://sutra_api:${SUTRA_RUNTIME_DB_PASSWORD}@postgres:5432/sutra?sslmode=require
+      # A3 (M6): the metrics listener defaults to loopback; inside the container it must bind all
+      # interfaces for the host-loopback port mapping below to reach it.
+      SUTRA_METRICS_ADDR: 0.0.0.0:9464
     extra_hosts: *api-hosts
     ports: ["127.0.0.1:9464:9464"]
     volumes:

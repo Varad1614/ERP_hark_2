@@ -73,9 +73,9 @@ jobs:
         id: audit
         if: success() || failure()
         run: |
-          cargo-audit audit --file Cargo.lock --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2024-0436 \
+          cargo-audit audit --file Cargo.lock --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2026-0381 \
             --json > "$RUNNER_TEMP/security/cargo-audit.json" || true
-          cargo-audit audit --file Cargo.lock --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2024-0436
+          cargo-audit audit --file Cargo.lock --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2026-0381
       - uses: pnpm/action-setup@v4
         if: success() || failure()
         with:
@@ -112,7 +112,7 @@ jobs:
             echo "| pnpm audit --prod (high) | ${{ steps.pnpm.outcome }} |"
             echo "| gitleaks (full history) | ${{ steps.gitleaks.outcome }} |"
             echo
-            echo "Accepted advisories (expiry in docs/security/findings.md): RUSTSEC-2023-0071, RUSTSEC-2024-0436."
+            echo "Accepted advisories (expiry in docs/security/findings.md): RUSTSEC-2023-0071, RUSTSEC-2024-0436, RUSTSEC-2026-0381 (webpki-roots 0.26 shim)."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

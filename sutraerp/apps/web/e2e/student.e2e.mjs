@@ -450,7 +450,8 @@ async function signIn(page, role) {
 async function signOut(page) {
   await go(page, "/account/security");
   await page.getByRole("button", { name: "Sign out of this device" }).click();
-  await page.waitForURL(`${BASE}/sign-in`);
+  // A1: signing out lands on /sign-in?returnTo=<page> (the returnTo-safe Sign in page).
+  await page.waitForURL((u) => u.toString().startsWith(`${BASE}/sign-in`));
   await settle(page);
 }
 

@@ -131,7 +131,7 @@ describe("no dev password ships", () => {
 
   it("a built bundle (when present) contains no dev password and, without dev personas, no persona login ids", () => {
     const dist = path.resolve(appDir, "../build/client/assets");
-    let js: string[] = [];
+    let js: string[];
     try {
       js = readdirSync(dist).filter((f) => f.endsWith(".js"));
     } catch {

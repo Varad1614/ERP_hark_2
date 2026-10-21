@@ -106,3 +106,83 @@ Troubleshooting:
 - **Docker stack not run.** No Docker in the agent sandbox, so the Keycloak image, the `/auth` proxy, the realm placeholders and the full OIDC round-trip were not run. The API's OIDC routes (`/api/v1/auth/oidc/start|callback|backchannel-logout`, `logout` → `endSessionUrl`) are unchanged and covered by the existing Keycloak CI (part1-demo, part2-backup).
 - **Rust not compiled.** `cargo check -p sutra-api --lib` could not complete in the sandbox within the time limits. CI compiles it.
 - **Mock fixtures.** Mock-mode data files still contain dev subjects. They ship only inside mock-only code paths, and a default build was verified to contain no `@sutra.dev` string.
+
+## A2 — input policy (names, contacts, dates, caps)
+
+Findings: **SEC-1 / C-1** (stored XSS in names), **VAL-1** (free-form identity text), server side of
+**VAL-2 / VAL-3 / VAL-4**, **H-2** (unbounded money / seats, unreachable enquiries).
+
+### SEC-1 / C-1 — not reproducible as XSS; defence in depth
+
+The reported `<img src=x onerror=…>` institution / student names do **not** execute in the web
+app: every place that shows a name (role switcher, `Select` options, careers page, print views,
+CSV previews) renders it through React text nodes, so the markup shows literally. This is now
+pinned by Vitest (`apps/web/app/features/institution/xss.test.tsx`), which renders a markup name
+through each of those surfaces and asserts that no element or handler is created.
+
+The real defect found on the way was a **spreadsheet formula injection** sink: the financial
+statement CSV export wrote cell values raw. It now goes through the shared `lib/csv` formula
+guard (cells starting `=`, `+`, `-`, `@`, tab or CR are prefixed), with a test in
+`features/finance/ledger/financial-statements.test.ts`.
+
+### What changed (server side)
+
+| Finding | Fix |
+|---|---|
+| VAL-1 / SEC-1: names and codes accepted any characters | New `crates/kernel/src/text.rs` (`sutra_kernel::text`). Identity text (person, institution, course / offering title, staff, enquiry and guardian names, short name, registration number, affiliated university, city) is trimmed, length-capped, single line, and refuses control / bidi-override characters and `<` `>`. Free text (notes, address, prior qualification) refuses control characters other than line breaks and tabs. Every rule returns a field-level `FieldViolation`, so callers answer the usual `422 validation-failed` with `validationErrors[]` naming the camelCase field. |
+| VAL-3 / H-2: admissions without a date of birth, any phone format, malformed e-mail | Admission applications need `dateOfBirth` at intake: not in the future, age 3–100 on the institution's business date. `phone` / `guardianPhone` must be an Indian mobile (10 digits starting 6–9; optional `+91` / `91` / `0`; spaces, hyphens, dots and brackets tolerated). E-mail must be `local@domain.tld` (≤ 254 chars). Staff `workEmail` uses the same check. |
+| H-2: name-only enquiries | A new enquiry needs a phone **or** an e-mail (`422`, field `phone`, code `contact-required`). |
+| VAL-4: 0-seat or huge capacities | Offering / section capacity is omitted (unlimited) or 1–10 000 (`MAX_SEATS`). |
+| VAL-2 / H-2: unbounded payment amounts | One payment / receipt / refund is at most ₹1 crore (`MAX_TRANSACTION_AMOUNT`, `422 amount_too_large`); amounts must still be positive. |
+| Student import after the policy | The import path builds rows through the same rules (`a4ccdaaf`). |
+
+### Tests
+
+- Unit tests in `kernel::text`, `academic::offering::support` (capacity, titles), `finance::shared::money`
+  (₹1 crore cap), `institution::domain` (rename refuses markup / NUL / newline).
+- `apps/api/tests/db_a2_input_policy.rs` (db-tests): institution names, admission applications
+  (names, DOB required / future / age range, Indian mobile, e-mail), enquiries (contact required,
+  clean names), offering seats 1–10 000 and clean titles, staff names, payment amounts ≤ ₹1 crore.
+- Existing suites updated to the policy: `db_b3a.rs` bodies carry a DOB; E2E / seeds use DOBs,
+  Indian mobiles and capacities ≥ 1.
+- Vitest: `xss.test.tsx`, `financial-statements.test.ts`.
+
+## A3 — API error surface, scoping and fail-closed start-up
+
+Findings: **H-1**, **D-1**, **D-2**, **D-3**, **M8**, **SEC-6**, **L-1** (error envelope / bodies /
+paging), **SEC-3 / M-1** (workspace catalogue), **SEC-5** (foreign institution ids), **M5**, **M6**,
+**M7** (fail-closed checks).
+
+### What changed
+
+| Finding | Fix |
+|---|---|
+| H-1 / SEC-6 / D-1: framework rejections were `text/plain` and echoed serde messages (field names, enum variants, UUID parse errors) even to callers without the route's permission | `crates/web/src/request_guard.rs::problem_envelope` (outermost layer inside the request id) turns every error answer that is not already `application/problem+json` into an RFC 9457 problem with a generic, schema-free text and the correlation id. Status codes are kept (400 malformed JSON / path / query, 413, 415, 422 wrong shape, 405, 500 for panics). The framework text is logged at debug under the correlation id, never returned. Field-level `validationErrors` remain only for business validation raised after the permission check. |
+| D-2: body-less actions (e.g. `POST /finance/institutions/{id}/receivables`) ignored any body | `reject_unexpected_body`: routes whose OpenAPI operation has no `requestBody` accept only an empty body, `{}` or `null`; anything else is `422 unexpected-request-body`. |
+| D-3 / M8 / L-1: unbounded `limit`, negative offsets, silently ignored `sort` | `page_bounds`: authenticated `GET`s need `limit` in `1..=200` (or the route's own documented ceiling), `offset` ≥ 0, `page` ≥ 1; `sort` / `order` / `orderBy` are refused. `422 invalid-query-parameter`, without echoing the value. |
+| SEC-3 / M-1: `/workspaces` catalogue readable without a session | `GET /workspaces` and `/workspaces/{key}` require a session (`401` otherwise); the OpenAPI marks them `session_cookie`. |
+| SEC-5: foreign or made-up institution ids answered `200 []` on list endpoints | `apps/api/src/institution_guard.rs`: for signed-in `GET`s whose route template has `institutions/{param}`, a successful answer is re-checked against Domain B's `InstitutionDirectory` under the caller's tenant; an unknown (or other-tenant) institution is `404`. It runs after the handler, so permission (`403`) and validation stay first; known ids are cached briefly. |
+| M5: production started even when the RLS role probe errored or timed out | `apps/api/src/startup_checks.rs`: production refuses to start unless the probe positively confirms a role subject to row-level security; other environments keep warning. |
+| M6: unauthenticated `/metrics` listener bound to all interfaces by default | `SUTRA_METRICS_ADDR` now defaults to `127.0.0.1:9464`. |
+| M7: import entitlement check failed open | The data-import entitlement check fails closed (`platform::dataimport`). |
+
+### Tests
+
+- `crates/web/src/request_guard.rs` unit tests (`page_bounds_rules`, envelope / body guard).
+- `apps/api/tests/api.rs`: `malformed_json_is_problem_json_without_field_names`,
+  `bad_path_uuid_and_bad_query_are_problem_json_for_signed_in_callers`,
+  `bodyless_action_rejects_a_body`, `pagination_bounds_are_enforced`, plus workspace 401 and
+  institution 404 cases; `auth_hardening.rs` updated.
+- `institution_guard::finds_the_institution_segment_of_the_template`,
+  `startup_checks::production_refuses_unless_rls_is_confirmed`, config test asserting the metrics
+  default is loopback.
+
+### Environment note
+
+- **`SUTRA_METRICS_ADDR=0.0.0.0:9464`** must be set wherever Prometheus scrapes the API over the
+  network. Already set: Helm (`configmap.yaml` renders `0.0.0.0:<metricsPort>`, behind the metrics
+  NetworkPolicy), `sutraerp-observability.yml`, `sutraerp-part2-monitoring.yml`, and the capacity
+  compose `api` service (published only on host loopback). A single-host install that scrapes
+  `localhost` needs nothing.
+- Clients that sent bodies to body-less actions, `limit` > 200, or `sort` parameters now get `422`;
+  E2E and seed scripts were adjusted accordingly.

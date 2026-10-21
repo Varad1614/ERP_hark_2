@@ -34,7 +34,7 @@
  *   E2E_HEADED=1        show the browser
  * Requires `psql` on PATH to clear the administrator's passkeys / TOTP factor before and after.
  */
-import { clickDevPersona, DEV_PASSWORD } from "./lib/dev-password.mjs";
+import { clickDevPersona } from "./lib/dev-password.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -227,7 +227,8 @@ async function signIn(page) {
 async function signOut(page) {
   await page.goto(`${BASE}/account/security`);
   await page.getByRole("button", { name: "Sign out of this device" }).click();
-  await page.waitForURL(`${BASE}/sign-in`);
+  // A1: signing out lands on /sign-in?returnTo=<page> (the returnTo-safe Sign in page).
+  await page.waitForURL((u) => u.toString().startsWith(`${BASE}/sign-in`));
 }
 
 async function session(page) {

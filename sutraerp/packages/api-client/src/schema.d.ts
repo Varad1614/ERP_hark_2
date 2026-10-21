@@ -23690,7 +23690,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List workspaces (navigation catalog). */
+        /**
+         * List workspaces (navigation catalog). Audit A3 (SEC-3 / M-1): the full feature / workflow
+         *     catalogue is only for signed-in users (the sign-in page needs none of it); `401` otherwise.
+         */
         get: operations["list_workspaces"];
         put?: never;
         post?: never;
@@ -114847,6 +114850,14 @@ export interface operations {
                     "application/json": components["schemas"]["WorkspaceList"];
                 };
             };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     get_workspace: {
@@ -114869,7 +114880,7 @@ export interface operations {
                     "application/json": components["schemas"]["Workspace"];
                 };
             };
-            404: {
+            "4XX": {
                 headers: {
                     [name: string]: unknown;
                 };

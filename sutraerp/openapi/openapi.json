@@ -107569,7 +107569,7 @@
         "tags": [
           "platform"
         ],
-        "summary": "List workspaces (navigation catalog).",
+        "summary": "List workspaces (navigation catalog). Audit A3 (SEC-3 / M-1): the full feature / workflow\ncatalogue is only for signed-in users (the sign-in page needs none of it); `401` otherwise.",
         "operationId": "list_workspaces",
         "parameters": [
           {
@@ -107601,8 +107601,23 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
       }
     },
     "/api/v1/platform/workspaces/{key}": {
@@ -107634,7 +107649,7 @@
               }
             }
           },
-          "404": {
+          "4XX": {
             "description": "",
             "content": {
               "application/problem+json": {
@@ -107644,7 +107659,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "session_cookie": []
+          }
+        ]
       }
     },
     "/api/v1/profile": {
