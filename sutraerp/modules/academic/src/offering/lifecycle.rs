@@ -60,7 +60,7 @@ pub fn etag(status: StatusCode, o: &Offering) -> Response {
 // ================================================================== requests
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateOffering {
     pub academic_term_id: Uuid,
     pub curriculum_version_id: Uuid,
@@ -84,7 +84,7 @@ pub struct CreateOffering {
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateOffering {
     pub offering_code: Option<String>,
     pub title: Option<String>,

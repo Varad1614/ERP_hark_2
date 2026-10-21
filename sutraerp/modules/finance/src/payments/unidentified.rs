@@ -94,7 +94,7 @@ pub struct UnidentifiedListQuery {
 
 /// Money received without a known payer.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RecordUnidentifiedRequest {
     /// `cash | cheque | bank_transfer | demand_draft | sponsor`.
     pub channel: PaymentChannel,
@@ -108,7 +108,7 @@ pub struct RecordUnidentifiedRequest {
 
 /// The party the money belongs to.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct IdentifyRequest {
     pub student_account_id: Uuid,
 }

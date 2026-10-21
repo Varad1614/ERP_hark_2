@@ -151980,7 +151980,8 @@
               "$ref": "#/components/schemas/AllocationInput"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AllocationInput": {
         "type": "object",
@@ -151998,7 +151999,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "AllocationRun": {
         "type": "object",
@@ -159985,7 +159987,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CollectionItemView": {
         "type": "object",
@@ -162292,7 +162295,8 @@
             ],
             "format": "date"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateCreditTransfer": {
         "type": "object",
@@ -162679,7 +162683,8 @@
             ],
             "description": "Defaults to the curriculum component title."
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreatePolicy": {
         "type": "object",
@@ -180704,7 +180709,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "IdentityChanges": {
         "type": "object",
@@ -182068,7 +182074,8 @@
             "format": "uuid",
             "description": "Which of the caller's accounts (defaults to the only / first one)."
           }
-        }
+        },
+        "additionalProperties": false
       },
       "InstalmentInput": {
         "type": "object",
@@ -194818,7 +194825,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OfferingCapacityHistory": {
         "type": "object",
@@ -196001,7 +196009,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OfferingWaitlistPromote": {
         "type": "object",
@@ -196022,7 +196031,8 @@
             "format": "int32",
             "description": "Days the seat offer stays open (1..=14, default 2)."
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OfferingWindowCommand": {
         "type": "object",
@@ -203306,7 +203316,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RecalculationChange": {
         "type": "object",
@@ -204610,7 +204621,8 @@
             "format": "date",
             "description": "Value date (institution business date; defaults to today, never in the future)."
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RecordSeverity": {
         "type": "string",
@@ -204674,7 +204686,8 @@
             ],
             "format": "date"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "RecoverRequest": {
         "type": "object",
@@ -204693,7 +204706,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Reevaluation": {
         "type": "object",
@@ -212378,7 +212392,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SectionEnrolment": {
         "type": "object",
@@ -212534,7 +212549,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SectionStatus": {
         "type": "string",
@@ -212557,7 +212573,8 @@
             "type": "string",
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SelfFlexibleRequest": {
         "type": "object",
@@ -212588,7 +212605,8 @@
             ],
             "format": "uuid"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "SeparationClearanceItem": {
         "type": "object",
@@ -223527,7 +223545,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateOfferingSection": {
         "type": "object",
@@ -223545,7 +223564,8 @@
               "null"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateProfile": {
         "type": "object",

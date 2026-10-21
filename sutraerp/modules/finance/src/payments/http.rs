@@ -58,7 +58,7 @@ pub struct PaymentListQuery {
 
 /// Counter / bank / sponsor payment recorded by the finance office (L3-F-007/008).
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RecordPaymentRequest {
     /// `cash | cheque | bank_transfer | demand_draft | sponsor` (gateway payments start at `/me/payments`).
     pub channel: PaymentChannel,
@@ -78,21 +78,21 @@ pub struct RecordPaymentRequest {
 
 /// Allocation of a payment's unapplied amount (omit `allocations` for oldest-due-first).
 #[derive(Debug, Clone, Default, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AllocateRequest {
     pub allocations: Option<Vec<AllocationInput>>,
 }
 
 /// `{ "reason": "…" }` of a state command.
 #[derive(Debug, Clone, Default, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ReasonRequest {
     pub reason: Option<String>,
 }
 
 /// Recovery of a pending / timed-out payment (L3-F-010).
 #[derive(Debug, Clone, Default, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RecoverRequest {
     /// When the gateway still reports no outcome, expire the payment instead of leaving it pending.
     pub expire: Option<bool>,
@@ -101,7 +101,7 @@ pub struct RecoverRequest {
 
 /// A student starts an online payment with the (mock) gateway.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InitiatePaymentRequest {
     #[schema(value_type = String, example = "25000.00")]
     pub amount: String,

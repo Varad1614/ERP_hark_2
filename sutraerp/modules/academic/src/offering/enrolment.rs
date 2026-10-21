@@ -108,7 +108,7 @@ fn enrolment_etag(status: StatusCode, e: &SectionEnrolment) -> Response {
 
 /// Seat a student (administrator).
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SectionSeatRequest {
     pub student_id: Uuid,
     /// Seat without a covering registration / past a restriction or closed window (reason required).
@@ -120,7 +120,7 @@ pub struct SectionSeatRequest {
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SeatTransferRequest {
     pub to_section_id: Uuid,
     pub reason: Option<String>,
@@ -165,14 +165,14 @@ pub struct OfferingWaitlist {
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OfferingWaitlistJoin {
     pub student_id: Uuid,
     pub section_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OfferingWaitlistPromote {
     /// Manual promotion: must be the entry the FIFO policy selects (409 otherwise).
     pub entry_id: Option<Uuid>,
@@ -1813,13 +1813,13 @@ pub struct MyEnrolments {
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SelfEnrol {
     pub section_id: Uuid,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SelfWaitlist {
     pub offering_id: Uuid,
     pub section_id: Option<Uuid>,

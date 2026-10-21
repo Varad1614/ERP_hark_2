@@ -122,7 +122,7 @@ pub struct ReceiptList {
 
 /// One requested allocation line (`chargeId` + decimal string amount).
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AllocationInput {
     pub charge_id: Uuid,
     #[schema(value_type = String, example = "1000.00")]

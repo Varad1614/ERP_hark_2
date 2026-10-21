@@ -45,7 +45,7 @@ pub struct NewOfferingSection {
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateOfferingSection {
     pub section_code: Option<String>,
     pub campus_id: Option<Uuid>,
@@ -58,7 +58,7 @@ pub struct OfferingSectionList {
 
 /// Capacity change of the offering (no `sectionId`) or one section (L3-D-005).
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OfferingCapacityChange {
     pub section_id: Option<Uuid>,
     /// New seat cap; `null` = unlimited.

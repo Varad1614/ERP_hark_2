@@ -85,7 +85,7 @@ pub struct CollectionList {
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CollectionItemInput {
     pub student_account_id: Uuid,
     #[schema(value_type = String, example = "5000.00")]
@@ -95,7 +95,7 @@ pub struct CollectionItemInput {
 
 /// A new bulk collection (draft).
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateCollectionRequest {
     pub name: String,
     /// `cash | cheque | bank_transfer | demand_draft | sponsor`.
