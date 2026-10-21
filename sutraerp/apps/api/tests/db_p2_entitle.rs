@@ -156,9 +156,13 @@ async fn module_gate_is_server_side_whatever_the_role() {
     let (s, _, e) = call(&app, &student, "GET", ENT, Value::Null).await;
     assert_eq!(s, StatusCode::OK, "{e}");
     assert_eq!(e["origin"], "default");
-    assert_eq!(e["package"], "complete_erp");
+    // Audit C3: a student reads modules + status only; the commercial terms are blanked.
+    assert_eq!(e["package"], Value::Null, "{e}");
+    assert_eq!(e["validUntil"], Value::Null);
     assert_eq!(e["status"], "active");
     assert_eq!(modules(&e).len(), 15);
+    let (_, _, full) = call(&app, &admin, "GET", ENT, Value::Null).await;
+    assert_eq!(full["package"], "complete_erp", "{full}");
     let periods = format!("/api/v1/people/institutions/{inst}/payroll-periods");
     not_gated(
         "payroll before",
@@ -459,8 +463,17 @@ async fn expired_licence_is_read_only_but_exportable_and_renewal_restores() {
     let (_, h, e) = call(&app, &faculty, "GET", ENT, Value::Null).await;
     assert_eq!(e["status"], "active", "{e}");
     assert_eq!(e["readOnly"], false);
-    assert_eq!(e["daysRemaining"], 5, "{e}");
+    // Audit C3: dates / package only for entitlement managers and approvers.
+    assert_eq!(e["daysRemaining"], Value::Null, "{e}");
+    assert_eq!(e["package"], Value::Null, "{e}");
     assert!(h.get("sutra-licence-status").is_none());
+    let (_, _, e) = call(&app, &admin, "GET", ENT, Value::Null).await;
+    assert_eq!(e["daysRemaining"], 5, "{e}");
+    let (_, _, e) = call(&app, &dean, "GET", ENT, Value::Null).await;
+    assert_eq!(
+        e["package"], "complete_erp",
+        "a second administrator reads the full record: {e}"
+    );
 
     // Grace: past validUntil, inside the 10 grace days — full access plus the banner header.
     clock.advance(Duration::days(8));

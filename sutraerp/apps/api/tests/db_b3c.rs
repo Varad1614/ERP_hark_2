@@ -2275,7 +2275,8 @@ async fn alumni_transition_correction_and_archival() {
     assert_eq!(a["eligibilityResult"]["eligible"], false);
 }
 
-/// Faculty read only; students hold no 3C permission; another tenant sees nothing.
+/// Faculty hold no 3C permission (Audit C3: completion is `student.read`, faculty only
+/// `student.read.assigned`); students neither; another tenant sees nothing.
 #[tokio::test]
 async fn permissions_and_tenant_isolation() {
     let t = env("Isolation College").await;
@@ -2290,7 +2291,7 @@ async fn permissions_and_tenant_isolation() {
         .await;
     let faculty = login(&t.app, "meera.shah@sutra.dev").await;
     let (st, _, _) = send(&t.app, get(&faculty, &format!("{S}/exits/{}", id(&e)))).await;
-    assert_eq!(st, StatusCode::OK);
+    assert_eq!(st, StatusCode::FORBIDDEN);
     let (st, _, _) = send(
         &t.app,
         write(

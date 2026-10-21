@@ -527,9 +527,11 @@ async fn registration_window_opening_and_closure() {
         StatusCode::NOT_FOUND,
     )
     .await;
+    // Audit C3: registration windows are institution administration — faculty 403.
+    read(&app, &faculty, &base, StatusCode::FORBIDDEN).await;
     let list = read(
         &app,
-        &faculty,
+        &admin,
         &format!("{base}?status=scheduled"),
         StatusCode::OK,
     )
@@ -548,7 +550,7 @@ async fn registration_window_opening_and_closure() {
     .await;
     assert_eq!(c["status"], "cancelled");
     assert_eq!(
-        read(&app, &faculty, &base, StatusCode::OK).await["items"]
+        read(&app, &admin, &base, StatusCode::OK).await["items"]
             .as_array()
             .unwrap()
             .len(),
@@ -1364,9 +1366,17 @@ async fn progression_policy_lifecycle() {
     assert_eq!(old["status"], "superseded");
     // The effective version governs evaluations (summary) …
     let st = b3::seed_student(&pool, &s, "Gita", None).await;
-    let sum = read(
+    // Audit C3: the progression summary stays on `student.read` (faculty 403).
+    read(
         &app,
         &faculty,
+        &format!("{API}/students/{}/progression", st.student_id),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    let sum = read(
+        &app,
+        &admin,
         &format!("{API}/students/{}/progression", st.student_id),
         StatusCode::OK,
     )
@@ -2967,20 +2977,22 @@ async fn tenant_isolation_permissions_and_terminal_contexts() {
     )
     .await;
 
-    // Faculty reads, never writes; students hold no staff permission; admins no self-service.
+    // Faculty never write; they read only the students they teach (Audit C3: this student sits
+    // in none of their sections → 404; the credit ledger is `student.read` → 403); students
+    // hold no staff permission; admins no self-service.
     let faculty = login(&app, "meera.shah@sutra.dev").await;
     read(
         &app,
         &faculty,
         &format!("{API}/students/{}/registrations", st.student_id),
-        StatusCode::OK,
+        StatusCode::NOT_FOUND,
     )
     .await;
     read(
         &app,
         &faculty,
         &format!("{API}/students/{}/credit-ledger", st.student_id),
-        StatusCode::OK,
+        StatusCode::FORBIDDEN,
     )
     .await;
     ok(

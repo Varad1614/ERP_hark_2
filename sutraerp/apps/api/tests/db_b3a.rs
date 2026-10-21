@@ -493,7 +493,12 @@ async fn admission_to_active_student() {
     .await;
     assert_eq!(s, StatusCode::FORBIDDEN);
     let (s, _) = call(&app, &faculty, "GET", &path, json!(null), None).await;
-    assert_eq!(s, StatusCode::OK, "faculty read the admissions list");
+    // Audit C3: admissions are not a teacher's business (faculty hold `student.read.assigned`).
+    assert_eq!(
+        s,
+        StatusCode::FORBIDDEN,
+        "faculty may not read the admissions list"
+    );
 
     // Offer → admission initiated; the offer cannot expire in the past.
     let adm = offered(
@@ -900,10 +905,26 @@ async fn admission_to_active_student() {
     .await;
     assert_eq!(sdocs["items"].as_array().unwrap().len(), 2);
 
-    // Directory search + programme filter; faculty can read; students cannot.
+    // Directory search + programme filter; staff read; faculty see only the students they teach
+    // (Audit C3: none here — no section seat); students cannot.
     let dir = ok(
         &app,
         &faculty,
+        "GET",
+        &format!("{API}/institutions/{inst}/students?q=aar"),
+        json!(null),
+        None,
+        StatusCode::OK,
+    )
+    .await;
+    assert_eq!(
+        dir["items"].as_array().unwrap().len(),
+        0,
+        "faculty teach nobody here"
+    );
+    let dir = ok(
+        &app,
+        &admin,
         "GET",
         &format!("{API}/institutions/{inst}/students?q=aar"),
         json!(null),
