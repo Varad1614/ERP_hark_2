@@ -140,6 +140,9 @@ pub fn router_with_state(st: FinanceState) -> OpenApiRouter {
         .merge(periods::router(st.clone())) // 5C
         .merge(treasury::router(st.clone())) // 5C
         .merge(gst::router(st)) // ERP_EXTENSIONS 5D
+        // C1/C2 CI follow-up: the maker of every governed request is recorded even when this
+        // router is mounted without the session middleware (see `sutra_web::auth::approval_scope`).
+        .layer(axum::middleware::from_fn(sutra_web::auth::approval_scope))
 }
 
 #[cfg(test)]

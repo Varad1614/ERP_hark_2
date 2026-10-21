@@ -293,7 +293,10 @@ mod tests {
         assert!(super::decimal_from_f64(f64::INFINITY, "rate").is_err());
         assert!(super::decimal_from_opt_f64(Some(f64::NEG_INFINITY), "rate").is_err());
         assert_eq!(super::decimal_from_opt_f64(None, "rate").unwrap(), None);
-        assert_eq!(super::decimal_from_f64(7.5, "h").unwrap(), Decimal::new(75, 1));
+        assert_eq!(
+            super::decimal_from_f64(7.5, "h").unwrap(),
+            Decimal::new(75, 1)
+        );
     }
 
     use super::*;

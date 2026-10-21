@@ -646,12 +646,16 @@ pub async fn job_decision(
 ) -> ApiResult<Json<ImportJob>> {
     let ctx = auth.require(Permission::DataImportApprove)?;
     let tenant = ctx.scope.tenant_id;
-    // Separation of duties (DEF-X-002): never the job's maker; checked again by `engine::decide`
-    // with the job's own maker columns.
-    sutra_persistence::approval::guard_decision(&st.pool, ctx, id, "data import").await?;
-    // Part 2 · S7-entitle: approving runs the commit, so the entity's module must be active.
+    // The job must be visible to this tenant (`404` otherwise) before anything else is said
+    // about it. Part 2 · S7-entitle: approving runs the commit, so the entity's module must be
+    // active (`403 entitlement.*`).
     let job = engine::load_job(&st, tenant, id).await?;
     require_entitled(&st, ctx, &job.entity).await?;
+    // Separation of duties (DEF-X-002): never the job's maker; checked again by `engine::decide`
+    // with the job's own maker columns. C1/C2 CI follow-up: after the visibility and entitlement
+    // checks, so an unknown / foreign job answers `404` and a deactivated module `403` instead of
+    // the fail-closed `409` for "no recorded maker".
+    sutra_persistence::approval::guard_decision(&st.pool, ctx, id, "data import").await?;
     Ok(Json(
         engine::decide(
             &st,

@@ -310,6 +310,15 @@ fn user() -> Actor {
     }
 }
 
+/// C1/C2 CI follow-up: the clerk who submits a registration directly; the administrator decides
+/// it over HTTP, and separation of duties forbids deciding one's own submission.
+fn clerk() -> Actor {
+    Actor {
+        id: Some("dev|clerk@sutra.dev".into()),
+        correlation_id: None,
+    }
+}
+
 // ------------------------------------------------------------------ L3-C-020
 
 #[tokio::test]
@@ -2745,7 +2754,7 @@ async fn approvals_await_a_decision() {
     let r = reg::create_registration(&st, tenant, StudentId(a.student_id), cmd, "staff", &user())
         .await
         .unwrap();
-    let r = reg::submit(&st, tenant, r.id, Version(r.version), &user())
+    let r = reg::submit(&st, tenant, r.id, Version(r.version), &clerk())
         .await
         .unwrap();
     assert_eq!(r.status, RegistrationStatus::Submitted);
@@ -2772,7 +2781,7 @@ async fn approvals_await_a_decision() {
     .await
     .unwrap();
     assert_eq!(r.status, RegistrationStatus::Returned);
-    let r = reg::submit(&st, tenant, r.id, Version(r.version), &user())
+    let r = reg::submit(&st, tenant, r.id, Version(r.version), &clerk())
         .await
         .unwrap();
     // The explicit decision endpoint (HTTP) completes it.

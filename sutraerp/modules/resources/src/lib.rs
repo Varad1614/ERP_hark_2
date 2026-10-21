@@ -109,6 +109,9 @@ pub fn router_with_state(st: ResourcesState) -> OpenApiRouter {
         .merge(contracts::router(st.clone())) // ERP_EXTENSIONS 3C
         .merge(expenses::router(st.clone())) // ERP_EXTENSIONS 3D
         .merge(payables::router(st)) // 8D
+        // C1/C2 CI follow-up: the maker of every governed request is recorded even when this
+        // router is mounted without the session middleware (see `sutra_web::auth::approval_scope`).
+        .layer(axum::middleware::from_fn(sutra_web::auth::approval_scope))
 }
 
 #[cfg(test)]

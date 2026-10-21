@@ -2189,6 +2189,14 @@ async fn intra_and_inter_institute_transfers() {
         "programme must belong to the destination"
     );
     let waiting = custom_app(state(&pool, ApprovalMode::AwaitDecision), t);
+    // C1/C2 CI follow-up: the submission is recorded as the injected administrator's, so an
+    // independent registrar decides it (separation of duties forbids self-decision).
+    let checker = custom_app_as(
+        state(&pool, ApprovalMode::AwaitDecision),
+        t,
+        "registrar@sutra.dev",
+        Role::Administrator,
+    );
     let inj = injected();
     let t1 = ok(
         &app,
@@ -2212,7 +2220,7 @@ async fn intra_and_inter_institute_transfers() {
     .await;
     assert_eq!(t1["status"], "under_review");
     let t1 = ok(
-        &waiting,
+        &checker,
         &inj,
         "POST",
         &format!("{API}/transfers/{}/decision", id(&t1)),
@@ -2234,7 +2242,7 @@ async fn intra_and_inter_institute_transfers() {
     )
     .await;
     let t2 = ok(
-        &waiting,
+        &checker,
         &inj,
         "POST",
         &format!("{API}/transfers/{}/decision", id(&t2)),
@@ -2360,6 +2368,14 @@ async fn identity_correction_and_duplicate_resolution() {
         .contains(&ev("student.identity_corrected")));
     // AwaitDecision: under review, then rejected → persona untouched.
     let waiting = custom_app(state(&pool, ApprovalMode::AwaitDecision), t);
+    // C1/C2 CI follow-up: the submission is recorded as the injected administrator's, so an
+    // independent registrar decides it (separation of duties forbids self-decision).
+    let checker = custom_app_as(
+        state(&pool, ApprovalMode::AwaitDecision),
+        t,
+        "registrar@sutra.dev",
+        Role::Administrator,
+    );
     let inj = injected();
     let ic2 = ok(
         &app,
@@ -2383,7 +2399,7 @@ async fn identity_correction_and_duplicate_resolution() {
     .await;
     assert_eq!(ic2["status"], "under_review");
     let ic2 = ok(
-        &waiting,
+        &checker,
         &inj,
         "POST",
         &format!("{API}/identity-corrections/{}/decision", id(&ic2)),

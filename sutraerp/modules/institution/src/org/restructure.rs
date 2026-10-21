@@ -481,15 +481,18 @@ pub async fn request(
     };
     let id = OrgRestructureId::new();
     let es = inst_scope(scope, institution_id);
-    let outcome = approval::request_approval(
-        state,
-        &es,
-        process::ORG_RESTRUCTURE,
-        approval::business_key("org_restructure", id, 1),
-        BTreeMap::from([
-            ("kind".to_owned(), serde_json::json!(cmd.kind)),
-            ("moves".to_owned(), serde_json::json!(plan_now.moves.len())),
-        ]),
+    let outcome = sutra_kernel::approval::with_maker(
+        actor.id.as_deref(),
+        approval::request_approval(
+            state,
+            &es,
+            process::ORG_RESTRUCTURE,
+            approval::business_key("org_restructure", id, 1),
+            BTreeMap::from([
+                ("kind".to_owned(), serde_json::json!(cmd.kind)),
+                ("moves".to_owned(), serde_json::json!(plan_now.moves.len())),
+            ]),
+        ),
     )
     .await?;
     let mut tx = state.pool.begin().await.map_err(map_db_error)?;

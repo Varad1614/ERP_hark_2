@@ -2080,6 +2080,9 @@ async fn governed_decisions_await_a_decision() {
     )
     .into_state();
     st.approvals = ApprovalMode::AwaitDecision;
+    // C1/C2 CI follow-up: what `hq` submits is recorded as its maker, so an independent
+    // administrator decides it (separation of duties forbids self-decision).
+    let checker = custom_app(st.clone(), TENANT_A, "dev|checker@sutra.dev");
     let hq = custom_app(st, TENANT_A, "dev|admin@sutra.dev");
     let me = Login {
         cookie: "x=y".into(),
@@ -2120,7 +2123,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "already submitted");
     let (s, _) = call(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/hostel-policies/{}/decision", id(&p)),
@@ -2134,7 +2137,7 @@ async fn governed_decisions_await_a_decision() {
         "a rejection needs a reason"
     );
     let p = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/hostel-policies/{}/decision", id(&p)),
@@ -2159,7 +2162,7 @@ async fn governed_decisions_await_a_decision() {
     )
     .await;
     let p = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/hostel-policies/{}/decision", id(&p)),
@@ -2230,7 +2233,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "not decided yet");
     let a = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/hostel-applications/{}/decision", id(&a)),
@@ -2255,7 +2258,7 @@ async fn governed_decisions_await_a_decision() {
     )
     .await;
     let a = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/hostel-applications/{}/decision", id(&a)),
@@ -2313,7 +2316,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT);
     let lv = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/resident-leaves/{}/decision", id(&lv)),
@@ -2348,7 +2351,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(res["status"], "transfer_pending");
     let tr = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/room-transfers/{}/decision", id(&tr)),
@@ -2380,7 +2383,7 @@ async fn governed_decisions_await_a_decision() {
     )
     .await;
     let tr = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/room-transfers/{}/decision", id(&tr)),
@@ -2443,7 +2446,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "already awaiting a decision");
     let r = ok(
-        &hq,
+        &checker,
         &me,
         "POST",
         &format!("{C}/transport-routes/{}/decision", id(&r)),

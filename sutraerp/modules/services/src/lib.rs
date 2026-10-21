@@ -84,6 +84,9 @@ pub fn router_with_state(st: ServicesState) -> OpenApiRouter {
         .merge(dashboards::router(st.clone())) // 8C
         .merge(accreditation::router(st.clone())) // 9E
         .merge(regulatory::router(st)) // 8C
+        // C1/C2 CI follow-up: the maker of every governed request is recorded even when this
+        // router is mounted without the session middleware (see `sutra_web::auth::approval_scope`).
+        .layer(axum::middleware::from_fn(sutra_web::auth::approval_scope))
 }
 
 #[cfg(test)]

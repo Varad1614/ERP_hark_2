@@ -1802,6 +1802,12 @@ fn admin_ctx() -> AuthContext {
 }
 
 fn awaiting_app(pool: &sqlx::PgPool) -> Router {
+    awaiting_app_as(pool, admin_ctx())
+}
+
+/// [`awaiting_app`] as `ctx` (C1/C2 CI follow-up: an independent checker decides what the
+/// injected administrator submitted — separation of duties forbids self-decision).
+fn awaiting_app_as(pool: &sqlx::PgPool, ctx: AuthContext) -> Router {
     let mut st = sutra_api::app::exams_deps(
         pool.clone(),
         Arc::new(sutra_platform::workflow::NoopWorkflowAdapter),
@@ -1809,7 +1815,6 @@ fn awaiting_app(pool: &sqlx::PgPool) -> Router {
     .into_state();
     st.approvals = ApprovalMode::AwaitDecision;
     let (router, _) = sutra_exams::router_with_state(st).split_for_parts();
-    let ctx = admin_ctx();
     router.layer(axum::middleware::from_fn(
         move |mut req: Request<Body>, next: axum::middleware::Next| {
             let ctx = ctx.clone();
@@ -1841,6 +1846,14 @@ async fn session_approval_awaits_a_decision() {
     .await;
     let inst = setup.institution().as_uuid();
     let custom = awaiting_app(&pool);
+    let checker = awaiting_app_as(
+        &pool,
+        AuthContext {
+            subject: "dev|checker@sutra.dev".into(),
+            login_id: "checker@sutra.dev".into(),
+            ..admin_ctx()
+        },
+    );
     let injected = Login {
         cookie: "x=y".into(),
         csrf: "x".into(),
@@ -1876,7 +1889,7 @@ async fn session_approval_awaits_a_decision() {
     let actions = sutra_platform::inbox::rules::plan(&env).unwrap().unwrap();
     assert_eq!(actions.len(), 2, "admin notification + submitter to-do");
     let (s, _) = call(
-        &custom,
+        &checker,
         &injected,
         "POST",
         &format!("{X}/exam-sessions/{sid}/decision"),
@@ -1890,7 +1903,7 @@ async fn session_approval_awaits_a_decision() {
         "a return needs a reason"
     );
     let (s, sess) = call(
-        &custom,
+        &checker,
         &injected,
         "POST",
         &format!("{X}/exam-sessions/{sid}/decision"),
@@ -1905,7 +1918,7 @@ async fn session_approval_awaits_a_decision() {
     );
     assert_eq!(outbox_count(&pool, &sid, "exam_session.approved").await, 1);
     let (s, _) = call(
-        &custom,
+        &checker,
         &injected,
         "POST",
         &format!("{X}/exam-sessions/{sid}/decision"),

@@ -48,6 +48,8 @@ const C: &str = "/api/v1/campus";
 const S: &str = "/api/v1/services";
 const R: &str = "/api/v1/resources";
 const ADMIN: &str = "dev|admin@sutra.dev";
+/// An independent administrator (C1/C2 CI follow-up: separation of duties — never the maker).
+const CHECKER: &str = "dev|checker@sutra.dev";
 
 async fn call(
     app: &axum::Router,
@@ -1111,6 +1113,9 @@ async fn governance_await_decision() {
         router.layer(axum::Extension(who))
     };
     let admin = as_user(auth(ADMIN, Role::Administrator, t));
+    // C1/C2 CI follow-up: what `admin` submits is recorded as its own, so an independent
+    // administrator decides it (separation of duties forbids self-decision).
+    let checker = as_user(auth(CHECKER, Role::Administrator, t));
     let meera = as_user(auth(b4::MEERA, Role::Faculty, t));
 
     let (s, c) = hit(
@@ -1157,14 +1162,20 @@ async fn governance_await_decision() {
     let path = format!("{C}/governance-cases/{}/decision", sid(&c));
     let (s, _) = hit(&meera, &path, json!({"decision": "approve"}), Some(ver(&c))).await;
     assert_eq!(s, StatusCode::FORBIDDEN, "faculty do not decide");
-    let (s, _) = hit(&admin, &path, json!({"decision": "reject"}), Some(ver(&c))).await;
+    let (s, _) = hit(
+        &checker,
+        &path,
+        json!({"decision": "reject"}),
+        Some(ver(&c)),
+    )
+    .await;
     assert_eq!(
         s,
         StatusCode::UNPROCESSABLE_ENTITY,
         "a rejection needs a reason"
     );
     let (s, c) = hit(
-        &admin,
+        &checker,
         &path,
         json!({"decision": "reject", "reason": "Rate the mess too"}),
         Some(ver(&c)),
@@ -1176,7 +1187,13 @@ async fn governance_await_decision() {
         (Some("open"), Some("rejected"))
     );
     assert!(c["outcome"].is_null());
-    let (s, _) = hit(&admin, &path, json!({"decision": "approve"}), Some(ver(&c))).await;
+    let (s, _) = hit(
+        &checker,
+        &path,
+        json!({"decision": "approve"}),
+        Some(ver(&c)),
+    )
+    .await;
     assert_eq!(s, StatusCode::CONFLICT, "not pending any more");
     let (_, c) = hit(
         &admin,
@@ -1194,7 +1211,7 @@ async fn governance_await_decision() {
     .await;
     assert_eq!(s, StatusCode::OK, "{c}");
     let (s, _) = hit(
-        &admin,
+        &checker,
         &path,
         json!({"decision": "approve"}),
         Some(ver(&c) - 1),
@@ -1202,7 +1219,7 @@ async fn governance_await_decision() {
     .await;
     assert_eq!(s, StatusCode::PRECONDITION_FAILED, "stale ETag");
     let (s, c) = hit(
-        &admin,
+        &checker,
         &path,
         json!({"decision": "approve", "reason": "ok"}),
         Some(ver(&c)),
@@ -1215,7 +1232,7 @@ async fn governance_await_decision() {
             c["approvalState"].as_str(),
             c["decidedBy"].as_str()
         ),
-        (Some("closed"), Some("approved"), Some(ADMIN))
+        (Some("closed"), Some("approved"), Some(CHECKER))
     );
     assert_eq!(
         outbox(&pool, "sutraerp.campus.governance_case.decided", &sid(&c)).await,
@@ -1244,7 +1261,7 @@ async fn governance_await_decision() {
         (Some("draft"), Some("pending"))
     );
     let (s, cfg) = hit(
-        &admin,
+        &checker,
         &format!("{C}/governance-configs/{}/decision", sid(&cfg)),
         json!({"decision": "approve"}),
         Some(ver(&cfg)),
@@ -1976,6 +1993,9 @@ async fn accreditation_await_decision() {
         router.layer(axum::Extension(who))
     };
     let admin = as_user(auth(ADMIN, Role::Administrator, t));
+    // C1/C2 CI follow-up: what `admin` submits is recorded as its own, so an independent
+    // administrator decides it (separation of duties forbids self-decision).
+    let checker = as_user(auth(CHECKER, Role::Administrator, t));
     let meera = as_user(auth(b4::MEERA, Role::Faculty, t));
 
     let (s, f) = hit(
@@ -2002,14 +2022,20 @@ async fn accreditation_await_decision() {
     let path = format!("{S}/accreditation-frameworks/{}/decision", sid(&f));
     let (s, _) = hit(&meera, &path, json!({"decision": "approve"}), Some(ver(&f))).await;
     assert_eq!(s, StatusCode::FORBIDDEN);
-    let (s, _) = hit(&admin, &path, json!({"decision": "reject"}), Some(ver(&f))).await;
+    let (s, _) = hit(
+        &checker,
+        &path,
+        json!({"decision": "reject"}),
+        Some(ver(&f)),
+    )
+    .await;
     assert_eq!(
         s,
         StatusCode::UNPROCESSABLE_ENTITY,
         "a rejection needs a reason"
     );
     let (s, f) = hit(
-        &admin,
+        &checker,
         &path,
         json!({"decision": "reject", "reason": "Add PO mapping"}),
         Some(ver(&f)),
@@ -2025,7 +2051,13 @@ async fn accreditation_await_decision() {
     )
     .await;
     assert_eq!(s, StatusCode::OK, "{f}");
-    let (s, f) = hit(&admin, &path, json!({"decision": "approve"}), Some(ver(&f))).await;
+    let (s, f) = hit(
+        &checker,
+        &path,
+        json!({"decision": "approve"}),
+        Some(ver(&f)),
+    )
+    .await;
     assert_eq!(s, StatusCode::OK, "{f}");
     assert_eq!(
         (f["status"].as_str(), f["approvalState"].as_str()),
@@ -2062,7 +2094,7 @@ async fn accreditation_await_decision() {
     );
     let rpath = format!("{S}/accreditation-records/{}/decision", sid(&r));
     let (s, _) = hit(
-        &admin,
+        &checker,
         &rpath,
         json!({"decision": "approve"}),
         Some(ver(&r) + 3),
@@ -2070,7 +2102,7 @@ async fn accreditation_await_decision() {
     .await;
     assert_eq!(s, StatusCode::PRECONDITION_FAILED);
     let (s, r) = hit(
-        &admin,
+        &checker,
         &rpath,
         json!({"decision": "approve"}),
         Some(ver(&r)),
@@ -2079,6 +2111,6 @@ async fn accreditation_await_decision() {
     assert_eq!(s, StatusCode::OK, "{r}");
     assert_eq!(
         (r["status"].as_str(), r["decidedBy"].as_str()),
-        (Some("closed"), Some(ADMIN))
+        (Some("closed"), Some(CHECKER))
     );
 }

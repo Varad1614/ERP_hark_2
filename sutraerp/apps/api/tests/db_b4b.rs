@@ -32,6 +32,8 @@ const T_AWAIT: &str = "0192f5a0-7c3e-7000-8000-0000000b4b05";
 
 const A: &str = "/api/v1/academic";
 const ADMIN: &str = "dev|admin@sutra.dev";
+/// An independent administrator (separation of duties: never the maker).
+const CHECKER: &str = "dev|checker@sutra.dev";
 
 async fn expect(app: &Router, req: Request<Body>, status: StatusCode) -> Value {
     let (s, _, body) = send(app, req).await;
@@ -2443,13 +2445,16 @@ async fn approval_steps_await_a_decision() {
         events(&f.pool, inst, "internal_assessment.finalized").await,
         0
     );
+    // C1/C2 CI follow-up: the finalisation above records the administrator as its maker, so an
+    // independent administrator decides it (separation of duties forbids self-decision).
+    let checker = auth(CHECKER, Role::Administrator, tenant);
     let rows = assessment::repo::decide_finalization(
         &st,
-        &admin,
+        &checker,
         f.cs.section_id,
         true,
         None,
-        &actor(ADMIN),
+        &actor(CHECKER),
     )
     .await
     .unwrap();

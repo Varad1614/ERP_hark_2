@@ -1945,6 +1945,9 @@ async fn governed_decisions_await_a_decision() {
     )
     .into_state();
     st.approvals = ApprovalMode::AwaitDecision;
+    // C1/C2 CI follow-up: what `hr` submits is recorded as its maker, so an independent
+    // administrator decides it (separation of duties forbids self-decision).
+    let checker = custom_app(st.clone(), TENANT_C, "dev|checker@sutra.dev");
     let hr = custom_app(st, TENANT_C, "dev|admin@sutra.dev");
     let me = Login {
         cookie: "x=y".into(),
@@ -1982,7 +1985,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "already submitted");
     let (s, _) = call(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/engagements/{eid}/decision"),
@@ -1992,7 +1995,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "rejection reason");
     let e = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/engagements/{eid}/decision"),
@@ -2004,7 +2007,7 @@ async fn governed_decisions_await_a_decision() {
     assert_eq!(e["status"], "pending");
     assert!(e["pendingChange"].is_null());
     let (s, _) = call(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/engagements/{eid}/decision"),
@@ -2024,7 +2027,7 @@ async fn governed_decisions_await_a_decision() {
     )
     .await;
     let e = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/engagements/{eid}/decision"),
@@ -2058,7 +2061,7 @@ async fn governed_decisions_await_a_decision() {
     )
     .await;
     let fe = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/engagements/{}/decision", id(&fe)),
@@ -2098,7 +2101,7 @@ async fn governed_decisions_await_a_decision() {
         "Senior Lecturer"
     );
     let e = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/engagements/{eid}/decision"),
@@ -2143,7 +2146,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(a["status"], "pending_approval");
     let a = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/position-assignments/{}/decision", id(&a)),
@@ -2169,7 +2172,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(r["status"], "pending_approval");
     let r = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/requisitions/{}/decision", id(&r)),
@@ -2190,7 +2193,7 @@ async fn governed_decisions_await_a_decision() {
     )
     .await;
     let r = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/requisitions/{}/decision", id(&r)),
@@ -2216,7 +2219,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "not approved yet");
     let sep = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/separation-cases/{}/decision", id(&sep)),
@@ -2248,7 +2251,7 @@ async fn governed_decisions_await_a_decision() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "not approved");
     let c = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{P}/certificate-requests/{}/decision", id(&c)),

@@ -121,6 +121,9 @@ pub fn router_with_state(st: AcademicState) -> OpenApiRouter {
         .merge(flexible::router(st.clone())) // 4C
         .merge(recognition::router(st.clone())) // 4C
         .merge(resources::router(st)) // 4C
+        // C1/C2 CI follow-up: the maker of every governed request is recorded even when this
+        // router is mounted without the session middleware (see `sutra_web::auth::approval_scope`).
+        .layer(axum::middleware::from_fn(sutra_web::auth::approval_scope))
 }
 
 #[cfg(test)]

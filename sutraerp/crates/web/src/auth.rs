@@ -278,26 +278,53 @@ pub async fn authenticate(
     req.extensions_mut().insert(ctx);
     // Audit C2 (M1): approval-ledger rows queued by the request are written by its owning
     // transaction (with the event it emits); rows left queued are written only on success.
-    sutra_kernel::db_context::scoped(scope, async move {
-        let (resp, leftover) = sutra_kernel::approval::with_request_ledger(
-            sutra_kernel::approval::with_requester(requester, next.run(req)),
-        )
-        .await;
-        if !leftover.is_empty() {
-            if resp.status().is_success() {
-                for row in leftover {
-                    row.write_alone().await;
-                }
-            } else {
-                tracing::debug!(
-                    rows = leftover.len(),
-                    "approval ledger rows of a failed request dropped"
-                );
+    sutra_kernel::db_context::scoped(scope, with_approval_scope(requester, next.run(req))).await
+}
+
+/// Runs a request with `requester` as its maker and a request-scoped approval ledger queue
+/// (Audit C2 · M1): rows no owning transaction wrote are written only when the response
+/// succeeded, and dropped with a failed request.
+async fn with_approval_scope<F>(requester: Option<String>, request: F) -> Response
+where
+    F: std::future::Future<Output = Response>,
+{
+    let (resp, leftover) = sutra_kernel::approval::with_request_ledger(
+        sutra_kernel::approval::with_requester(requester, request),
+    )
+    .await;
+    if !leftover.is_empty() {
+        if resp.status().is_success() {
+            for row in leftover {
+                row.write_alone().await;
             }
+        } else {
+            tracing::debug!(
+                rows = leftover.len(),
+                "approval ledger rows of a failed request dropped"
+            );
         }
-        resp
-    })
-    .await
+    }
+    resp
+}
+
+/// C1/C2 CI follow-up: module-router layer that gives every request carrying an
+/// [`AuthContext`] its maker and approval ledger scope, also when the request did not pass
+/// [`authenticate`] (a module router mounted on its own, e.g. by an embedding host or the
+/// integration-test harness that injects the session). Inside [`authenticate`] the requester is
+/// already set and this layer is a pass-through. Without it such a request recorded no maker
+/// and every later decision was refused (`409`, Audit C1 fail-closed).
+pub async fn approval_scope(req: Request, next: Next) -> Response {
+    if sutra_kernel::approval::current_requester().is_some() {
+        return next.run(req).await;
+    }
+    let Some(requester) = req
+        .extensions()
+        .get::<AuthContext>()
+        .map(|c| c.subject.clone())
+    else {
+        return next.run(req).await;
+    };
+    with_approval_scope(Some(requester), next.run(req)).await
 }
 
 /// Part 1 S3 (DEF-X-003): layer for the sign-in / identity routes. Before a session exists

@@ -1037,6 +1037,14 @@ async fn approval_await_decision_cancellation_and_revisions() {
         "dev|admin@sutra.dev",
         Role::Administrator,
     );
+    // C1/C2 CI follow-up: submissions are recorded as the injected administrator's, so an
+    // independent administrator decides them (separation of duties forbids self-decision).
+    let checker = custom_app(
+        state(&pool, ApprovalMode::AwaitDecision),
+        t,
+        "dev|checker@sutra.dev",
+        Role::Administrator,
+    );
     let who = injected();
 
     // ---- AwaitDecision: pending_approval, reject (reason required) → draft, approve → approved
@@ -1054,7 +1062,7 @@ async fn approval_await_decision_cancellation_and_revisions() {
     let pid = off["processInstanceId"].as_str().unwrap().to_owned();
     assert_eq!(
         status_of(
-            &waiting,
+            &checker,
             &who,
             "POST",
             &format!("{A}/offerings/{}/decision", id(&off)),
@@ -1065,7 +1073,7 @@ async fn approval_await_decision_cancellation_and_revisions() {
         StatusCode::UNPROCESSABLE_ENTITY
     );
     let off = ok(
-        &waiting,
+        &checker,
         &who,
         "POST",
         &format!("{A}/offerings/{}/decision", id(&off)),
@@ -1078,7 +1086,7 @@ async fn approval_await_decision_cancellation_and_revisions() {
     assert_eq!(off["statusReason"], "Missing syllabus");
     let off = step(&waiting, &who, &off, "submit", json!({})).await;
     let off = ok(
-        &waiting,
+        &checker,
         &who,
         "POST",
         &format!("{A}/offerings/{}/decision", id(&off)),
@@ -1128,7 +1136,7 @@ async fn approval_await_decision_cancellation_and_revisions() {
     .await;
     assert_eq!(fa["status"], "under_review");
     let fa = ok(
-        &waiting,
+        &checker,
         &who,
         "POST",
         &format!("{A}/faculty-assignments/{}/decision", id(&fa)),
@@ -1168,7 +1176,7 @@ async fn approval_await_decision_cancellation_and_revisions() {
         "one open request per kind"
     );
     let req = ok(
-        &waiting,
+        &checker,
         &who,
         "POST",
         &format!("{A}/offerings/{}/revisions/{}/decision", id(&off), id(&req)),
@@ -1319,7 +1327,7 @@ async fn approval_await_decision_cancellation_and_revisions() {
     .await;
     assert_eq!(pending["status"], "requested");
     let rej = ok(
-        &waiting,
+        &checker,
         &who,
         "POST",
         &format!(
@@ -2020,6 +2028,14 @@ async fn faculty_assignment_changes_and_policy() {
         "dev|admin@sutra.dev",
         Role::Administrator,
     );
+    // C1/C2 CI follow-up: submissions are recorded as the injected administrator's, so an
+    // independent administrator decides them (separation of duties forbids self-decision).
+    let checker = custom_app(
+        state(&pool, ApprovalMode::AwaitDecision),
+        t,
+        "dev|checker@sutra.dev",
+        Role::Administrator,
+    );
     let pending = ok(
         &waiting,
         &injected(),
@@ -2032,7 +2048,7 @@ async fn faculty_assignment_changes_and_policy() {
     .await;
     assert_eq!(pending["status"], "validated");
     let rej = ok(
-        &waiting,
+        &checker,
         &injected(),
         "POST",
         &format!("{cpath}/{}/decision", id(&pending)),
@@ -2128,7 +2144,7 @@ async fn faculty_assignment_changes_and_policy() {
         "awaiting the governance decision"
     );
     let p2 = ok(
-        &waiting,
+        &checker,
         &injected(),
         "POST",
         &format!("{A}/faculty-assignment-policies/{}/decision", id(&p2)),

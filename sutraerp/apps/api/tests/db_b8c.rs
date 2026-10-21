@@ -1597,6 +1597,13 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
     let admin = router
         .clone()
         .layer(axum::Extension(auth(ADMIN, Role::Administrator, t)));
+    // C1/C2 CI follow-up: policies and clearances `admin` submits are recorded as its own, so an
+    // independent administrator decides them (separation of duties forbids self-decision).
+    let approver = router.clone().layer(axum::Extension(auth(
+        "dev|checker@sutra.dev",
+        Role::Administrator,
+        t,
+    )));
     // Part 1 (DEF-G-002): fine waivers are decided by a different user holding
     // `library.fine.waive.approve` (finance checker); the requesting librarian gets 403.
     let checker = router.layer(axum::Extension(auth(
@@ -1640,7 +1647,7 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "not approved yet");
     let (s, _) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{C}/library-policies/{pid}/decision"),
         json!({"decision": "reject"}),
@@ -1653,7 +1660,7 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
         "a rejection needs a reason"
     );
     let (s, _) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{C}/library-policies/{pid}/decision"),
         json!({"decision": "approve"}),
@@ -1662,7 +1669,7 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
     .await;
     assert_eq!(s, StatusCode::PRECONDITION_FAILED);
     let (s, p) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{C}/library-policies/{pid}/decision"),
         json!({"decision": "approve"}),
@@ -1879,7 +1886,7 @@ async fn library_await_decision_policy_fine_waiver_and_clearance() {
         "{k}"
     );
     let (s, k) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{C}/library-clearances/{}/decision", sid(&k)),
         json!({"decision": "approve"}),
@@ -2720,6 +2727,13 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     .into_state();
     st.approvals = sutra_services::shared::approval::ApprovalMode::AwaitDecision;
     let (router, _) = sutra_services::router_with_state(st).split_for_parts();
+    // C1/C2 CI follow-up: what `admin` submits is recorded as its own, so an independent
+    // administrator decides it (separation of duties forbids self-decision).
+    let approver = router.clone().layer(axum::Extension(auth(
+        "dev|checker@sutra.dev",
+        Role::Administrator,
+        t,
+    )));
     let admin = router.layer(axum::Extension(auth(ADMIN, Role::Administrator, t)));
 
     // ---- dashboard publication awaits the decision.
@@ -2780,7 +2794,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "not approved yet");
     let (s, _) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/dashboards/{did}/decision"),
         json!({"decision": "reject"}),
@@ -2789,7 +2803,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
     let (s, d) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/dashboards/{did}/decision"),
         json!({"decision": "reject", "reason": "Add a target"}),
@@ -2819,7 +2833,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     )
     .await;
     let (s, _) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/dashboards/{did}/decision"),
         json!({"decision": "approve"}),
@@ -2828,7 +2842,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     .await;
     assert_eq!(s, StatusCode::PRECONDITION_FAILED);
     let (s, d) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/dashboards/{did}/decision"),
         json!({"decision": "approve"}),
@@ -2878,7 +2892,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
         "{f}"
     );
     let (s, f) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/reporting-frameworks/{fid}/decision"),
         json!({"decision": "approve"}),
@@ -2955,7 +2969,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     .await;
     assert_eq!(s, StatusCode::CONFLICT, "awaiting approval");
     let (s, p) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/submission-packages/{pid}/decision"),
         json!({"decision": "reject", "reason": "Recheck faculty count"}),
@@ -2972,7 +2986,7 @@ async fn reports_await_decision_dashboard_and_submission_approval() {
     )
     .await;
     let (s, p) = hit(
-        &admin,
+        &approver,
         "POST",
         &format!("{S}/submission-packages/{pid}/decision"),
         json!({"decision": "approve"}),

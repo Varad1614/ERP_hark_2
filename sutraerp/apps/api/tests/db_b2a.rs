@@ -296,6 +296,16 @@ fn admin_actor() -> Actor {
     }
 }
 
+/// C1/C2 CI follow-up: the maker of a restructure the test requests directly. The administrator
+/// decides it over HTTP, and separation of duties forbids deciding one's own request, so the
+/// request must come from somebody else (before C1 the direct call recorded no maker at all).
+fn planner_actor() -> Actor {
+    Actor {
+        id: Some("dev|planner@sutra.dev".into()),
+        correlation_id: None,
+    }
+}
+
 fn detail(b: &Value) -> String {
     b["detail"].as_str().unwrap_or_default().to_owned()
 }
@@ -2075,7 +2085,7 @@ async fn organisation_restructure_move_merge_cycles_and_stale_baseline() {
         &sc,
         inst.parse().unwrap(),
         &cmd,
-        &admin_actor(),
+        &planner_actor(),
     )
     .await
     .unwrap();
@@ -2155,7 +2165,7 @@ async fn organisation_restructure_move_merge_cycles_and_stale_baseline() {
         &sc,
         inst.parse().unwrap(),
         &cmd,
-        &admin_actor(),
+        &planner_actor(),
     )
     .await
     .unwrap();

@@ -1535,12 +1535,15 @@ pub async fn finalize(
     }
     let mut vars = BTreeMap::new();
     vars.insert("blueprintId".to_owned(), json!(bp.id));
-    let outcome = approval::request_approval(
-        state,
-        &c.scope,
-        process::ASSESSMENT_FINALIZATION,
-        business_key(BP, bp.id, bp.version),
-        vars,
+    let outcome = sutra_kernel::approval::with_maker(
+        actor.id.as_deref(),
+        approval::request_approval(
+            state,
+            &c.scope,
+            process::ASSESSMENT_FINALIZATION,
+            business_key(BP, bp.id, bp.version),
+            vars,
+        ),
     )
     .await?;
     let pending_status = if bp.policy.moderation_required {

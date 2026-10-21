@@ -1353,6 +1353,8 @@ const KAVYA: &str = "dev|kavya.b7b@sutra.test";
 const ROHAN: &str = "dev|rohan.b7b@sutra.test";
 const ISHA: &str = "dev|isha.b7b@sutra.test";
 const ADMIN: &str = "dev|admin@sutra.dev";
+/// An independent administrator (C1/C2 CI follow-up: separation of duties — never the maker).
+const CHECKER: &str = "dev|checker@sutra.dev";
 
 fn auth(subject: &str, role: Role, tenant: TenantId) -> AuthContext {
     AuthContext {
@@ -1451,6 +1453,9 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     .await;
     b7::set_manager(&pool, &kavya, &rohan).await;
     let admin = as_user(&st, auth(ADMIN, Role::Administrator, t));
+    // C1/C2 CI follow-up: what `admin` submits is recorded as its maker, so an independent
+    // administrator decides it (separation of duties forbids self-decision).
+    let checker = as_user(&st, auth(CHECKER, Role::Administrator, t));
     let kavya_r = as_user(&st, auth(KAVYA, Role::Faculty, t));
     let rohan_r = as_user(&st, auth(ROHAN, Role::Faculty, t));
     let isha_r = as_user(&st, auth(ISHA, Role::Faculty, t));
@@ -1504,7 +1509,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     assert_eq!(s, StatusCode::OK, "{pol}");
     assert_eq!(pol["status"], "under_review");
     let (s, _) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/leave-policies/{pid}/decision"),
         json!({"decision": "reject"}),
@@ -1517,7 +1522,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
         "rejection needs a reason"
     );
     let (s, pol) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/leave-policies/{pid}/decision"),
         json!({"decision": "approve"}),
@@ -1631,7 +1636,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     )
     .await;
     let (s, req2) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/leave-requests/{}/decision", sid(&req2)),
         json!({"decision": "reject", "reason": "exam week"}),
@@ -1671,7 +1676,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     assert_eq!(s, StatusCode::CREATED, "{adj}");
     assert_eq!(adj["status"], "pending_approval");
     let (s, adj) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/leave-adjustments/{}/decision", sid(&adj)),
         json!({"decision": "approve"}),
@@ -1691,7 +1696,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     assert_eq!(s, StatusCode::CREATED, "{enc}");
     assert_eq!(enc["status"], "eligible");
     let (s, enc) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/leave-encashments/{}/decision", sid(&enc)),
         json!({"decision": "reject", "reason": "budget closed"}),
@@ -1712,7 +1717,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     assert_eq!(s, StatusCode::CREATED, "{case}");
     assert_eq!(case["status"], "pending_approval");
     let (s, case) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/leave-cases/{}/decision", sid(&case)),
         json!({"decision": "approve"}),
@@ -1752,7 +1757,7 @@ async fn await_decision_routes_leave_to_the_reporting_manager() {
     assert_eq!(s, StatusCode::OK, "{plan}");
     assert_eq!(plan["status"], "submitted");
     let (s, plan) = hit(
-        &admin,
+        &checker,
         "POST",
         &format!("{P}/workload-plans/{}/decision", sid(&plan)),
         json!({"decision": "approve"}),

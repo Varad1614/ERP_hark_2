@@ -2270,7 +2270,7 @@ async fn governed_decisions_await_a_decision() {
         (Some("registered"), Some(true))
     );
     let s = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{R}/suppliers/{sid}/decision"),
@@ -2347,7 +2347,7 @@ async fn governed_decisions_await_a_decision() {
     assert_eq!(adj["status"], "requested");
     assert!(adj["ledgerEntryId"].is_null());
     let adj = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{R}/stock-adjustments/{}/decision", id(&adj)),
@@ -2392,7 +2392,7 @@ async fn governed_decisions_await_a_decision() {
         (Some("registered"), Some(true))
     );
     let a = ok(
-        &hr,
+        &checker,
         &me,
         "POST",
         &format!("{R}/assets/{}/decision", id(&a)),

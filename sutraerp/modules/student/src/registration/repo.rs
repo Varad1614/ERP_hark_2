@@ -1350,12 +1350,15 @@ pub async fn submit(
     vars.insert("registrationId".into(), json!(id));
     vars.insert("studentId".into(), json!(cur.student_id));
     vars.insert("totalCredits".into(), json!(credits));
-    let outcome = request_approval(
-        state,
-        &ss.scope,
-        process::REGISTRATION_APPROVAL,
-        business_key("registration", id, cur.version),
-        vars,
+    let outcome = sutra_kernel::approval::with_maker(
+        actor.id.as_deref(),
+        request_approval(
+            state,
+            &ss.scope,
+            process::REGISTRATION_APPROVAL,
+            business_key("registration", id, cur.version),
+            vars,
+        ),
     )
     .await?;
     let pid = outcome.process_instance_id().to_owned();

@@ -55,6 +55,26 @@ pub async fn with_requester<F: std::future::Future>(subject: Option<String>, f: 
     REQUESTER.scope(subject, f).await
 }
 
+/// Runs `f` with `actor` as the request's maker **unless** a requester is already known
+/// (C1/C2 CI follow-up). A service function called directly with an explicit human actor (a
+/// test, a CLI, a seed run outside the web stack) has no web middleware to record who asked, so
+/// its governed `request_approval` would record no maker and every later decision would be
+/// refused (`409`). Inside a web request the authenticated subject always wins; a system actor
+/// (`system:*`) is never recorded as a human maker, so background work still fails closed.
+pub async fn with_maker<F: std::future::Future>(actor: Option<&str>, f: F) -> F::Output {
+    if current_requester().is_some() {
+        return f.await;
+    }
+    let maker = actor
+        .map(str::trim)
+        .filter(|a| !a.is_empty() && !is_system_actor(a))
+        .map(str::to_owned);
+    match maker {
+        Some(m) => with_requester(Some(m), f).await,
+        None => f.await,
+    }
+}
+
 /// The authenticated user of the request being served, if any (see [`with_requester`]).
 pub fn current_requester() -> Option<String> {
     REQUESTER
@@ -230,6 +250,23 @@ mod tests {
             ensure_independent_decider(None, Vec::<&str>::new(), "refund"),
             Err(KernelError::Forbidden(_))
         ));
+    }
+
+    #[tokio::test]
+    async fn a_direct_call_records_its_explicit_human_actor_as_maker() {
+        let got = with_maker(Some("dev|maker"), async { current_requester() }).await;
+        assert_eq!(got.as_deref(), Some("dev|maker"));
+        let got = with_maker(Some("system:job"), async { current_requester() }).await;
+        assert_eq!(got, None, "a system actor is never a human maker");
+        let got = with_requester(Some("dev|web".into()), async {
+            with_maker(Some("dev|other"), async { current_requester() }).await
+        })
+        .await;
+        assert_eq!(
+            got.as_deref(),
+            Some("dev|web"),
+            "the request's subject wins"
+        );
     }
 
     struct Row(u8);
