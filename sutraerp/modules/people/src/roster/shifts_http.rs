@@ -2171,7 +2171,10 @@ pub async fn payroll_export(
             staff_name: v.staff_name,
             period_from: v.period_from,
             period_to: v.period_to,
-            quantities: q.into_iter().map(|(k, v)| (k.to_owned(), Quantity(v))).collect(),
+            quantities: q
+                .into_iter()
+                .map(|(k, v)| (k.to_owned(), Quantity(v)))
+                .collect(),
         });
     }
     let a = actor(ctx);
@@ -2767,11 +2770,11 @@ pub struct RosterTimesheetSettings {
     /// Minutes before the end that do not count as leaving early.
     pub early_leave_grace_minutes: i64,
     /// Paid hours a day before overtime (default 9; null = none).
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     #[schema(value_type = Option<f64>)]
     pub daily_overtime_hours: Option<Decimal>,
     /// Paid hours a week before overtime (default 48; null = none).
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     #[schema(value_type = Option<f64>)]
     pub weekly_overtime_hours: Option<Decimal>,
     /// Overtime pays this times the ordinary hourly rate (default 2).
@@ -2779,7 +2782,7 @@ pub struct RosterTimesheetSettings {
     #[schema(value_type = f64)]
     pub overtime_multiplier: Decimal,
     /// A flat ₹ per overtime hour instead (null = from BASIC + DA).
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     #[schema(value_type = Option<f64>)]
     pub overtime_rate_per_hour: Option<Decimal>,
     /// Hours of an ordinary day (ordinary hourly rate = (BASIC + DA) / days / hours).
@@ -2787,11 +2790,11 @@ pub struct RosterTimesheetSettings {
     #[schema(value_type = f64)]
     pub standard_hours_per_day: Decimal,
     /// ₹ per night shift (one running past midnight).
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     #[schema(value_type = Option<f64>)]
     pub night_shift_allowance: Option<Decimal>,
     /// ₹ per shift worked on a holiday.
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     #[schema(value_type = Option<f64>)]
     pub holiday_shift_allowance: Option<Decimal>,
 }
@@ -2881,7 +2884,9 @@ pub async fn ts_settings_put(
         return Err(invalid("earlyLeaveGraceMinutes", "out_of_range", "0 to 240").into());
     }
     let n = Decimal::from;
-    if b.daily_overtime_hours.is_some_and(|x| x <= Decimal::ZERO || x > n(24)) {
+    if b.daily_overtime_hours
+        .is_some_and(|x| x <= Decimal::ZERO || x > n(24))
+    {
         return Err(invalid(
             "dailyOvertimeHours",
             "out_of_range",

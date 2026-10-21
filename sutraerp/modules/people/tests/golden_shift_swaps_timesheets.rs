@@ -4,9 +4,9 @@
 
 use rust_decimal::Decimal;
 use serde::Deserialize;
-use sutra_kernel::money::decimal_from_f64;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap, HashSet};
+use sutra_kernel::money::decimal_from_f64;
 use sutra_people::roster::clock::{
     clock_in_record, clock_out_record, elapsed_minutes, for_range, is_in_progress, is_running_now,
     late_minutes, summarize, worked_minutes, Record,
@@ -109,7 +109,11 @@ fn paise_up(got: f64, want: f64, max: usize) -> bool {
 }
 
 fn drift_text(a: &str, b: &str, max: usize) -> bool {
-    let cells = |s: &str| s.split([',', '\r', '\n']).map(str::to_owned).collect::<Vec<_>>();
+    let cells = |s: &str| {
+        s.split([',', '\r', '\n'])
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+    };
     let (x, y) = (cells(a), cells(b));
     x.len() == y.len()
         && x.iter().zip(&y).all(|(p, q)| {
@@ -131,7 +135,8 @@ fn drift_eq(got: &Value, want: &Value, max: usize) -> bool {
         }
         (Value::Object(a), Value::Object(b)) => {
             a.len() == b.len()
-                && a.iter().all(|(k, x)| b.get(k).is_some_and(|y| drift_eq(x, y, max)))
+                && a.iter()
+                    .all(|(k, x)| b.get(k).is_some_and(|y| drift_eq(x, y, max)))
         }
         (a, b) => a == b,
     }

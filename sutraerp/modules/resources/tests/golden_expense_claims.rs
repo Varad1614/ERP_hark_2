@@ -101,8 +101,7 @@ fn expense_claims_match_everything() {
             })
             .collect();
         let totals = claim_totals(&in_report);
-        let all =
-            totals_by_currency(i.lines.iter().map(|l| (l.currency.as_str(), dec(l.amount))));
+        let all = totals_by_currency(i.lines.iter().map(|l| (l.currency.as_str(), dec(l.amount))));
         let amounts: Vec<Option<f64>> = i
             .amounts
             .iter()

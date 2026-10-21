@@ -4,9 +4,7 @@
 //! before for trends, and one CSV per section. Archived and former staff stay in the history.
 
 use super::clock::{worked_minutes, Record, ABSENT};
-use super::rules::{
-    add_days, coverage_gaps, js_round, num, Requirement, Shift,
-};
+use super::rules::{add_days, coverage_gaps, js_round, num, Requirement, Shift};
 use super::timesheet::{
     blank, break_dec, employee_summaries, hours, labor_cost, net_dec, round2, timesheet_rows,
     to_csv, Cell, PayEmployee,
@@ -41,9 +39,9 @@ pub struct State {
     pub shifts: Vec<Shift>,
     pub attendance: BTreeMap<String, Record>,
     pub coverage: Vec<Requirement>,
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     pub overtime_threshold_hours: Option<Decimal>,
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     pub overtime_multiplier: Option<Decimal>,
 }
 

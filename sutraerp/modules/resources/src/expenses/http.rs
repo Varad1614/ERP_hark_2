@@ -59,7 +59,6 @@ fn bad(field: &str, message: &str) -> KernelError {
     invalid(field, "invalid", message)
 }
 
-
 fn ds(d: NaiveDate) -> String {
     d.format("%Y-%m-%d").to_string()
 }

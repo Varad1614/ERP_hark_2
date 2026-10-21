@@ -85,9 +85,8 @@ fn rate_dec(x: f64, field: &str) -> Result<Decimal, KernelError> {
 
 /// A stored JSON rate that no longer parses is an error, not "no rate" (which would cost at 0).
 fn stored_rate(v: Value, what: &str) -> Result<RateValue, KernelError> {
-    serde_json::from_value(v).map_err(|e| {
-        KernelError::Internal(format!("stored {what} is not a rate: {e}").into())
-    })
+    serde_json::from_value(v)
+        .map_err(|e| KernelError::Internal(format!("stored {what} is not a rate: {e}").into()))
 }
 
 fn get<'r, T: sqlx::Decode<'r, sqlx::Postgres> + sqlx::Type<sqlx::Postgres>>(
@@ -198,7 +197,9 @@ async fn load_settings(
         week_start: u32::from(w == 1),
         rounding: i64::from(r),
         standard_monthly_hours: h,
-        default_rate: d.map(|x| stored_rate(x, "default hourly rate")).transpose()?,
+        default_rate: d
+            .map(|x| stored_rate(x, "default hourly rate"))
+            .transpose()?,
         timer_cap_hours: c,
     })
 }

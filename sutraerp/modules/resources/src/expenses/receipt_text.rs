@@ -173,7 +173,9 @@ fn total(lines: &[OcrLine]) -> Option<Decimal> {
         .iter()
         .flat_map(|l| amounts(l))
         .filter(|a| *a < Decimal::from(10_000_000))
-        .fold(None, |m: Option<Decimal>, a| Some(m.map_or(a, |m| m.max(a))))
+        .fold(None, |m: Option<Decimal>, a| {
+            Some(m.map_or(a, |m| m.max(a)))
+        })
 }
 
 fn gst(lines: &[OcrLine]) -> Option<Decimal> {

@@ -18,8 +18,8 @@ use super::rules::{duration_minutes, is_overnight, num, start_of_week, Shift};
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize, Serializer};
-use sutra_kernel::money::js_round_dp;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use sutra_kernel::money::js_round_dp;
 
 // Hours, rates, pay and cost are `Decimal` (audit M2): arithmetic is exact and rounding is
 // Everything's `Math.round` applied to the exact value. They still go on the wire as JSON numbers
@@ -84,7 +84,7 @@ pub struct PayEmployee {
     pub id: String,
     pub name: String,
     pub active: bool,
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     pub hourly_rate: Option<Decimal>,
 }
 
@@ -607,10 +607,10 @@ pub struct Limits {
     /// Minutes before the end that do not count as leaving early.
     pub early_leave_grace_minutes: i64,
     /// Paid hours a day before overtime (Factories Act s.54: 9); `None` = no daily limit.
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     pub daily_overtime_hours: Option<Decimal>,
     /// Paid hours a week before overtime (s.51: 48); `None` = no weekly limit.
-    #[serde(with = "rust_decimal::serde::float_option")]
+    #[serde(default, with = "rust_decimal::serde::float_option")]
     pub weekly_overtime_hours: Option<Decimal>,
 }
 
@@ -1003,11 +1003,17 @@ mod tests {
         let t = totals(&lines, &l, &HashMap::new());
         // 11.5h on Monday: 2.5h over 9.
         assert_eq!(t.overtime_minutes, Decimal::from(150));
-        assert_eq!((t.night_shifts, t.holiday_shifts, t.lop_days), (1, 1, Decimal::ONE));
+        assert_eq!(
+            (t.night_shifts, t.holiday_shifts, t.lop_days),
+            (1, 1, Decimal::ONE)
+        );
         let mut days = HashMap::new();
         days.insert("2026-08-05".to_owned(), "absent".to_owned());
         assert_eq!(totals(&lines, &l, &days).lop_days, Decimal::ZERO);
-        assert_eq!(payroll_quantities(&t)[0], ("overtime_hours", Decimal::new(25, 1)));
+        assert_eq!(
+            payroll_quantities(&t)[0],
+            ("overtime_hours", Decimal::new(25, 1))
+        );
     }
 
     #[test]
@@ -1075,7 +1081,9 @@ mod tests {
         // 1000 shifts of 7 minutes at 10/h: exact 1166.67 after one rounding of the total.
         let total: Decimal = (0..1000).map(|_| minutes_cost(d("7"), d("10"))).sum();
         assert_eq!(round2(total), d("1166.67"));
-        let per_row: Decimal = (0..1000).map(|_| round2(minutes_cost(d("7"), d("10")))).sum();
+        let per_row: Decimal = (0..1000)
+            .map(|_| round2(minutes_cost(d("7"), d("10"))))
+            .sum();
         assert_eq!(per_row, d("1170.00"));
         // Hours of a thousand 6-minute shifts: exactly 100.
         let h: Decimal = (0..1000).map(|_| d("6") / SIXTY).sum();

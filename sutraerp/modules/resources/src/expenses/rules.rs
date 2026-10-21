@@ -823,7 +823,10 @@ mod tests {
         assert_eq!(parse_amount(&json!(1234.005)), Some(d("1234.01")));
         // Ten lines of 0.10 total exactly 1.00; a thousand of 0.01 exactly 10.
         let ten: Vec<(&str, Decimal)> = (0..10).map(|_| ("INR", d("0.10"))).collect();
-        assert_eq!(totals_by_currency(ten), vec![("INR".to_owned(), Decimal::ONE)]);
+        assert_eq!(
+            totals_by_currency(ten),
+            vec![("INR".to_owned(), Decimal::ONE)]
+        );
         let many: Vec<(&str, Decimal)> = (0..1000).map(|_| ("INR", d("0.01"))).collect();
         assert_eq!(totals_by_currency(many)[0].1, d("10"));
         // Negative halves round towards +inf, as Math.round does.
