@@ -85,8 +85,147 @@ pub fn parse_business_key(business_key: &str) -> (String, Option<i64>) {
     }
 }
 
+// Audit C2 (finding M1): the ledger row is written in the **owning domain transaction**.
+//
+// A module's `request_approval` runs before the owner-local transaction opens (the workflow
+// process is external and cannot join it). Inside a web request (the authentication middleware
+// wraps every authenticated request in the kernel's `with_request_ledger`) [`record_request`]
+// therefore only *queues* the row; the next [`crate::outbox::enqueue`] — the "submitted" /
+// decision event every governed state change emits in its own transaction — writes the queued
+// rows in the same SQL statement as the event. So a ledger failure fails that statement and rolls
+// the decision back, and a failed / rolled-back decision leaves no ledger row. Rows still queued
+// when the request ends (a flow that emitted no event) are written by the middleware only when
+// the response succeeded ([`write_leftover`]). Outside a request (background jobs, consumers)
+// the row is written at once, as before. [`flush_pending`] writes the queue on an explicit
+// connection for a transaction that emits no event.
+
+/// One approval-ledger row waiting for the owning transaction.
+#[derive(Clone, Debug)]
+pub struct PendingRequest {
+    pool: sqlx::PgPool,
+    tenant_id: Uuid,
+    process_definition_key: String,
+    business_key: String,
+    subject_id: String,
+    subject_version: Option<i64>,
+    process_instance_id: String,
+    requested_by: Option<String>,
+}
+
+impl sutra_kernel::approval::QueuedLedgerRow for PendingRequest {
+    fn write_alone(
+        self: Box<Self>,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> {
+        Box::pin(write_leftover(vec![*self]))
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any + Send> {
+        self
+    }
+}
+
+/// Runs `f` with a request-scoped approval ledger queue (the web authentication middleware does
+/// this for every authenticated request through the kernel); returns its output and the rows no
+/// owning transaction wrote — write them with [`write_leftover`] only when `f` succeeded.
+pub async fn with_request_ledger<F: std::future::Future>(f: F) -> (F::Output, Vec<PendingRequest>) {
+    let (out, rest) = sutra_kernel::approval::with_request_ledger(f).await;
+    (out, downcast(rest))
+}
+
+fn downcast(rows: Vec<Box<dyn sutra_kernel::approval::QueuedLedgerRow>>) -> Vec<PendingRequest> {
+    rows.into_iter()
+        .filter_map(|r| r.into_any().downcast::<PendingRequest>().ok().map(|b| *b))
+        .collect()
+}
+
+/// Drains the queued ledger rows of the current request (empty outside a request).
+pub fn take_pending() -> Vec<PendingRequest> {
+    downcast(sutra_kernel::approval::take_ledger_rows())
+}
+
+/// Column arrays of `rows` for [`ledger_insert_sql`].
+#[allow(clippy::type_complexity)]
+pub(crate) fn ledger_columns(
+    rows: &[PendingRequest],
+) -> (
+    Vec<Uuid>,
+    Vec<String>,
+    Vec<String>,
+    Vec<String>,
+    Vec<Option<i64>>,
+    Vec<String>,
+    Vec<Option<String>>,
+) {
+    (
+        rows.iter().map(|r| r.tenant_id).collect(),
+        rows.iter()
+            .map(|r| r.process_definition_key.clone())
+            .collect(),
+        rows.iter().map(|r| r.business_key.clone()).collect(),
+        rows.iter().map(|r| r.subject_id.clone()).collect(),
+        rows.iter().map(|r| r.subject_version).collect(),
+        rows.iter().map(|r| r.process_instance_id.clone()).collect(),
+        rows.iter().map(|r| r.requested_by.clone()).collect(),
+    )
+}
+
+/// `INSERT … SELECT FROM UNNEST(…)` of the ledger columns bound from parameter `$first` on.
+pub(crate) fn ledger_insert_sql(first: usize) -> String {
+    let p: Vec<String> = (first..first + 7).map(|i| format!("${i}")).collect();
+    format!(
+        "INSERT INTO platform.approval_request (tenant_id, process_definition_key, business_key, \
+         subject_id, subject_version, process_instance_id, requested_by) \
+         SELECT * FROM UNNEST({}::uuid[], {}::text[], {}::text[], {}::text[], {}::bigint[], \
+         {}::text[], {}::text[])",
+        p[0], p[1], p[2], p[3], p[4], p[5], p[6]
+    )
+}
+
+async fn insert_rows(
+    conn: &mut sqlx::PgConnection,
+    rows: &[PendingRequest],
+) -> Result<(), sqlx::Error> {
+    let (a, b, c, d, e, f, g) = ledger_columns(rows);
+    sqlx::query(&ledger_insert_sql(1))
+        .bind(a)
+        .bind(b)
+        .bind(c)
+        .bind(d)
+        .bind(e)
+        .bind(f)
+        .bind(g)
+        .execute(&mut *conn)
+        .await?;
+    Ok(())
+}
+
+/// Writes the request's queued rows on `conn` (an owning transaction that emits no event).
+pub async fn flush_pending(conn: &mut sqlx::PgConnection) -> Result<(), KernelError> {
+    let rows = take_pending();
+    if rows.is_empty() {
+        return Ok(());
+    }
+    insert_rows(conn, &rows).await.map_err(map_db_error)
+}
+
+/// Writes rows a request left queued (its transaction emitted no event). Call only when the
+/// request succeeded; a failed request's rows are dropped with it.
+pub async fn write_leftover(rows: Vec<PendingRequest>) {
+    let Some(pool) = rows.first().map(|r| r.pool.clone()) else {
+        return;
+    };
+    let res = async {
+        let mut conn = pool.acquire().await?;
+        insert_rows(&mut conn, &rows).await
+    }
+    .await;
+    if let Err(e) = res {
+        tracing::error!(error = %e, rows = rows.len(), "approval ledger rows could not be written");
+    }
+}
+
 /// Records one approval request (called by `request_approval` right after the process started).
-/// `requested_by` is the authenticated user of the request (`None` for background work).
+/// `requested_by` is the authenticated user of the request (`None` for background work). Inside a
+/// web request the row is queued for the owning transaction (see the section comment).
 pub async fn record_request(
     pool: &sqlx::PgPool,
     tenant_id: Uuid,
@@ -96,22 +235,22 @@ pub async fn record_request(
     requested_by: Option<&str>,
 ) -> Result<(), KernelError> {
     let (subject, version) = parse_business_key(business_key);
-    sqlx::query(
-        "INSERT INTO platform.approval_request (tenant_id, process_definition_key, business_key, \
-         subject_id, subject_version, process_instance_id, requested_by) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    )
-    .bind(tenant_id)
-    .bind(process_definition_key)
-    .bind(business_key)
-    .bind(subject)
-    .bind(version)
-    .bind(process_instance_id)
-    .bind(requested_by)
-    .execute(pool)
-    .await
-    .map_err(map_db_error)?;
-    Ok(())
+    let row = PendingRequest {
+        pool: pool.clone(),
+        tenant_id,
+        process_definition_key: process_definition_key.to_owned(),
+        business_key: business_key.to_owned(),
+        subject_id: subject,
+        subject_version: version,
+        process_instance_id: process_instance_id.to_owned(),
+        requested_by: requested_by.map(str::to_owned),
+    };
+    let Err(row) = sutra_kernel::approval::queue_ledger_row(Box::new(row)) else {
+        return Ok(());
+    };
+    let rows = downcast(vec![row]);
+    let mut conn = pool.acquire().await.map_err(map_db_error)?;
+    insert_rows(&mut conn, &rows).await.map_err(map_db_error)
 }
 
 /// Who requested the latest approval request recorded for `subject` (every request of the same
@@ -176,6 +315,8 @@ pub async fn guard_decision_by(
     what: &str,
 ) -> Result<(), KernelError> {
     let subject = subject.to_string();
+    // Audit C1: no recorded request and no maker column => no maker at all, which the kernel
+    // check refuses (409) — never "anyone may decide".
     let mut makers = latest_requesters(pool, tenant_id, &subject)
         .await?
         .unwrap_or_default();
@@ -244,6 +385,7 @@ pub async fn guard_decision_for_row(
     .fetch_optional(pool)
     .await
     .map_err(map_db_error)?;
+    // Audit C1: a missing row / process yields no maker, which the kernel check refuses (409).
     let (pid, columns) = row.unwrap_or_default();
     let mut makers = match pid {
         Some(pid) => process_requesters(pool, tenant, &pid).await?,

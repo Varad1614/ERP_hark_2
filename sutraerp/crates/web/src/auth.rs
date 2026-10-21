@@ -276,10 +276,27 @@ pub async fn authenticate(
     let scope = ctx.scope;
     let requester = Some(ctx.subject.clone());
     req.extensions_mut().insert(ctx);
-    sutra_kernel::db_context::scoped(
-        scope,
-        sutra_kernel::approval::with_requester(requester, next.run(req)),
-    )
+    // Audit C2 (M1): approval-ledger rows queued by the request are written by its owning
+    // transaction (with the event it emits); rows left queued are written only on success.
+    sutra_kernel::db_context::scoped(scope, async move {
+        let (resp, leftover) = sutra_kernel::approval::with_request_ledger(
+            sutra_kernel::approval::with_requester(requester, next.run(req)),
+        )
+        .await;
+        if !leftover.is_empty() {
+            if resp.status().is_success() {
+                for row in leftover {
+                    row.write_alone().await;
+                }
+            } else {
+                tracing::debug!(
+                    rows = leftover.len(),
+                    "approval ledger rows of a failed request dropped"
+                );
+            }
+        }
+        resp
+    })
     .await
 }
 
