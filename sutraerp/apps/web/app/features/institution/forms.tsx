@@ -4,8 +4,8 @@
  */
 import { Building2 } from "lucide-react";
 import { Button, EmptyState, Input, Modal, Select, type SelectOption } from "@sutra/ui";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { fieldErrors, problemText } from "./hooks";
+import { useState, type ReactNode } from "react";
+import { inputAttrs, useValidatedForm, validateFields, type FieldRule } from "../../lib/forms";
 
 export interface FieldSpec {
   name: string;
@@ -17,15 +17,23 @@ export interface FieldSpec {
   initial?: string;
   /** Spans the whole form row. */
   wide?: boolean;
+  /** Native bounds (number inputs); `rule` adds the server caps (lib/forms `LIMITS`). */
+  min?: number;
+  max?: number;
+  /** Shared value rule: amount (₹, ≤ 1 crore), seats (1–10 000), mobile, email, dob, integer. */
+  rule?: FieldRule;
+  /** Server member name(s) this field answers for when they differ (422 mapping). */
+  member?: string | string[];
 }
 
 export type FormValues = Record<string, string>;
 
-/** Client-side required check (the API stays authoritative and returns 422 details). */
+/**
+ * Client-side check: required, then the field's rule / bounds (lib/forms). The API stays
+ * authoritative and returns 422 details, which the forms map back onto the fields.
+ */
 export function missingRequired(fields: FieldSpec[], values: FormValues): Record<string, string> {
-  const e: Record<string, string> = {};
-  for (const f of fields) if (f.required && f.type !== "checkbox" && !(values[f.name] ?? "").trim()) e[f.name] = `${f.label} is required`;
-  return e;
+  return validateFields(fields, values);
 }
 
 export function QuickForm({
@@ -46,38 +54,18 @@ export function QuickForm({
   children?: ReactNode;
 }) {
   const initial = () => Object.fromEntries(fields.map((f) => [f.name, f.initial ?? (f.type === "checkbox" ? "false" : "")]));
-  const [values, setValues] = useState<FormValues>(initial);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const set = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }));
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const missing = missingRequired(fields, values);
-    setErrors(missing);
-    setError(null);
-    if (Object.keys(missing).length) return;
-    setBusy(true);
-    try {
-      await onSubmit(values);
-      setValues(initial());
-    } catch (err) {
-      const fe = fieldErrors(err);
-      if (Object.keys(fe).length) setErrors(fe);
-      else setError(problemText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const form = useValidatedForm(fields, initial);
+  const { errors, error, busy, set, blur, formRef } = form;
+  const values = form.values;
+  const submit = form.submit(onSubmit, () => form.setValues(initial()));
 
   return (
-    <form onSubmit={submit} noValidate data-form={name}>
+    <form ref={formRef} onSubmit={submit} noValidate data-form={name}>
       <div className="sb-form">
         {fields.map((f) =>
           f.type === "select" ? (
             <div key={f.name} className={f.wide ? "sb-span-all" : undefined}>
-              <Select label={f.label} name={f.name} value={values[f.name]} options={f.options ?? []} error={errors[f.name]} onChange={(e) => set(f.name, e.target.value)} />
+              <Select label={f.label} name={f.name} value={values[f.name]} options={f.options ?? []} error={errors[f.name]} onChange={(e) => set(f.name, e.target.value)} onBlur={() => blur(f.name)} />
             </div>
           ) : f.type === "checkbox" ? (
             <label key={f.name} className="sb-field">
@@ -91,10 +79,12 @@ export function QuickForm({
                 label={f.label}
                 name={f.name}
                 type={f.type ?? "text"}
+                {...inputAttrs(f)}
                 value={values[f.name]}
                 placeholder={f.placeholder}
                 error={errors[f.name]}
                 onChange={(e) => set(f.name, e.target.value)}
+                onBlur={() => blur(f.name)}
               />
             </div>
           ),

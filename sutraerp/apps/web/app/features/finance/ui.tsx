@@ -22,11 +22,12 @@ import {
   type MenuItem,
   type NavLinkLikeProps,
 } from "@sutra/ui";
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import { useSession } from "../../lib/auth";
-import { missingRequired, type FieldSpec, type FormValues, type RowAction } from "../institution/forms";
-import { fieldErrors, problemText, selectInstitution, useInstitutions } from "../institution/hooks";
+import { inputAttrs, useValidatedForm } from "../../lib/forms";
+import type { FieldSpec, FormValues, RowAction } from "../institution/forms";
+import { selectInstitution, useInstitutions } from "../institution/hooks";
 import type { Institution } from "../institution/types";
 import { fkeys, useChargesApi } from "./charges/hooks";
 import { FINANCE_TABS, activeTab, financePath } from "./index";
@@ -205,31 +206,13 @@ function initialValues(fields: FinField[]): FormValues {
 
 function FinanceForm({ spec, onDone }: { spec: FinAskSpec; onDone: () => void }) {
   const formId = useId();
-  const [values, setValues] = useState<FormValues>(() => initialValues(spec.fields));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const set = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }));
+  // Phase B shared form layer: rules + bounds, on-blur checks, 422 problem → fields, focus.
   const plain = spec.fields.filter((f): f is FieldSpec => f.type !== "checks");
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const missing = missingRequired(plain, values);
-    for (const f of spec.fields) if (f.type === "checks" && f.required && !values[f.name]) missing[f.name] = `Choose at least one`;
-    setErrors(missing);
-    setError(null);
-    if (Object.keys(missing).length) return;
-    setBusy(true);
-    try {
-      await spec.onSubmit(values);
-      onDone();
-    } catch (err) {
-      const fe = fieldErrors(err);
-      if (Object.keys(fe).length) setErrors(fe);
-      else setError(problemText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const form = useValidatedForm(plain, () => initialValues(spec.fields), {
+    extraCheck: (v) => Object.fromEntries(spec.fields.filter((f) => f.type === "checks" && f.required && !v[f.name]).map((f) => [f.name, "Choose at least one"])),
+  });
+  const { values, errors, error, busy, set, blur, formRef } = form;
+  const submit = form.submit(spec.onSubmit, onDone);
   const field = (f: FinField) => {
     const wide = f.wide;
     if (f.type === "checks") {
@@ -263,14 +246,14 @@ function FinanceForm({ spec, onDone }: { spec: FinAskSpec; onDone: () => void })
       );
     }
     if (f.type === "select")
-      return <FormSelect key={f.name} label={f.label} name={f.name} wide={wide} value={values[f.name]} options={f.options ?? []} error={errors[f.name]} onChange={(e) => set(f.name, e.target.value)} />;
+      return <FormSelect key={f.name} label={f.label} name={f.name} wide={wide} value={values[f.name]} options={f.options ?? []} error={errors[f.name]} onChange={(e) => set(f.name, e.target.value)} onBlur={() => blur(f.name)} />;
     if (f.type === "checkbox")
       return (
         <div key={f.name} className={wide ? "sb-wide" : undefined}>
           <Checkbox name={f.name} label={f.label} checked={values[f.name] === "true"} onChange={(e) => set(f.name, String(e.target.checked))} />
         </div>
       );
-    if (f.type === "date") return <DatePicker key={f.name} label={f.label} name={f.name} wide={wide} value={values[f.name] ?? ""} error={errors[f.name]} onChange={(e) => set(f.name, e.target.value)} />;
+    if (f.type === "date") return <DatePicker key={f.name} label={f.label} name={f.name} wide={wide} value={values[f.name] ?? ""} error={errors[f.name]} onChange={(e) => set(f.name, e.target.value)} onBlur={() => blur(f.name)} />;
     return (
       <TextField
         key={f.name}
@@ -281,14 +264,16 @@ function FinanceForm({ spec, onDone }: { spec: FinAskSpec; onDone: () => void })
         inputMode={/amount|balance|percent/i.test(f.name) ? "decimal" : undefined}
         value={values[f.name] ?? ""}
         placeholder={f.placeholder}
+        {...inputAttrs(f)}
         error={errors[f.name]}
         onChange={(e) => set(f.name, e.target.value)}
+        onBlur={() => blur(f.name)}
       />
     );
   };
   return (
     <>
-      <form id={formId} onSubmit={submit} noValidate>
+      <form id={formId} ref={formRef} onSubmit={submit} noValidate>
         {spec.intro}
         <FormGrid columns={spec.fields.length > 2 ? 2 : 1}>{spec.fields.map(field)}</FormGrid>
         {error && (

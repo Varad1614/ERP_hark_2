@@ -25,9 +25,9 @@ import {
   formatDate,
   type MenuItem,
 } from "@sutra/ui";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import "./student.css";
-import { fieldErrors, problemText } from "../institution/hooks";
+import { inputAttrs, useValidatedForm, validateFields, type FieldRule } from "../../lib/forms";
 
 export interface FieldSpec {
   name: string;
@@ -40,24 +40,29 @@ export interface FieldSpec {
   initial?: string;
   /** Spans the whole form row. */
   wide?: boolean;
+  /** Native bounds (number inputs); `rule` adds the server caps (lib/forms `LIMITS`). */
+  min?: number;
+  max?: number;
+  /** Shared value rule: amount, seats, mobile, email, dob, integer. */
+  rule?: FieldRule;
+  /** Server member name(s) this field answers for when they differ (422 mapping). */
+  member?: string | string[];
 }
 
 export type FormValues = Record<string, string>;
 
 /** Client-side required check (the API stays authoritative and returns 422 details). */
 export function missingRequired(fields: FieldSpec[], values: FormValues): Record<string, string> {
-  const e: Record<string, string> = {};
-  for (const f of fields) if (f.required && f.type !== "checkbox" && !(values[f.name] ?? "").trim()) e[f.name] = `${f.label} is required`;
-  return e;
+  return validateFields(fields.filter((f) => f.type !== "tags"), values);
 }
 
 /** One styled field of a spec (native control underneath, `name` kept for forms and tests). */
-export function SpecField({ f, value, error, onChange }: { f: FieldSpec; value: string; error?: string; onChange: (v: string) => void }) {
+export function SpecField({ f, value, error, onChange, onBlur }: { f: FieldSpec; value: string; error?: string; onChange: (v: string) => void; onBlur?: () => void }) {
   switch (f.type) {
     case "select":
-      return <FormSelect label={f.label} name={f.name} value={value} error={error} hint={f.hint} wide={f.wide} options={f.options ?? []} onChange={(e) => onChange(e.target.value)} />;
+      return <FormSelect label={f.label} name={f.name} value={value} error={error} hint={f.hint} wide={f.wide} options={f.options ?? []} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />;
     case "date":
-      return <DatePicker label={f.label} name={f.name} value={value} error={error} hint={f.hint} wide={f.wide} onChange={(e) => onChange(e.target.value)} />;
+      return <DatePicker label={f.label} name={f.name} value={value} error={error} hint={f.hint} wide={f.wide} {...(f.rule === "dob" ? { min: inputAttrs(f).min, max: inputAttrs(f).max } : {})} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />;
     case "checkbox":
       return (
         <div className={f.wide ? "sb-wide" : undefined} style={{ alignSelf: "end" }}>
@@ -69,9 +74,9 @@ export function SpecField({ f, value, error, onChange }: { f: FieldSpec; value: 
       return <TagInput label={f.label} name={f.name} wide={f.wide ?? true} hint={f.hint} error={error} value={list} options={f.options} allowCustom={!f.options} onChange={(next) => onChange(next.join(","))} />;
     }
     case "textarea":
-      return <TextArea label={f.label} name={f.name} value={value} error={error} hint={f.hint} wide={f.wide ?? true} placeholder={f.placeholder} rows={3} onChange={(e) => onChange(e.target.value)} />;
+      return <TextArea label={f.label} name={f.name} value={value} error={error} hint={f.hint} wide={f.wide ?? true} placeholder={f.placeholder} rows={3} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />;
     default:
-      return <TextField label={f.label} name={f.name} type={f.type ?? "text"} value={value} error={error} hint={f.hint} wide={f.wide} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} />;
+      return <TextField label={f.label} name={f.name} type={f.type ?? "text"} {...inputAttrs(f)} value={value} error={error} hint={f.hint} wide={f.wide} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />;
   }
 }
 
@@ -101,34 +106,15 @@ export function SpecForm({
   /** Prototype `.x-form`: one row, the button at the end (tile forms). */
   inline?: { icon?: ReactNode };
 }) {
-  const [values, setValues] = useState<FormValues>(() => initialValues(fields));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const set = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }));
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const missing = missingRequired(fields, values);
-    setErrors(missing);
-    setError(null);
-    if (Object.keys(missing).length) return;
-    setBusy(true);
-    try {
-      await onSubmit(values);
-      setValues(initialValues(fields));
-    } catch (err) {
-      const fe = fieldErrors(err);
-      if (Object.keys(fe).length) setErrors(fe);
-      else setError(problemText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Phase B shared form layer: rules + bounds, on-blur checks, 422 problem → fields, focus.
+  const form = useValidatedForm(fields.filter((f) => f.type !== "tags"), () => initialValues(fields));
+  const { values, errors, error, busy, set, blur, formRef } = form;
+  const submit = form.submit(onSubmit, () => form.setValues(initialValues(fields)));
   if (inline)
     return (
-      <form onSubmit={submit} noValidate data-form={name} className="st-inline-form">
+      <form ref={formRef} onSubmit={submit} noValidate data-form={name} className="st-inline-form">
         {fields.map((f) => (
-          <SpecField key={f.name} f={f} value={values[f.name] ?? ""} error={errors[f.name]} onChange={(v) => set(f.name, v)} />
+          <SpecField key={f.name} f={f} value={values[f.name] ?? ""} error={errors[f.name]} onChange={(v) => set(f.name, v)} onBlur={() => blur(f.name)} />
         ))}
         <button type="submit" className="sb-btn" disabled={busy} data-dialog-primary="">
           {inline.icon}
@@ -142,11 +128,11 @@ export function SpecForm({
       </form>
     );
   return (
-    <form onSubmit={submit} noValidate data-form={name} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form ref={formRef} onSubmit={submit} noValidate data-form={name} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {fields.length > 0 && (
         <FormGrid columns={fields.length === 1 ? 1 : columns}>
           {fields.map((f) => (
-            <SpecField key={f.name} f={f} value={values[f.name] ?? ""} error={errors[f.name]} onChange={(v) => set(f.name, v)} />
+            <SpecField key={f.name} f={f} value={values[f.name] ?? ""} error={errors[f.name]} onChange={(v) => set(f.name, v)} onBlur={() => blur(f.name)} />
           ))}
         </FormGrid>
       )}

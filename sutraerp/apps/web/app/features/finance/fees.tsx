@@ -497,7 +497,7 @@ export function StudentFees() {
                     name: "my-refund",
                     submitLabel: "Request refund",
                     fields: [
-                      { name: "amount", label: "Amount (₹)", required: true, initial: fromPaise(credit) },
+                      { name: "amount", label: "Amount (₹)", required: true, initial: fromPaise(credit), rule: "amount" },
                       { ...REASON, label: "Why" },
                     ],
                     onSubmit: (v) => submit(() => payApi.requestMyRefund({ amount: v.amount!, reason: v.reason! }), (r) => `Refund ${r.refundNumber}: ${statusLabel(r.status).toLowerCase()}`),

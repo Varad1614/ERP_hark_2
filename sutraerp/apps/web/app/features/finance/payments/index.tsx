@@ -126,7 +126,7 @@ export function CollectionsAdminTab({ institution }: { institution: Institution 
                 fields: [
                   { name: "accountId", label: "Student", type: "select", required: true, options: accountOptions, wide: true },
                   { name: "channel", label: "Channel", type: "select", required: true, options: CHANNELS, initial: "cash" },
-                  { name: "amount", label: "Amount (₹)", required: true, placeholder: "25000.00" },
+                  { name: "amount", label: "Amount (₹)", required: true, placeholder: "25000.00", rule: "amount" },
                   { name: "externalRef", label: "Cheque / UTR / DD number" },
                   { name: "payerName", label: "Payer (sponsor)" },
                 ],
@@ -185,7 +185,7 @@ export function CollectionsAdminTab({ institution }: { institution: Institution 
                 submitLabel: "Record",
                 fields: [
                   { name: "channel", label: "Channel", type: "select", required: true, options: CHANNELS, initial: "bank_transfer" },
-                  { name: "amount", label: "Amount (₹)", required: true },
+                  { name: "amount", label: "Amount (₹)", required: true, rule: "amount" },
                   { name: "externalRef", label: "UTR / reference" },
                   { name: "payerName", label: "Remitter as shown" },
                 ],
@@ -315,7 +315,7 @@ export function RefundsAdminTab({ institution }: { institution: Institution | nu
                 submitLabel: "Request",
                 fields: [
                   { name: "accountId", label: "Student", type: "select", required: true, options: [{ value: "", label: "Choose a student" }, ...(accounts.data ?? []).map((x) => ({ value: x.id, label: x.displayName }))], wide: true },
-                  { name: "amount", label: "Amount (₹)", required: true },
+                  { name: "amount", label: "Amount (₹)", required: true, rule: "amount" },
                   { ...REASON, label: "Why" },
                 ],
                 onSubmit: (v) => submit(() => api.requestRefund(v.accountId!, { amount: v.amount!, reason: v.reason! }), (r) => `${r.refundNumber} ${statusLabel(r.status).toLowerCase()}`),

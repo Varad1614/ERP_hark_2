@@ -11,6 +11,7 @@ import { createContext, useCallback, useContext, useState, useSyncExternalStore,
 import { StepUp } from "../../components/StepUpDialog";
 import { USES_API } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { problemMessage } from "../../lib/forms";
 import { useInbox } from "../../lib/inbox";
 import { createHttpInstitutionApi, type InstitutionApi } from "./api";
 import { createMockInstitutionApi } from "./mock";
@@ -82,9 +83,9 @@ export function problemText(e: unknown): string {
   if (e instanceof ApiProblem) {
     const v = e.problem.validationErrors?.[0];
     if (v) return `${v.message}`;
-    return e.problem.detail ?? e.problem.title;
   }
-  return e instanceof Error ? e.message : "Something went wrong";
+  // Phase B: problem detail or a human status sentence, never "Request failed (422)".
+  return problemMessage(e);
 }
 
 /** Field → message map of a 422 (for inline form errors). */

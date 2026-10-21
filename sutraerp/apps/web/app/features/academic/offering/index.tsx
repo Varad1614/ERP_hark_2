@@ -89,7 +89,7 @@ export function useOfferingCreate(institutionId: string | null, submit: <T>(acti
       { name: "offeringCode", label: "Course code", required: true, placeholder: "For example, CS307-T1" },
       { name: "title", label: "Title", placeholder: "Defaults to the curriculum title", wide: true },
       { name: "sectionCode", label: "First section", initial: "A" },
-      { name: "sectionCapacity", label: "Seats in the section", type: "number", initial: "60" },
+      { name: "sectionCapacity", label: "Seats in the section", type: "number", initial: "60", rule: "seats", member: "capacity" },
     ],
     onSubmit: async (v) => {
       if (!institutionId) return;
@@ -259,7 +259,7 @@ function OfferingDetail({ offering: o }: { offering: Offering }) {
                   name: "section-add",
                   fields: [
                     { name: "sectionCode", label: "Section code", required: true, placeholder: "B" },
-                    { name: "capacity", label: "Capacity", type: "number" },
+                    { name: "capacity", label: "Capacity", type: "number", rule: "seats" },
                   ],
                   submitLabel: "Add section",
                   onSubmit: (v) => submit(() => api.addSection(o.id, { sectionCode: v.sectionCode!.trim(), capacity: v.capacity ? Number(v.capacity) : null }), "Section added"),
@@ -304,7 +304,7 @@ function OfferingDetail({ offering: o }: { offering: Offering }) {
                         ask({
                           title: `Capacity of section ${s.sectionCode}`,
                           name: "section-capacity",
-                          fields: [{ name: "capacity", label: "Seats", type: "number", required: true, initial: String(s.capacity ?? "") }, REASON],
+                          fields: [{ name: "capacity", label: "Seats", type: "number", required: true, initial: String(s.capacity ?? ""), rule: "seats" }, REASON],
                           submitLabel: "Change capacity",
                           onSubmit: (v) => submit(() => api.changeCapacity(o.id, o.version, { sectionId: s.id, capacity: Number(v.capacity), reason: v.reason!.trim() }), "Capacity changed"),
                         }),

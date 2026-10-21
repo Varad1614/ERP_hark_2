@@ -22,10 +22,11 @@ import {
   type ChipOption,
 } from "@sutra/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { keys as instKeys, useInstitutionApi } from "../../institution/hooks";
 import type { Institution } from "../../institution/types";
+import { focusFirstInvalid, memberAliases, problemFieldErrors, problemMessage, validateField, validateFields } from "../../../lib/forms";
 import { student360Path } from "../index";
 import { DialogFrame, NoInstitution, REASON, rowProps, SpecField, useAsk, type FieldSpec, type FormValues, type RowAction } from "../ui";
 import { admissionActions, type Admission, type AdmissionApplication, type AdmissionCommand, type AdmissionDocument, type Student } from "./api";
@@ -171,14 +172,15 @@ export function NewAdmissionDialog({ institution, open, onClose }: { institution
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
   if (!open) return null;
   const programmeId = values.programmeId || published[0]?.id || "";
   const steps: FieldSpec[][] = [
     [
-      { name: "fullName", label: "Full name", required: true, placeholder: "As on the Class 12 marksheet", wide: true },
-      { name: "dateOfBirth", label: "Date of birth", type: "date" },
-      { name: "phone", label: "Mobile", type: "tel", placeholder: "98765 43210" },
-      { name: "email", label: "Email", type: "email", placeholder: "name@example.com", wide: true },
+      { name: "fullName", label: "Full name", required: true, placeholder: "As on the Class 12 marksheet", wide: true, member: ["givenName", "familyName"] },
+      { name: "dateOfBirth", label: "Date of birth", type: "date", required: true, rule: "dob" },
+      { name: "phone", label: "Mobile", type: "tel", placeholder: "98765 43210", rule: "mobile" },
+      { name: "email", label: "Email", type: "email", placeholder: "name@example.com", wide: true, rule: "email" },
     ],
     [
       { name: "programmeId", label: "Programme", type: "select", required: true, options: published.map((p) => ({ value: p.id, label: p.name })), wide: true, initial: programmeId },
@@ -194,10 +196,10 @@ export function NewAdmissionDialog({ institution, open, onClose }: { institution
   };
   const current = steps[step] ?? [];
   const next = async () => {
-    const missing: Record<string, string> = {};
-    for (const f of current) if (f.required && !((f.name === "programmeId" ? programmeId : values[f.name]) ?? "").trim()) missing[f.name] = `${f.label} is required`;
+    // Phase B shared form layer: required + rules on this step, first invalid control focused.
+    const missing = validateFields(current, { ...values, programmeId });
     setErrors(missing);
-    if (Object.keys(missing).length) return;
+    if (Object.keys(missing).length) return void focusFirstInvalid(formRef.current, current.map((f) => f.name), missing);
     if (step < 2) return setStep(step + 1);
     const name = (values.fullName ?? "").trim().replace(/\s+/g, " ");
     const cut = name.lastIndexOf(" ");
@@ -219,7 +221,16 @@ export function NewAdmissionDialog({ institution, open, onClose }: { institution
       );
       close();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The application could not be recorded.");
+      // 422 → back to the step that holds the first offending field, error shown there.
+      const all = steps.flat();
+      const { fields: fe, unmatched } = problemFieldErrors(e, all.map((f) => f.name), memberAliases(all));
+      const at = steps.findIndex((st) => st.some((f) => fe[f.name]));
+      if (at >= 0) {
+        setErrors(fe);
+        setStep(at);
+        queueMicrotask(() => focusFirstInvalid(formRef.current, all.map((f) => f.name), fe));
+      }
+      if (unmatched.length || at < 0) setError(unmatched[0] ?? problemMessage(e));
     } finally {
       setBusy(false);
     }
@@ -228,6 +239,7 @@ export function NewAdmissionDialog({ institution, open, onClose }: { institution
   return (
     <DialogFrame open onClose={close} eyebrow="Students · New admission" title={["Applicant details", "Programme & documents", "Fee & confirm"][step]!} steps={["Applicant details", "Programme & documents", "Fee & confirm"]} step={step}>
       <form
+        ref={formRef}
         data-form="new-application"
         data-step={step}
         noValidate
@@ -240,7 +252,10 @@ export function NewAdmissionDialog({ institution, open, onClose }: { institution
         {step < 2 ? (
           <div className="sb-fgrid" style={{ ["--cols" as string]: 2 }}>
             {current.map((f) => (
-              <SpecField key={f.name} f={f} value={f.name === "programmeId" ? programmeId : (values[f.name] ?? "")} error={errors[f.name]} onChange={(v) => setValues((s) => ({ ...s, [f.name]: v }))} />
+              <SpecField key={f.name} f={f} value={f.name === "programmeId" ? programmeId : (values[f.name] ?? "")} error={errors[f.name]}
+                onChange={(v) => setValues((s) => ({ ...s, [f.name]: v }))}
+                onBlur={() => setErrors((e) => { const m = validateField(f, f.name === "programmeId" ? programmeId : values[f.name]); const n = { ...e }; if (m) n[f.name] = m; else delete n[f.name]; return n; })}
+              />
             ))}
           </div>
         ) : (

@@ -18,12 +18,13 @@
 import "./academic.css";
 import { AreaHeader, BentoGrid, BentoTile, Checkbox, cx, DatePicker, FormGrid, FormSelect, RowActions, StepDialog, TextArea, TextField, Toggle, type AreaTab, type MenuItem, type NavLinkLikeProps, type Tone, type WeekSlot } from "@sutra/ui";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useMemo, useState, type ComponentType, type FormEvent, type ReactNode } from "react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 import { useSession } from "../../lib/auth";
 import type { FieldSpec as BaseFieldSpec, FormValues, RowAction } from "../institution/forms";
-import { fieldErrors, problemText, selectInstitution, useInstitutionApi, useInstitutions } from "../institution/hooks";
+import { selectInstitution, useInstitutionApi, useInstitutions } from "../institution/hooks";
 import type { Institution } from "../institution/types";
+import { inputAttrs, useValidatedForm } from "../../lib/forms";
 
 export type { FormValues, RowAction } from "../institution/forms";
 
@@ -49,16 +50,10 @@ export interface AskSpec {
   onSubmit: (values: FormValues) => Promise<unknown>;
 }
 
-function missing(fields: FieldSpec[], values: FormValues): Record<string, string> {
-  const e: Record<string, string> = {};
-  for (const f of fields) if (f.required && f.type !== "checkbox" && f.type !== "toggle" && !(values[f.name] ?? "").trim()) e[f.name] = `${f.label} is required`;
-  return e;
-}
-
 const initialValues = (fields: FieldSpec[]) => Object.fromEntries(fields.map((f) => [f.name, f.initial ?? (f.type === "checkbox" || f.type === "toggle" ? "false" : "")]));
 
 /** One field of a spec in the prototype form style. */
-function SpecField({ f, value, error, set }: { f: FieldSpec; value: string; error?: string; set: (v: string) => void }) {
+function SpecField({ f, value, error, set, blur }: { f: FieldSpec; value: string; error?: string; set: (v: string) => void; blur?: () => void }) {
   const wide = f.wide || f.type === "textarea";
   switch (f.type) {
     case "select":
@@ -86,6 +81,8 @@ function SpecField({ f, value, error, set }: { f: FieldSpec; value: string; erro
           name={f.name}
           type={f.type === "number" ? "number" : f.type === "time" ? "time" : "text"}
           inputMode={f.type === "number" ? "decimal" : undefined}
+          {...inputAttrs(f)}
+          onBlur={blur}
           value={value}
           placeholder={f.placeholder}
           error={error}
@@ -98,30 +95,12 @@ function SpecField({ f, value, error, set }: { f: FieldSpec; value: string; erro
 }
 
 function useSpecForm(fields: FieldSpec[], onSubmit: (v: FormValues) => Promise<unknown>, resetOnSuccess = true) {
-  const [values, setValues] = useState<FormValues>(() => initialValues(fields));
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const set = (k: string) => (v: string) => setValues((s) => ({ ...s, [k]: v }));
-  const handle = async (e: FormEvent) => {
-    e.preventDefault();
-    const m = missing(fields, values);
-    setErrors(m);
-    setError(null);
-    if (Object.keys(m).length) return;
-    setBusy(true);
-    try {
-      await onSubmit(values);
-      if (resetOnSuccess) setValues(initialValues(fields));
-    } catch (err) {
-      const fe = fieldErrors(err);
-      if (Object.keys(fe).length) setErrors(fe);
-      else setError(problemText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return { values, errors, error, busy, set, handle };
+  // Phase B shared form layer: rules + bounds, on-blur checks, 422 problem → fields, focus.
+  const checked = fields.filter((f) => f.type !== "toggle");
+  const form = useValidatedForm(checked, () => initialValues(fields));
+  const set = (k: string) => (v: string) => form.set(k, v);
+  const handle = form.submit(onSubmit, resetOnSuccess ? () => form.setValues(initialValues(fields)) : undefined);
+  return { values: form.values, errors: form.errors, error: form.error, busy: form.busy, set, handle, blur: form.blur, formRef: form.formRef };
 }
 
 function AskDialog({ spec, onClose }: { spec: AskSpec; onClose: () => void }) {
@@ -136,12 +115,12 @@ function AskDialog({ spec, onClose }: { spec: AskSpec; onClose: () => void }) {
   // The footer lives inside the <form> (data-form + a real submit button: e2e / unit `fillForm`).
   return (
     <StepDialog open onClose={onClose} eyebrow={spec.eyebrow} title={spec.title} footer={<></>}>
-      <form onSubmit={f.handle} noValidate className="ac-ask" data-form={spec.name}>
+      <form ref={f.formRef} onSubmit={f.handle} noValidate className="ac-ask" data-form={spec.name}>
         {spec.intro}
         {spec.fields.length > 0 && (
           <FormGrid columns={spec.columns ?? (spec.fields.length > 1 ? 2 : 1)}>
             {spec.fields.map((x) => (
-              <SpecField key={x.name} f={x} value={f.values[x.name] ?? ""} error={f.errors[x.name]} set={f.set(x.name)} />
+              <SpecField key={x.name} f={x} value={f.values[x.name] ?? ""} error={f.errors[x.name]} set={f.set(x.name)} blur={() => f.blur(x.name)} />
             ))}
           </FormGrid>
         )}
@@ -174,11 +153,11 @@ export function useAsk() {
 export function AskForm({ fields, submitLabel, onSubmit, onCancel, name, columns, children, title, bare }: { fields: FieldSpec[]; submitLabel: string; onSubmit: (v: FormValues) => Promise<unknown>; onCancel?: () => void; name: string; columns?: 1 | 2 | 3; children?: ReactNode; title?: string; bare?: boolean }) {
   const f = useSpecForm(fields, onSubmit);
   return (
-    <form onSubmit={f.handle} noValidate data-form={name} className={bare ? "ac-ask" : "ac-inline-form"}>
+    <form ref={f.formRef} onSubmit={f.handle} noValidate data-form={name} className={bare ? "ac-ask" : "ac-inline-form"}>
       {title && <h3 className="ac-form-title">{title}</h3>}
       <FormGrid columns={columns ?? (fields.length >= 3 ? 3 : 2)}>
         {fields.map((x) => (
-          <SpecField key={x.name} f={x} value={f.values[x.name] ?? ""} error={f.errors[x.name]} set={f.set(x.name)} />
+          <SpecField key={x.name} f={x} value={f.values[x.name] ?? ""} error={f.errors[x.name]} set={f.set(x.name)} blur={() => f.blur(x.name)} />
         ))}
       </FormGrid>
       {children}

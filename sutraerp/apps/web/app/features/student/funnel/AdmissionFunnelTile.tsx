@@ -8,13 +8,26 @@
 import { Filter } from "lucide-react";
 import { Badge, BentoTile, Button, DataTable, EmptyState, FormGrid, FormSelect, KeyValue, TextField, formatDate } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { USES_API } from "../../../lib/api";
+import { focusFirstInvalid, inputAttrs, problemFieldErrors, problemMessage, validateField, validateFields, type Errors, type ValidatedField } from "../../../lib/forms";
 import { useCommand } from "../../institution/hooks";
 import { createHttpFunnelApi, type FunnelApi } from "./api";
 import { barWidths, LOST_REASONS, nextStage, pct, rupees, SOURCES, sourceLabel, stageKind } from "./funnel";
 import { createMockFunnelApi } from "./mock";
 import type { Enquiry, FunnelStage } from "./types";
+
+/** New-enquiry fields (Phase B shared form layer: rules mirror the server's A2 policy). */
+const ENQUIRY_FIELDS: ValidatedField[] = [
+  { name: "givenName", label: "First name", required: true },
+  { name: "familyName", label: "Last name" },
+  { name: "phone", label: "Mobile", rule: "mobile" },
+  { name: "email", label: "E-mail", rule: "email" },
+  { name: "intake", label: "Intake", rule: "integer", min: 2000, max: 2100 },
+  { name: "expectedFee", label: "Expected fee", rule: "amount" },
+];
+const ENQUIRY_ORDER = ENQUIRY_FIELDS.map((f) => f.name);
+const enquiryField = (name: string) => ENQUIRY_FIELDS.find((f) => f.name === name)!;
 
 let fallback: FunnelApi | null = null;
 export function defaultFunnelApi(): FunnelApi {
@@ -32,7 +45,10 @@ const VIEWS: { value: View; label: string }[] = [
 ];
 
 export function AdmissionFunnelTile({ institutionId, programmes = [], api = defaultFunnelApi() }: { institutionId: string; programmes?: { id: string; name: string }[]; api?: FunnelApi }) {
-  const { run, busy, dialog } = useCommand();
+  const { run, submit, busy, dialog } = useCommand();
+  const [enqErrors, setEnqErrors] = useState<Errors>({});
+  const [enqError, setEnqError] = useState<string | null>(null);
+  const enqRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<View>("enquiries");
   const [q, setQ] = useState("");
   const [onlyOpen, setOnlyOpen] = useState(true);
@@ -50,6 +66,39 @@ export function AdmissionFunnelTile({ institutionId, programmes = [], api = defa
   const settings = useQuery({ queryKey: key("settings"), queryFn: () => api.settings(institutionId), enabled: view === "settings" });
   const stages: FunnelStage[] = list.data?.stages ?? [];
   const progName = (id?: string | null) => programmes.find((p) => p.id === id)?.name ?? "—";
+
+  type DraftKey = keyof typeof draft;
+  const enqBlur = (name: string) =>
+    setEnqErrors((e) => {
+      const m = validateField(enquiryField(name), draft[name as DraftKey]);
+      const n = { ...e };
+      if (m) n[name] = m;
+      else delete n[name];
+      return n;
+    });
+  const enqText = (name: DraftKey, placeholder?: string, label?: string) => {
+    const f = enquiryField(name);
+    return (
+      <TextField label={label ?? f.label} name={name} {...inputAttrs(f)} value={draft[name]} placeholder={placeholder} error={enqErrors[name]}
+        onChange={(e) => setDraft({ ...draft, [name]: e.target.value })} onBlur={() => enqBlur(name)} />
+    );
+  };
+  /** Validates (rules + "a phone or an e-mail"), records, and maps a 422 back onto the fields. */
+  const recordEnquiry = async <T extends { enquiry: { enquiryNumber: string } }>(action: () => Promise<T>) => {
+    const errs = validateFields(ENQUIRY_FIELDS, draft);
+    if (!errs.phone && !errs.email && !draft.phone.trim() && !draft.email.trim()) errs.phone = "Give a mobile number or an e-mail address";
+    setEnqErrors(errs);
+    setEnqError(null);
+    if (Object.keys(errs).length) return void focusFirstInvalid(enqRef.current, ENQUIRY_ORDER, errs);
+    try {
+      await submit(action, (r) => `Enquiry ${r.enquiry.enquiryNumber} recorded`);
+    } catch (err) {
+      const { fields, unmatched } = problemFieldErrors(err, ENQUIRY_ORDER);
+      setEnqErrors(fields);
+      focusFirstInvalid(enqRef.current, ENQUIRY_ORDER, fields);
+      if (unmatched.length || !Object.keys(fields).length) setEnqError(unmatched[0] ?? problemMessage(err));
+    }
+  };
 
   const tabs = (
     <div className="flex gap-1" role="tablist">
@@ -74,20 +123,26 @@ export function AdmissionFunnelTile({ institutionId, programmes = [], api = defa
     <BentoTile span={12} title="Admissions funnel" data-slice="2A" data-admission-funnel action={tabs}>
       {view === "enquiries" && (
         <>
+          <div ref={enqRef} style={{ display: "contents" }}>
           <FormGrid columns={3}>
-            <TextField label="First name" value={draft.givenName} onChange={(e) => setDraft({ ...draft, givenName: e.target.value })} />
-            <TextField label="Last name" value={draft.familyName} onChange={(e) => setDraft({ ...draft, familyName: e.target.value })} />
-            <TextField label="Mobile" value={draft.phone} placeholder="+91 98200 12345" onChange={(e) => setDraft({ ...draft, phone: e.target.value })} />
-            <TextField label="E-mail" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} />
+            {enqText("givenName")}
+            {enqText("familyName")}
+            {enqText("phone", "+91 98200 12345")}
+            {enqText("email")}
             <FormSelect label="Came from" value={draft.source} onChange={(e) => setDraft({ ...draft, source: e.target.value })} options={SOURCES.map((s) => ({ value: s.value, label: s.label }))} />
             <FormSelect label="Programme" value={draft.programmeId} onChange={(e) => setDraft({ ...draft, programmeId: e.target.value })}
               options={[{ value: "", label: "Not decided" }, ...programmes.map((p) => ({ value: p.id, label: p.name }))]} />
-            <TextField label="Intake (YYYY)" value={draft.intake} placeholder="2027" onChange={(e) => setDraft({ ...draft, intake: e.target.value })} />
-            <TextField label="Expected fee (₹)" value={draft.expectedFee} placeholder="150000" onChange={(e) => setDraft({ ...draft, expectedFee: e.target.value })} />
+            {enqText("intake", "2027", "Intake (YYYY)")}
+            {enqText("expectedFee", "150000", "Expected fee (₹)")}
           </FormGrid>
+          {enqError && (
+            <p className="sb-field-error" role="alert">
+              {enqError}
+            </p>
+          )}
+          </div>
           <Button size="sm" data-action="new-enquiry" disabled={busy || !draft.givenName.trim()}
-            onClick={() =>
-              void run(async () => {
+            onClick={() => void recordEnquiry(async () => {
                 const r = await api.createEnquiry(institutionId, {
                   givenName: draft.givenName,
                   familyName: draft.familyName || undefined,
@@ -101,8 +156,7 @@ export function AdmissionFunnelTile({ institutionId, programmes = [], api = defa
                 setDupes(r.possibleDuplicates.length ? `${r.enquiry.displayName} may already be ${r.possibleDuplicates.map((d) => `${d.number ?? d.kind} (${d.name}, same ${d.reasons.join(" + ")})`).join(", ")}` : null);
                 setDraft({ ...draft, givenName: "", familyName: "", phone: "", email: "" });
                 return r;
-              }, (r) => `Enquiry ${r.enquiry.enquiryNumber} recorded`)
-            }>
+              })}>
             Record enquiry
           </Button>
           {dupes && <p className="text-sm" data-duplicate-hint role="status"><Badge kind="attention">Possible duplicate</Badge> {dupes}</p>}

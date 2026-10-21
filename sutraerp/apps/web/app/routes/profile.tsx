@@ -2,9 +2,10 @@ import { LogOut, ShieldCheck } from "lucide-react";
 import { ApiProblem, type CategoryPreference, type Profile, type UpdateProfile } from "@sutra/api-client";
 import { Badge, BentoGrid, BentoTile, Button, Checkbox, FormGrid, FormSelect, Initials, TextField, useToast } from "@sutra/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { useAuth, useSession } from "../lib/auth";
+import { focusFirstInvalid, problemFieldErrors, problemMessage } from "../lib/forms";
 import "../components/shell.css";
 import { inboxKeys, useInbox, useInboxRefresh } from "../lib/inbox";
 import { ROLE_CONFIG, roleTitle } from "../lib/roles";
@@ -31,6 +32,8 @@ export interface ProfileDraft {
 }
 
 /** Client-side checks mirroring the API (which stays authoritative). */
+const PROFILE_FIELDS = ["displayName", "locale", "timeZone", "contactEmail", "contactPhone"];
+
 export function validateProfile(d: ProfileDraft): Record<string, string> {
   const e: Record<string, string> = {};
   if (!d.displayName.trim()) e.displayName = "Your name is required";
@@ -73,6 +76,7 @@ export default function ProfilePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const { signOut } = useAuth();
 
   useEffect(() => {
@@ -95,11 +99,21 @@ export default function ProfilePage() {
   const profile = q.data;
   const set = (k: keyof ProfileDraft) => (e: { target: { value: string } }) => setDraft({ ...draft, [k]: e.target.value });
 
+  /** On-blur check of one field with the same rules as submit. */
+  const blurProfile = (k: keyof ProfileDraft) =>
+    setErrors((e) => {
+      const m = (validateProfile(draft) as Record<string, string | undefined>)[k];
+      const n: Record<string, string> = { ...e };
+      if (m) n[k] = m;
+      else delete n[k];
+      return n;
+    });
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     const v = validateProfile(draft);
     setErrors(v);
-    if (Object.keys(v).length) return;
+    if (Object.keys(v).length) return void focusFirstInvalid(formRef.current, PROFILE_FIELDS, v);
     const patch = profilePatch(profile, draft, prefs);
     if (Object.keys(patch).length === 0) {
       toast("Nothing to save");
@@ -112,12 +126,16 @@ export default function ProfilePage() {
       setEditing(false);
       toast("Profile saved");
     } catch (err) {
-      if (err instanceof ApiProblem && err.problem.validationErrors?.length) {
-        setErrors(Object.fromEntries(err.problem.validationErrors.map((x) => [x.field, x.message])));
+      // Phase B shared form layer: 422 members → fields (pointer or name), first one focused.
+      const { fields, unmatched } = problemFieldErrors(err, PROFILE_FIELDS);
+      if (Object.keys(fields).length) {
+        setErrors(fields);
+        focusFirstInvalid(formRef.current, PROFILE_FIELDS, fields);
+        if (unmatched.length) toast(unmatched[0]!);
       } else if (err instanceof ApiProblem && err.problem.status === 412) {
         toast("Your profile changed in another tab — reloaded the latest version.");
         await refresh();
-      } else toast(err instanceof Error ? err.message : "Could not save");
+      } else toast(unmatched[0] ?? problemMessage(err));
     } finally {
       setBusy(false);
     }
@@ -187,13 +205,13 @@ export default function ProfilePage() {
         }
       >
         {editing ? (
-          <form onSubmit={save} noValidate data-profile-form>
+          <form ref={formRef} onSubmit={save} noValidate data-profile-form>
             <FormGrid columns={2}>
-              <TextField label="Display name" name="displayName" value={draft.displayName} maxLength={120} error={errors.displayName} onChange={set("displayName")} />
+              <TextField label="Display name" name="displayName" value={draft.displayName} maxLength={120} error={errors.displayName} onChange={set("displayName")} onBlur={() => blurProfile("displayName")} />
               <FormSelect label="Language" name="locale" options={LOCALES.some((l) => l.value === draft.locale) ? LOCALES : [...LOCALES, { value: draft.locale, label: draft.locale }]} value={draft.locale} error={errors.locale} onChange={set("locale")} />
               <FormSelect label="Time zone" name="timeZone" options={ZONES.some((z) => z.value === draft.timeZone) ? ZONES : [...ZONES, { value: draft.timeZone, label: draft.timeZone }]} value={draft.timeZone} error={errors.timeZone} onChange={set("timeZone")} />
-              <TextField label="Contact e-mail" name="contactEmail" type="email" value={draft.contactEmail} error={errors.contactEmail} onChange={set("contactEmail")} />
-              <TextField label="Mobile" name="contactPhone" type="tel" placeholder="+919876543210" value={draft.contactPhone} error={errors.contactPhone} onChange={set("contactPhone")} />
+              <TextField label="Contact e-mail" name="contactEmail" type="email" value={draft.contactEmail} error={errors.contactEmail} onChange={set("contactEmail")} onBlur={() => blurProfile("contactEmail")} />
+              <TextField label="Mobile" name="contactPhone" type="tel" placeholder="+919876543210" value={draft.contactPhone} error={errors.contactPhone} onChange={set("contactPhone")} onBlur={() => blurProfile("contactPhone")} />
             </FormGrid>
             <div className="sb-actions-row">
               <Button type="submit" disabled={busy} data-save-profile>

@@ -89,10 +89,31 @@ export function csrfMiddleware(csrfToken: () => string | undefined): Middleware 
   };
 }
 
+/**
+ * Human sentence for an HTTP status (audit 2026-10 Phase B: never surface "Request failed (422)").
+ * Used when a response carries no problem `detail`, or only a client-made "Request failed (n)" title.
+ */
+export function statusMessage(status: number): string {
+  if (status === 400) return "The request could not be read. Check the form and try again.";
+  if (status === 401) return "Your session has ended. Sign in again to continue.";
+  if (status === 403) return "You don't have permission to do this.";
+  if (status === 404) return "That record could not be found. It may have been removed.";
+  if (status === 409 || status === 412) return "This record was changed by someone else. Refresh and try again.";
+  if (status === 413) return "That is too large to send.";
+  if (status === 415) return "That kind of content is not accepted here.";
+  if (status === 422) return "Some details are not valid. Check the highlighted fields.";
+  if (status === 429) return "Too many requests. Wait a moment and try again.";
+  if (status >= 500) return "The server could not complete this right now. Try again shortly.";
+  return "Something went wrong. Try again.";
+}
+
+/** Client-made placeholder titles (`Request failed (422)`) that must not reach the user. */
+export const GENERIC_TITLE = /^Request failed(?: \(\d+\))?$/;
+
 /** Error thrown for RFC 9457 problem responses. */
 export class ApiProblem extends Error {
   constructor(public readonly problem: Problem) {
-    super(problem.detail ?? problem.title);
+    super(problem.detail || (!problem.title || GENERIC_TITLE.test(problem.title) ? statusMessage(problem.status) : problem.title));
     this.name = "ApiProblem";
   }
 }
