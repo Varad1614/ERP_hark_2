@@ -3,6 +3,10 @@
 /* ---------- app shell ---------- */
 .sb-app { max-width: 1440px; margin: 0 auto; padding: 22px 32px 60px; }
 .sb-header { display: flex; align-items: center; gap: 22px; margin-bottom: 22px; position: relative; }
+/* Skip link (A11Y-4, WCAG 2.4.1): off-screen until focused. */
+.sb-skip { position: absolute; left: 12px; top: -48px; z-index: 1000; padding: 10px 16px; border-radius: 8px; background: var(--sb-ink); color: #fff; font-weight: 600; }
+.sb-skip:focus { top: 12px; }
+main:focus { outline: none; }
 .sb-logo { font-weight: 800; font-size: 22px; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
 .sb-logo > i { width: 26px; height: 26px; border-radius: 50%; background: var(--ac); display: inline-block; }
 .sb-pills { display: flex; gap: 4px; background: var(--sb-surface); border-radius: var(--radius-pill); padding: 5px; box-shadow: var(--shadow-soft); margin-left: 24px; overflow-x: auto; scrollbar-width: none; min-width: 0; }

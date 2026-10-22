@@ -53,12 +53,17 @@ export function PillNav({ nav, linkComponent: Link }: Pick<ShellProps, "nav" | "
 export function Shell({ nav, linkComponent, actions, children, brand, footer }: ShellProps) {
   return (
     <div className="sb-app">
+      <a className="sb-skip" href="#main">
+        Skip to content
+      </a>
       <header className="sb-header">
         {brand ?? <Logo />}
         <PillNav nav={nav} linkComponent={linkComponent} />
         <div className="sb-header-actions">{actions}</div>
       </header>
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
       {footer}
     </div>
   );
