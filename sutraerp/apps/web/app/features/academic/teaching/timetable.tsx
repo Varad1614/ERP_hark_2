@@ -50,8 +50,8 @@ export function StudentTimetableScreen() {
   const week = useQuery({ queryKey: dkeys.scoped("me", "timetable"), queryFn: () => api.myTimetable() });
   const att = useQuery({ queryKey: dkeys.scoped("me", "attendance"), queryFn: () => api.myAttendance() });
   const slots = week.data?.items ?? [];
-  const lines = att.data ?? [];
-  const totals = lines.reduce((a, l) => ({ attended: a.attended + l.attended, total: a.total + l.total }), { attended: 0, total: 0 });
+  const lines = att.data?.items ?? [];
+  const totals = att.data?.overall;
   const courses = new Set(slots.map((s) => s.offeringId)).size;
   return (
     <>
@@ -63,8 +63,8 @@ export function StudentTimetableScreen() {
         icon={Percent}
         tone="green"
         label="Attendance"
-        value={totals.total > 0 ? pctText((totals.attended / totals.total) * 100) : "—"}
-        sub={totals.total > 0 ? `${totals.attended} of ${totals.total} sessions attended` : "No finalised sessions yet"}
+        value={totals?.percent != null ? pctText(totals.percent) : "—"}
+        sub={totals?.percent != null ? `${totals.attended} of ${totals.total} sessions attended` : "No finalised sessions yet"}
         loading={att.isLoading}
       />
       <BentoTile span={12} data-student-timetable>

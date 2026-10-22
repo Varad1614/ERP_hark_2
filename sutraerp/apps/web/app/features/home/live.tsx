@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { Children, type ReactElement, type ReactNode } from "react";
 import { useDeliveryApi, dkeys } from "../academic/delivery/hooks";
+import { pctText } from "../academic/kit";
 import type { TimetableSlot } from "../academic/delivery/types";
 import { formatInr } from "../finance";
 import { pkeys, usePaymentsApi } from "../finance/payments/hooks";
@@ -290,9 +291,9 @@ export function StudentKpis({ go, only }: { go: Go; only?: number }) {
   const resultsApi = useResultsApi();
   const results = useQuery({ queryKey: resultKeys.scoped("me", "results"), queryFn: () => resultsApi.myResults() });
   const latest = results.data ? latestResult(results.data) : undefined;
-  const lines = att.data ?? [];
-  const attended = lines.reduce((n, l) => n + l.attended, 0);
-  const total = lines.reduce((n, l) => n + l.total, 0);
+  const lines = att.data?.items ?? [];
+  // One server-side definition (MyAttendance.overall), the same figure the Timetable shows.
+  const overall = att.data?.overall;
   const below = lines.filter((l) => l.belowThreshold).length;
   const now = Date.now();
   const week = now + 7 * 86_400_000;
@@ -309,8 +310,8 @@ export function StudentKpis({ go, only }: { go: Go; only?: number }) {
         icon={UserCheck}
         tone="orange"
         label="Attendance"
-        value={att.data ? (total ? `${Math.round((attended / total) * 100)}%` : "—") : "…"}
-        hint={att.data ? (total ? (below ? `Below the minimum in ${below} course${below === 1 ? "" : "s"}` : `${attended} of ${total} sessions`) : "No sessions recorded yet") : "My courses"}
+        value={overall ? (overall.percent != null ? pctText(overall.percent) : "—") : "…"}
+        hint={overall ? (overall.percent != null ? (below ? `Below the minimum in ${below} course${below === 1 ? "" : "s"}` : `${overall.attended} of ${overall.total} sessions`) : "No sessions recorded yet") : "My courses"}
         onClick={() => go("timetable")}
         data-kpi="attendance"
       />

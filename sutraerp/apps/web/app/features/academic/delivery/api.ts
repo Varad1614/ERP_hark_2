@@ -27,7 +27,7 @@ import type {
   Items,
   MonitoringCase,
   MyAssignment,
-  MyAttendanceLine,
+  MyAttendance,
   OpenCase,
   RequestCorrection,
   SchedulingRequirement,
@@ -70,7 +70,7 @@ export interface DeliveryApi {
   createPolicy(institutionId: string, input: CreatePolicy): Promise<AttendancePolicy>;
   submitPolicy(id: string, version: number): Promise<AttendancePolicy>;
   summary(sectionId: string): Promise<AttendanceSummary>;
-  myAttendance(): Promise<MyAttendanceLine[]>;
+  myAttendance(): Promise<MyAttendance>;
   // monitoring
   listCases(institutionId: string): Promise<MonitoringCase[]>;
   openCase(institutionId: string, input: OpenCase): Promise<MonitoringCase>;
@@ -246,7 +246,7 @@ export function createHttpDeliveryApi(fetchImpl: Fetch = (i, init) => fetch(i, i
     createPolicy: (i, input) => request("POST", fill(PATHS.policies, id(i)), { body: input, idempotent: true }),
     submitPolicy: (i, v) => request("POST", fill(PATHS.policySubmit, id(i)), { ifMatch: v }),
     summary: (s) => request("GET", fill(PATHS.summary, id(s))),
-    myAttendance: () => items(PATHS.meAttendance),
+    myAttendance: () => request("GET", PATHS.meAttendance),
     listCases: (i) => items(fill(PATHS.cases, id(i))),
     openCase: (i, input) => request("POST", fill(PATHS.cases, id(i)), { body: input, idempotent: true }),
     assessRisk: (i, category, level, rationale) => request("POST", fill(PATHS.risk, id(i)), { body: { category, level, rationale }, idempotent: true }),

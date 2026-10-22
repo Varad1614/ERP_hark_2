@@ -301,6 +301,8 @@ pub struct MyAttendanceLine {
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 pub struct MyAttendance {
     pub items: Vec<MyAttendanceLine>,
+    /// Overall attendance across all lines — the one figure Home and Timetable both show.
+    pub overall: domain::AttendanceOverall,
 }
 
 /// A taught section with its recent sessions (faculty Attendance).
@@ -1132,6 +1134,7 @@ pub async fn my_attendance(
     let (me, sections) = crate::shared::me::my_sections(state, auth).await?;
     let tenant = auth.scope.tenant_id;
     let mut items = Vec::new();
+    let mut tallies = Vec::new();
     for s in sections {
         let policy = effective_policy(&state.pool, tenant, s.institution_id.as_uuid()).await?;
         let rules = policy
@@ -1149,6 +1152,7 @@ pub async fn my_attendance(
         .await
         .map_err(map_db_error)?;
         let t = domain::tally(&marks(&raw), &rules);
+        tallies.push(t);
         items.push(MyAttendanceLine {
             section_id: s.id.as_uuid(),
             offering_code: s.offering_code,
@@ -1161,7 +1165,8 @@ pub async fn my_attendance(
             threshold_percent: rules.threshold_percent,
         });
     }
-    Ok(MyAttendance { items })
+    let overall = domain::overall(&tallies);
+    Ok(MyAttendance { items, overall })
 }
 
 pub async fn faculty_attendance(
@@ -1173,7 +1178,15 @@ pub async fn faculty_attendance(
     let mut items = Vec::new();
     for s in sections {
         let seated = roster(state, tenant, s.id.as_uuid()).await?.len();
-        let sessions = list_for_section(state, tenant, s.id.as_uuid(), None, 50).await?;
+        let mut sessions = list_for_section(state, tenant, s.id.as_uuid(), None, 50).await?;
+        // Phase F (DATA-3): finalised registers carry their recorded marks, so the faculty
+        // dashboard's average reflects a register the moment it is finalised.
+        for x in sessions
+            .iter_mut()
+            .filter(|x| x.attendance_status == AttendanceCaptureStatus::Finalised)
+        {
+            x.records = lines(state, tenant, x).await?;
+        }
         items.push(TaughtSectionSessions {
             section_id: s.id.as_uuid(),
             offering_id: s.offering_id.as_uuid(),

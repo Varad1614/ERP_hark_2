@@ -136,6 +136,29 @@ pub fn tally(marks: &[AttendanceMark], rules: &CountingRules) -> Tally {
     }
 }
 
+/// The single definition of a student's overall attendance across sections (Phase F / DATA-2):
+/// sum of attended over sum of counted sessions, rounded to two decimals; `None` when nothing
+/// has been counted yet (never a fake 100 %). Every surface (Home, Timetable, Courses) shows this.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AttendanceOverall {
+    pub attended: i32,
+    pub total: i32,
+    pub percent: Option<f64>,
+}
+
+pub fn overall(tallies: &[Tally]) -> AttendanceOverall {
+    let attended: i32 = tallies.iter().map(|t| t.attended).sum();
+    let total: i32 = tallies.iter().map(|t| t.total).sum();
+    let percent =
+        (total > 0).then(|| (f64::from(attended) * 10000.0 / f64::from(total)).round() / 100.0);
+    AttendanceOverall {
+        attended,
+        total,
+        percent,
+    }
+}
+
 /// A breach is raised only on the change from "not below" to "below" (one event per breach).
 pub fn is_new_breach(previously_below: Option<bool>, now: &Tally) -> bool {
     now.below_threshold && previously_below != Some(true)
@@ -157,6 +180,21 @@ mod tests {
     use super::*;
     use AttendanceMark::*;
     use TeachingSessionStatus as S;
+
+    #[test]
+    fn overall_is_one_definition_and_none_when_empty() {
+        let r = CountingRules::default();
+        assert_eq!(overall(&[]).percent, None);
+        assert_eq!(
+            overall(&[tally(&[], &r)]).percent,
+            None,
+            "no sessions is not 100 %"
+        );
+        let a = tally(&[Present, Present, Absent], &r);
+        let b = tally(&[Present, Absent, Absent], &r);
+        let o = overall(&[a, b]);
+        assert_eq!((o.attended, o.total, o.percent), (3, 6, Some(50.0)));
+    }
 
     #[test]
     fn session_lifecycle_has_one_terminal_outcome() {

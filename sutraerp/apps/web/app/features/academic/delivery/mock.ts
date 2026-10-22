@@ -266,7 +266,7 @@ export function createMockDeliveryApi(): DeliveryApi {
         { studentId: S2, studentNumber: "S-0002", displayName: "Bina Rao", attended: 2, total: 4, percent: 50, belowThreshold: true },
       ],
     }),
-    myAttendance: async () => [{ sectionId: SECTION, offeringCode: "CS101-T1", title: "Programming I", sectionCode: "A", attended: 4, total: 5, percent: 80, belowThreshold: false, thresholdPercent: 75 }],
+    myAttendance: async () => ({ items: [{ sectionId: SECTION, offeringCode: "CS101-T1", title: "Programming I", sectionCode: "A", attended: 4, total: 5, percent: 80, belowThreshold: false, thresholdPercent: 75 }], overall: { attended: 4, total: 5, percent: 80 } }),
     listCases: async () => cases,
     openCase: async (i, input) => {
       const c: MonitoringCase = { id: uid(), institutionId: i, scopeKind: input.scopeKind, sectionId: input.sectionId, title: input.title, ownerSubject: "dev|admin@sutra.dev", reviewerSubject: input.reviewerSubject ?? null, status: "open", cycleNo: 1, version: 1, riskAssessments: [], interventions: [] };

@@ -29,7 +29,7 @@ export function StudentCoursesScreen() {
   const open = useQuery({ queryKey: okeys.scoped("me", "available"), queryFn: () => api.availableCourses() });
   const att = useQuery({ queryKey: dkeys.scoped("me", "attendance"), queryFn: () => delivery.myAttendance() });
   const courses = mine.data ?? [];
-  const lines = att.data ?? [];
+  const lines = att.data?.items ?? [];
   const total = courses.reduce((n, c) => n + c.credits, 0);
   const joinable = (open.data ?? []).filter((c) => !c.seated);
   const selected = courses.find((c) => c.offeringId === params.get("course"));

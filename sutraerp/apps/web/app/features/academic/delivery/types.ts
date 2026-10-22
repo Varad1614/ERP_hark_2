@@ -221,6 +221,18 @@ export interface MyAttendanceLine {
   thresholdPercent: number;
 }
 
+/** Server-computed overall attendance (one definition; `percent` null until a session counts). */
+export interface AttendanceOverall {
+  attended: number;
+  total: number;
+  percent: number | null;
+}
+
+export interface MyAttendance {
+  items: MyAttendanceLine[];
+  overall: AttendanceOverall;
+}
+
 export interface RiskAssessment {
   id: string;
   category: string;

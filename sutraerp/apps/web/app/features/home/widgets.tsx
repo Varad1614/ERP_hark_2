@@ -521,7 +521,7 @@ export function BunkWidget({ tile }: WidgetProps) {
   const api = useDeliveryApi();
   const navigate = useNavigate();
   const q = useQuery({ queryKey: dkeys.scoped("me", "attendance"), queryFn: () => api.myAttendance() });
-  const lines = (q.data ?? []).filter((l) => l.total > 0);
+  const lines = (q.data?.items ?? []).filter((l) => l.total > 0);
   return (
     <BentoTile className="dh-bunk" title={tile.title ?? "Attendance buffer"} action={<button type="button" onClick={() => navigate(routeFor("timetable"))}>Timetable</button>}>
       {q.isLoading ? (

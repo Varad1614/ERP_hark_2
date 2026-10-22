@@ -34,6 +34,7 @@ const T_MAKER_CHECKER: &str = "0192f5a0-7c3e-7000-8000-000000a1ac02";
 const T_GUARD: &str = "0192f5a0-7c3e-7000-8000-000000a1ac03";
 const T_SUBMIT: &str = "0192f5a0-7c3e-7000-8000-000000a1ac04";
 
+const T_DASH: &str = "0192f5a0-7c3e-7000-8000-000000a1ac05";
 const A: &str = "/api/v1/academic";
 const ADMIN: &str = "dev|admin@sutra.dev";
 const HOD: &str = "dev|hod.second-approver@sutra.dev";
@@ -588,4 +589,33 @@ async fn finalisation_requires_a_submitted_register() {
     )
     .await;
     assert_eq!(s["attendanceStatus"], "finalised");
+}
+
+/// Phase F (DATA-3): the faculty Home "Avg attendance" tile reads `GET /my/attendance`; a
+/// finalised register must carry its marks there, or the tile stays "No marked sessions".
+#[tokio::test]
+async fn faculty_dashboard_read_model_carries_finalised_marks() {
+    let f = fixture(T_DASH, "P1 Acad Dashboard University").await;
+    let s = finalised_session(&f, "2026-07-08", "absent", "present").await;
+    let sid = id(&s);
+    let mine = get_as(&f.app, &f.meera, "/my/attendance", StatusCode::OK).await;
+    let session = mine["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|sec| sec["sessions"].as_array().unwrap().iter())
+        .find(|x| x["id"] == sid.as_str())
+        .expect("finalised session listed");
+    let marks: Vec<&str> = session["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|r| r["mark"].as_str())
+        .collect();
+    assert_eq!(
+        marks.len(),
+        2,
+        "both finalised marks visible to the dashboard: {session}"
+    );
+    assert!(marks.contains(&"absent") && marks.contains(&"present"));
 }
