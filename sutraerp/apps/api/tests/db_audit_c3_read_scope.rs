@@ -366,4 +366,54 @@ async fn org_child_tables_carry_tenant_scope_under_forced_rls() {
         assert_eq!(tn.to_string(), t);
         assert_eq!(i.to_string(), inst);
     }
+
+    // Audit C4/M9: as the runtime role, another tenant's session (and no context at all) sees
+    // none of these child rows, even by id with no tenant predicate; the owning tenant does.
+    let bp_id = Uuid::parse_str(bp["id"].as_str().unwrap()).unwrap();
+    let mut c = <sqlx::PgConnection as sqlx::Connection>::connect(&runtime_url(database_url()))
+        .await
+        .unwrap();
+    assert_eq!(
+        child_rows_visible(&mut c, bp_id, t.to_owned()).await,
+        (2, 0),
+        "owning tenant"
+    );
+    assert_eq!(
+        child_rows_visible(&mut c, bp_id, Uuid::now_v7().to_string()).await,
+        (0, 0),
+        "foreign tenant"
+    );
+    assert_eq!(
+        child_rows_visible(&mut c, bp_id, String::new()).await.0,
+        0,
+        "no context fails closed"
+    );
+}
+
+/// (unit types of `bp` visible, restructure moves of another tenant visible) for a runtime-role
+/// connection pinned to `tenant` (empty = no context).
+async fn child_rows_visible(c: &mut sqlx::PgConnection, bp: Uuid, tenant: String) -> (i64, i64) {
+    sqlx::query(
+        "SELECT set_config('sutra.tenant_id', $1, false), \
+         set_config('sutra.institution_id', '', false), set_config('sutra.rls_scope', '', false)",
+    )
+    .bind(tenant)
+    .execute(&mut *c)
+    .await
+    .unwrap();
+    let unit_types: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM institution.org_type_blueprint_unit_type WHERE blueprint_id = $1",
+    )
+    .bind(bp)
+    .fetch_one(&mut *c)
+    .await
+    .unwrap();
+    let foreign_moves: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM institution.org_restructure_move \
+         WHERE tenant_id::text <> current_setting('sutra.tenant_id', true)",
+    )
+    .fetch_one(&mut *c)
+    .await
+    .unwrap();
+    (unit_types, foreign_moves)
 }

@@ -417,3 +417,17 @@ the range's summaries, report and CSVs. The expense golden matches exactly.
   of reaching the range check.
 - Pay, cost and expense totals can differ from the previous release by ₹0.01 on true half-paisa
   values (now rounded up, as the exact value demands).
+
+## C4 — M9 tenant scope on the two org child tables (completion)
+
+- Schema: `tenant_id` + `institution_id` (backfilled from the parent, `NOT NULL`) and forced RLS
+  (`sutra_tenant_isolation` via `platform.apply_tenant_rls()`) on
+  `institution.org_type_blueprint_unit_type` and `institution.org_restructure_move` already landed
+  with C3 in migration `20270106000100_audit_tenant_scope.sql`; no new migration was needed.
+- Repos: reads (`hydrate`) of both child tables and the blueprint unit-type `DELETE` now also filter
+  on the parent's `tenant_id` (defence in depth on top of RLS); inserts copy tenant + institution
+  from the parent row.
+- Test: `db_audit_c3_read_scope::org_child_tables_carry_tenant_scope_under_forced_rls` now also
+  connects as the runtime role and proves a foreign tenant (and no context) sees 0 unit-type rows of
+  the blueprint by id with no tenant predicate and no other tenant's restructure moves, while the
+  owning tenant sees its 2 rows.

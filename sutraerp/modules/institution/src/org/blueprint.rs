@@ -30,7 +30,7 @@ use sutra_persistence::map_db_error;
 use sutra_web::idempotency::require_idempotency_key;
 use sutra_web::{ApiResult, Authenticated};
 
-const COLUMNS: &str = "id, institution_id, version_no, status, supersedes_id, effective_from, \
+const COLUMNS: &str = "id, tenant_id, institution_id, version_no, status, supersedes_id, effective_from, \
     process_instance_id, published_at, published_by, decision_reason, version, created_at, updated_at";
 
 fn parse_status(s: &str) -> Result<PublicationStatus, KernelError> {
@@ -43,11 +43,14 @@ async fn hydrate(
     r: &sqlx::postgres::PgRow,
 ) -> Result<OrgTypeBlueprint, KernelError> {
     let id: uuid::Uuid = r.try_get("id").map_err(map_db_error)?;
+    let tenant_id: uuid::Uuid = r.try_get("tenant_id").map_err(map_db_error)?;
+    // Audit C4/M9: child rows are filtered by tenant too (defence in depth on top of RLS).
     let types = sqlx::query(
         "SELECT key, label, allow_root, allowed_parent_types FROM institution.org_type_blueprint_unit_type \
-         WHERE blueprint_id = $1 ORDER BY ordinal",
+         WHERE blueprint_id = $1 AND tenant_id = $2 ORDER BY ordinal",
     )
     .bind(id)
+    .bind(tenant_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(map_db_error)?
@@ -130,8 +133,12 @@ async fn write_types(
     id: OrgTypeBlueprintId,
     types: &[UnitType],
 ) -> Result<(), KernelError> {
-    sqlx::query("DELETE FROM institution.org_type_blueprint_unit_type WHERE blueprint_id = $1")
-        .bind(id.as_uuid())
+    // Audit C4/M9: scoped to the parent's tenant (defence in depth on top of RLS).
+    sqlx::query(
+        "DELETE FROM institution.org_type_blueprint_unit_type t USING institution.org_type_blueprint b \
+         WHERE t.blueprint_id = $1 AND b.id = t.blueprint_id AND t.tenant_id = b.tenant_id",
+    )
+    .bind(id.as_uuid())
         .execute(&mut *conn)
         .await
         .map_err(map_db_error)?;

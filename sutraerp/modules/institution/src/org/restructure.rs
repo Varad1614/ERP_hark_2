@@ -209,7 +209,7 @@ pub fn plan(
     Ok(out)
 }
 
-const COLUMNS: &str = "id, institution_id, kind, status, reason, effective_from, merge_target_id, \
+const COLUMNS: &str = "id, tenant_id, institution_id, kind, status, reason, effective_from, merge_target_id, \
     process_instance_id, requested_by, decided_by, decided_at, decision_reason, version, created_at, updated_at";
 
 async fn load(
@@ -238,11 +238,14 @@ async fn hydrate(
     r: &sqlx::postgres::PgRow,
 ) -> Result<OrgRestructure, KernelError> {
     let id: Uuid = r.try_get("id").map_err(map_db_error)?;
+    let tenant_id: Uuid = r.try_get("tenant_id").map_err(map_db_error)?;
+    // Audit C4/M9: child rows are filtered by tenant too (defence in depth on top of RLS).
     let moves = sqlx::query(
         "SELECT org_unit_id, role, from_parent_id, to_parent_id, baseline_version \
-         FROM institution.org_restructure_move WHERE restructure_id = $1 ORDER BY ordinal",
+         FROM institution.org_restructure_move WHERE restructure_id = $1 AND tenant_id = $2 ORDER BY ordinal",
     )
     .bind(id)
+    .bind(tenant_id)
     .fetch_all(&mut *conn)
     .await
     .map_err(map_db_error)?

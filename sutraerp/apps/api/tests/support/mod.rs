@@ -54,7 +54,7 @@ pub fn database_url() -> &'static str {
     )
 }
 
-fn runtime_url(url: &str) -> String {
+pub fn runtime_url(url: &str) -> String {
     let (scheme, rest) = url.split_once("://").expect("postgres URL");
     let host = rest.rsplit_once('@').map_or(rest, |(_, h)| h);
     format!("{scheme}://{RUNTIME_USER}:{RUNTIME_PASSWORD}@{host}")
