@@ -14,13 +14,24 @@
  *     calls as the e2e harness (`seedInstitution`): profile → configure → org blueprint + root unit
  *     → main campus → structure → programme BTECH-CSE + curriculum CSE-2026 → calendar 2026-27
  *     (T1, T2) → submit;
- *   - four active students in the Batch 3 foundation tables (like the harness `seedStudent`):
- *     DEMO-0001 Aarav Desai (term 1, linked to the dev student login aarav.desai@sutra.dev),
+ *   - 23 active students in the Batch 3 foundation tables (like the harness `seedStudent`):
+ *     DEMO-0001 Aarav Desai (term 1, linked to the student login aarav.desai@sutra.dev),
  *     DEMO-0002 Isha Kulkarni (term 1), DEMO-0003 Kiran Joshi (term 4, for completion + alumni),
- *     DEMO-0004 Rohan Patil (term 4, for a withdrawal exit);
+ *     DEMO-0004 Rohan Patil (term 4, for a withdrawal exit) — these four as before — plus
+ *     DEMO-0005…0015 (term 1) and DEMO-0016…0023 (term 4);
  *   - the Batch 4 delivery fixture of `academic.e2e.mjs` (`seedDelivery`): active offering CS101-T1
  *     (term T1, component CS101) with section A, Dr. Meera Shah (dev|meera.shah@sutra.dev) as
- *     active primary instructor, Aarav and Isha seated.
+ *     active primary instructor, Aarav and Isha seated;
+ *   - then `lib/demo-rich.mjs` (each slice skipped when its marker row exists): five more term-1
+ *     offerings + CS101 section B with faculty and seats (Aarav in CS101-A, MD101, EL101; Meera
+ *     teaches only CS101-A), term registrations, an active term timetable, finalised attendance
+ *     sessions, coursework; 11 staff (Meera linked to the faculty login) with departments and
+ *     engagements, leave policy + requests, a published duty roster, time-tracking projects with
+ *     Meera's entries and a submitted timesheet, Meera's expense claims (approved / submitted /
+ *     draft); fee heads, GST profile (hostel 12%), fee structure, charges, payments (paid /
+ *     partial / overdue), a merit concession; guardians, a scholarship, admission applications;
+ *     exams (Unit test 1 marked and published, mid-semester timetable + hall tickets); campus
+ *     rooms, hostel, transport, library loans; notices and role notifications.
  *
  * Idempotent: a second run finds DEMO active and only adds what is missing. If DEMO exists but is
  * not active (a run stopped half-way), it refuses — re-run with another code (DEMO_CODE=DEMO2).
@@ -29,10 +40,12 @@
  * postgres://sutra:sutra@localhost:5432/sutra), DEMO_CODE (default DEMO), DEMO_NAME
  * (default "Sutra Demo College"), SUTRA_DEV_AUTH_PASSWORD (the API's dev password — required, no
  * default), DEMO_STUDENT_SUBJECT / DEMO_FACULTY_SUBJECT (login subjects to link; default the dev
- * personas). Needs `psql` on PATH (the Docker image has it).
+ * personas), DEMO_SEED_LENIENT=1 (exit 0 even when a rich-data slice failed). Needs `psql` on PATH
+ * (the Docker image has it).
  */
 process.env.DATABASE_URL ??= "postgres://sutra:sutra@localhost:5432/sutra";
 const { API, apiLogin, check, I, log, psql, seedInstitution } = await import("./lib/harness.mjs");
+const { MORE_STUDENTS, notes, results, seedRich } = await import("./lib/demo-rich.mjs");
 
 const CODE = (process.env.DEMO_CODE || "DEMO").toUpperCase();
 const NAME = process.env.DEMO_NAME || "Sutra Demo College";
@@ -180,6 +193,10 @@ try {
   const isha = ensureStudent(tenant, setup, st("0002", "Isha", "Kulkarni", 1, "2026", "2026-07-01"));
   ensureStudent(tenant, setup, st("0003", "Kiran", "Joshi", 4, "2023", "2023-07-01"));
   ensureStudent(tenant, setup, st("0004", "Rohan", "Patil", 4, "2023", "2023-07-01"));
+  const term1 = [];
+  const term4 = [];
+  for (const [n, given, family, termNo] of MORE_STUDENTS)
+    (termNo === 1 ? term1 : term4).push(ensureStudent(tenant, setup, termNo === 1 ? st(n, given, family, 1, "2026", "2026-07-01") : st(n, given, family, 4, "2024", "2024-07-01")));
   // Aarav ↔ the dev student login (one live student per login subject in the tenant).
   const holder = psql(
     `SELECT s.student_number FROM student.student s WHERE s.tenant_id = ${q(tenant)} AND s.subject_ref = ${q(STUDENT_SUBJECT)} AND s.status <> 'archived'`,
@@ -195,20 +212,32 @@ try {
   const seats = psql(`SELECT count(*) FROM academic.section_enrolment WHERE section_id = ${q(d.sectionId)} AND status = 'enrolled'`);
   check(Number(seats) >= 2, `CS101-T1 / A has ${seats} seated students, faculty ${FACULTY_SUBJECT}`);
 
+  log("— rich demo data (lib/demo-rich.mjs)");
+  await seedRich({ admin, setup, tenant, FACULTY_SUBJECT, STUDENT_SUBJECT, aarav, isha, term1, term4, cs101: d });
+
   const inst = await admin.get(`${I}/institutions/${setup.id}`);
   check(inst.status === "active", `${inst.code} “${inst.name}” is ${inst.status}`);
+  const failed = results.filter(([, status]) => status === "FAIL");
   console.log(
     [
       "",
       `Demo data ready — institution ${inst.code} “${inst.name}” (${setup.id})`,
       "  Open http://localhost:3000 and sign in with the development role cards:",
       "    Administrator (admin@sutra.dev)   → pick “" + inst.name + "” in the Institution picker",
-      `    Student       (aarav.desai@sutra.dev) → Aarav Desai, ${CODE}-0001, seated in CS101-T1`,
-      "    Faculty       (meera.shah@sutra.dev)  → Dr. Meera Shah, teaches CS101-T1 / A",
-      `  Other students: ${CODE}-0002 Isha Kulkarni (seated), ${CODE}-0003 Kiran Joshi (completion/alumni), ${CODE}-0004 Rohan Patil (exit)`,
+      `    Student       (aarav.desai@sutra.dev) → Aarav Desai, ${CODE}-0001: CS101, MD101, EL101, fees, hostel, library`,
+      "    Faculty       (meera.shah@sutra.dev)  → Dr. Meera Shah, teaches CS101-T1 / A; staff record, roster, time, expenses",
+      `  Other students: ${CODE}-0002 Isha Kulkarni (seated), ${CODE}-0003 Kiran Joshi (completion/alumni), ${CODE}-0004 Rohan Patil (exit), ${CODE}-0005…0023`,
+      "",
+      "Seed report:",
+      ...results.map(([name, status, detail]) => `  ${status.padEnd(4)}  ${name}: ${detail}`),
+      ...(notes.length ? ["Notes (non-fatal):", ...notes.map((n) => `  - ${n}`)] : []),
       "",
     ].join("\n"),
   );
+  if (failed.length && process.env.DEMO_SEED_LENIENT !== "1") {
+    console.error(`[demo-seed] ${failed.length} slice(s) failed: ${failed.map(([n]) => n).join(", ")} (set DEMO_SEED_LENIENT=1 to accept)`);
+    process.exit(1);
+  }
   process.exit(0);
 } catch (e) {
   console.error(`\n[demo-seed] FAILED: ${e instanceof Error ? e.message : String(e)}\n`);
