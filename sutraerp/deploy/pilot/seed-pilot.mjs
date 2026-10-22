@@ -135,7 +135,9 @@ async function ensureStaff(admin, inst, campusId, s) {
       familyName: s.familyName,
       workEmail: s.workEmail,
       staffCategory: s.staffCategory,
-      subjectRef: s.subjectRef ?? null,
+      // One live staff record per login subject in the tenant: when another seed (the demo seed's
+      // Dr. Meera Shah) already holds this login, the pilot record is created unlinked.
+      subjectRef: s.subjectRef && !psql(`SELECT id FROM people.staff_member WHERE subject_ref = '${s.subjectRef.replace(/'/g, "''")}' AND status NOT IN ('merged', 'archived') LIMIT 1`) ? s.subjectRef : null,
       initialStatus: "active",
     });
     created(`staff ${s.givenName} ${s.familyName} (${s.designation})`);

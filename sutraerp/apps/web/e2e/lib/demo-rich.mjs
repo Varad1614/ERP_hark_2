@@ -295,8 +295,8 @@ export async function seedRich(ctx) {
       ["Stack applications problem set", 6],
       ["Recursion: written assignment", 10],
     ]) {
-      let w = await admin.call("POST", `${A}/sections/${secA("CS101")}/assessment-windows`, { blueprintId: bp.id, componentKey: "a1", title, opensAt: at(-3), dueAt: at(due), maxMarks: 10 });
-      w = await admin.call("POST", `${A}/assessment-windows/${w.id}/open`, {}, w.version);
+      const w = await admin.call("POST", `${A}/sections/${secA("CS101")}/assessment-windows`, { blueprintId: bp.id, componentKey: "a1", title, opensAt: at(-3), dueAt: at(due), maxMarks: 10 });
+      await admin.call("POST", `${A}/assessment-windows/${w.id}/open`, {}, w.version);
       windows++;
     }
     await part("course resources", async () => {
@@ -906,8 +906,8 @@ async function seedCampus(ctx) {
       ["AC not cooling", "facility", "medium", "Seminar hall", null],
       ["Lab PC-17 does not boot", "laboratory", "medium", "Lab L2", "IT desk"],
     ]) {
-      let t = await admin.call("POST", `${C}/institutions/${inst}/tickets`, { category, priority, title, nodeId: rooms[room]?.id ?? null });
-      if (assignee) t = await admin.call("POST", `${C}/tickets/${t.id}/assign`, { assignee }, t.version);
+      const t = await admin.call("POST", `${C}/institutions/${inst}/tickets`, { category, priority, title, nodeId: rooms[room]?.id ?? null });
+      if (assignee) await admin.call("POST", `${C}/tickets/${t.id}/assign`, { assignee }, t.version);
     }
   });
   await part("hostel", async () => {
