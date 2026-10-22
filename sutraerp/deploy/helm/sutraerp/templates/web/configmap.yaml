@@ -140,6 +140,11 @@ data:
         return 200 "ok\n";
       }
 
+      # Audit 2026-10 (META-2): file paths outside /api/ get a real 404, not index.html.
+      location ~ ^/(?!api/)(?:.*/)?[^/]+\.[A-Za-z0-9]+$ {
+        try_files $uri =404;
+      }
+
       location / {
         try_files $uri $uri/ /index.html;
       }
