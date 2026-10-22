@@ -8,6 +8,7 @@
 //! | `POST /api/v1/auth/sessions/revoke-others` | session + CSRF |
 //! | `DELETE /api/v1/auth/sessions/{id}` | session + CSRF |
 //! | `POST /api/v1/auth/oidc/backchannel-logout` | signed logout token (Keycloak → API, no cookie) |
+//! | `POST /api/v1/auth/lockouts/unlock` | administrator (`platform.identity.lifecycle`, step-up): clear an account's sign-in lockouts (audit H-3) |
 
 use super::http::{audit, enrolled_factors, mfa_service, no_store, AuthState};
 use axum::body::Bytes;
@@ -18,7 +19,8 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use sutra_contracts::platform::auth::{MfaLevel, PasskeyInfo, Principal};
 use sutra_kernel::audit::{ActorKind, AuditEntry, AuditOutcome};
-use sutra_kernel::error::KernelError;
+use sutra_kernel::auth::Permission;
+use sutra_kernel::error::{FieldViolation, KernelError};
 use sutra_web::request_id::current_correlation_id;
 use sutra_web::{ApiResult, Authenticated, Problem};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -348,6 +350,84 @@ pub async fn backchannel_logout(
     Ok(res)
 }
 
+/// Body of `POST /api/v1/auth/lockouts/unlock`.
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AuthLockoutUnlockRequest {
+    /// Login id whose sign-in lockouts (from every client address) are cleared.
+    pub login_id: String,
+    /// Why the account is being unlocked (recorded in the audit trail).
+    pub reason: String,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthLockoutUnlockResult {
+    /// Client-address lockouts / failure counters cleared on this API replica.
+    pub cleared: usize,
+}
+
+/// Clear the sign-in lockouts of an account (audit H-3).
+///
+/// Failed sign-ins lock a login id only for the client address they came from; an administrator
+/// holding `platform.identity.lifecycle` (step-up) clears every address's lockout of that login id
+/// here, e.g. after a lockout reported by its owner. The counter is per API replica: call once per
+/// replica or wait for the lockout to expire. Audited as `platform.auth.lockout.unlock`.
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/lockouts/unlock",
+    tag = "auth",
+    request_body = AuthLockoutUnlockRequest,
+    security(("session_cookie" = [], "csrf_token" = [])),
+    responses(
+        (status = 200, description = "Lockouts cleared", body = AuthLockoutUnlockResult),
+        (status = 401, description = "No session", body = Problem, content_type = "application/problem+json"),
+        (status = 403, description = "Missing permission or step-up", body = Problem, content_type = "application/problem+json"),
+        (status = 422, description = "Validation failed", body = Problem, content_type = "application/problem+json"),
+    )
+)]
+pub async fn unlock_login(
+    State(state): State<AuthState>,
+    Authenticated(ctx): Authenticated,
+    Json(req): Json<AuthLockoutUnlockRequest>,
+) -> ApiResult<Json<AuthLockoutUnlockResult>> {
+    // Permission first: nothing is read or changed before the caller is authorised.
+    ctx.require(Permission::IdentityLifecycle)?;
+    let login_id = req.login_id.trim();
+    let reason = req.reason.trim();
+    let mut violations = vec![];
+    if login_id.is_empty() || login_id.chars().count() > 254 {
+        violations.push(FieldViolation::new(
+            "loginId",
+            "length",
+            "login id is required (at most 254 characters)",
+        ));
+    }
+    if reason.is_empty() || reason.chars().count() > 500 {
+        violations.push(FieldViolation::new(
+            "reason",
+            "length",
+            "reason is required (at most 500 characters)",
+        ));
+    }
+    if !violations.is_empty() {
+        return Err(KernelError::Validation(violations).into());
+    }
+    let cleared = state.throttle.unlock_login(login_id);
+    tracing::info!(login = %login_id, cleared, "sign-in lockout cleared by administrator");
+    let e = AuditEntry::new(
+        ctx.scope,
+        "platform.auth.lockout.unlock",
+        AuditOutcome::Succeeded,
+    )
+    .actor(ActorKind::User, Some(ctx.subject.clone()))
+    .target("login", login_id.to_lowercase())
+    .correlation(current_correlation_id())
+    .details(serde_json::json!({ "cleared": cleared, "reason": reason }));
+    let _ = state.audit.record(e).await;
+    Ok(Json(AuthLockoutUnlockResult { cleared }))
+}
+
 pub fn routes() -> OpenApiRouter<AuthState> {
     OpenApiRouter::new()
         .routes(routes!(mfa_status))
@@ -356,4 +436,5 @@ pub fn routes() -> OpenApiRouter<AuthState> {
         .routes(routes!(revoke_other_sessions))
         .routes(routes!(revoke_session))
         .routes(routes!(backchannel_logout))
+        .routes(routes!(unlock_login))
 }

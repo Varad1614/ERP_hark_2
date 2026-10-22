@@ -717,3 +717,61 @@ async fn batch8_operations_follow_the_slice_prefix_and_tag_rules() {
     }
     assert!(ops >= 4, "the Batch 8 foundation endpoints are mounted");
 }
+
+/// Audit (Low, Phase E): every Dockerfile base image is pinned by digest (`image:tag@sha256:…`),
+/// and the Rust toolchain is pinned to one version that the Rust build image uses too.
+#[test]
+fn base_images_are_digest_pinned_and_the_rust_toolchain_is_pinned() {
+    let mut dockerfiles = vec![];
+    let mut stack = vec![root().join("deploy"), root().join("tools")];
+    while let Some(p) = stack.pop() {
+        for e in fs::read_dir(&p).unwrap() {
+            let path = e.unwrap().path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.ends_with("Dockerfile"))
+            {
+                dockerfiles.push(path);
+            }
+        }
+    }
+    assert!(dockerfiles.len() >= 5, "found {dockerfiles:?}");
+    let toolchain = fs::read_to_string(root().join("rust-toolchain.toml")).unwrap();
+    let channel = toolchain
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("channel = "))
+        .expect("channel")
+        .trim_matches('"')
+        .to_owned();
+    assert!(
+        channel.split('.').count() == 3 && channel.split('.').all(|p| p.parse::<u32>().is_ok()),
+        "rust-toolchain.toml must pin an exact version, not `{channel}`"
+    );
+    let mut rust_images = 0;
+    for f in &dockerfiles {
+        let text = fs::read_to_string(f).unwrap();
+        for line in text.lines() {
+            let Some(rest) = line.trim().strip_prefix("FROM ") else {
+                continue;
+            };
+            let image = rest.split_whitespace().next().unwrap();
+            assert!(
+                image.contains("@sha256:") && image.split("@sha256:").nth(1).unwrap().len() == 64,
+                "{}: base image `{image}` is not digest-pinned",
+                f.display()
+            );
+            if let Some(tag) = image.strip_prefix("rust:") {
+                rust_images += 1;
+                assert!(
+                    tag.starts_with(&format!("{channel}-")),
+                    "{}: `{image}` does not match rust-toolchain.toml ({channel})",
+                    f.display()
+                );
+            }
+        }
+    }
+    assert!(rust_images >= 1, "no rust build image found");
+}

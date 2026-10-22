@@ -1,7 +1,7 @@
 # Part 1 demo: the runtime stage of api.Dockerfile around a sutra-api binary built on the host
 # (`cargo build -p sutra-api`, copied to deploy/docker/demo-bin/sutra-api by the demo workflow).
 # Used only by docker-compose.demo.yml; production images keep the two-stage api.Dockerfile.
-FROM gcr.io/distroless/cc-debian13:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:83b9b50586253821cf63ffcec87d3d94265a093ad30da232039af962dd8f4edf
 ARG SUTRA_GIT_SHA=unknown
 LABEL org.opencontainers.image.source="https://github.com/Varad1614/ERP_hark_2" \
       org.opencontainers.image.title="sutraerp-api-demo" \

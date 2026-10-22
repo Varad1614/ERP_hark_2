@@ -10,7 +10,7 @@
 #   REALM_FILE  realm export to import at start (`--import-realm`; an existing realm of the same
 #               name is left untouched). Values written as ${ENV_VAR} / ${ENV_VAR:default} are
 #               resolved from the container environment at import.
-FROM quay.io/keycloak/keycloak:26.7
+FROM quay.io/keycloak/keycloak:26.7@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
 ARG REALM_FILE=deploy/keycloak/realm-sutra-dev.json
 # The import directory is created explicitly (0755, owned by keycloak): BuildKit applies
 # `--chmod` to parent directories that COPY creates, so on newer builders (Docker 29 / buildx

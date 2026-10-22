@@ -8,7 +8,11 @@
 //! * `auth` — the rest of `/api/v1/auth/*` reached without a session (CSRF token, OIDC start /
 //!   callback, back-channel logout);
 //! * `public` — any other `/api/*` request without a live session (the payment webhook, probes of
-//!   protected routes). Authenticated traffic is not limited here (it is bounded by the session).
+//!   protected routes);
+//! * `session` + `session_ip` — audit M-4: every other `/api/*` request **with** a live session
+//!   takes one token from the bucket of its session (`session_id`) **and** one from the bucket of
+//!   its client address, so one session cannot scrape and many sessions behind one address cannot
+//!   either (the per-address bucket is wider to allow a campus NAT).
 //!
 //! `/health/*` is never limited (kubelet / load-balancer probes). The client is the peer address
 //! (`ConnectInfo`), or — behind `trusted_proxy_hops` reverse proxies that each append to
@@ -43,6 +47,10 @@ pub struct RateLimitSettings {
     pub credentials: Limit,
     pub auth: Limit,
     pub public: Limit,
+    /// Authenticated requests per session (audit M-4).
+    pub session: Limit,
+    /// Authenticated requests per client address, all sessions together (audit M-4).
+    pub session_ip: Limit,
     /// Reverse proxies in front of the API that append to `X-Forwarded-For` (0 = use the peer).
     pub trusted_proxy_hops: usize,
     pub max_clients: usize,
@@ -64,6 +72,14 @@ impl Default for RateLimitSettings {
                 per_minute: 600,
                 burst: 200,
             },
+            session: Limit {
+                per_minute: 600,
+                burst: 120,
+            },
+            session_ip: Limit {
+                per_minute: 3000,
+                burst: 600,
+            },
             trusted_proxy_hops: 0,
             max_clients: 100_000,
         }
@@ -75,6 +91,8 @@ enum Class {
     Credentials,
     Auth,
     Public,
+    Session,
+    SessionIp,
 }
 
 impl Class {
@@ -83,6 +101,8 @@ impl Class {
             Class::Credentials => "credentials",
             Class::Auth => "auth",
             Class::Public => "public",
+            Class::Session => "session",
+            Class::SessionIp => "session_ip",
         }
     }
 }
@@ -140,7 +160,7 @@ impl RateLimiter {
             return Some(Class::Credentials);
         }
         if authenticated {
-            return None;
+            return Some(Class::Session);
         }
         if path.starts_with("/api/v1/auth/") {
             return Some(Class::Auth);
@@ -153,6 +173,8 @@ impl RateLimiter {
             Class::Credentials => self.settings.credentials,
             Class::Auth => self.settings.auth,
             Class::Public => self.settings.public,
+            Class::Session => self.settings.session,
+            Class::SessionIp => self.settings.session_ip,
         }
     }
 
@@ -198,6 +220,8 @@ impl RateLimiter {
                     Class::Credentials => settings.credentials,
                     Class::Auth => settings.auth,
                     Class::Public => settings.public,
+                    Class::Session => settings.session,
+                    Class::SessionIp => settings.session_ip,
                 };
                 let r = f64::from(l.per_minute.max(1)) / 60.0;
                 b.tokens + now.duration_since(b.at).as_secs_f64() * r < f64::from(l.burst.max(1))
@@ -229,27 +253,49 @@ impl RateLimiter {
     }
 }
 
+/// The client address as resolved by [`RateLimiter::client_key`] (peer or outermost trusted
+/// proxy), set on every request by [`rate_limit`] — enabled or not — for handlers that key on it
+/// (the sign-in lockout, audit H-3).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClientAddr(pub String);
+
 /// Middleware (inside the session layer, see the module docs).
 pub async fn rate_limit(
     State(limiter): State<Arc<RateLimiter>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Response {
-    if !limiter.settings.enabled {
-        return next.run(req).await;
-    }
-    let authenticated = req.extensions().get::<AuthContext>().is_some();
-    let Some(class) = limiter.class(req.method(), req.uri().path(), authenticated) else {
-        return next.run(req).await;
-    };
     let peer = req
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
         .map(|c| c.0);
     let client = limiter.client_key(req.headers(), peer);
-    match limiter.take(class, client.clone(), Instant::now()) {
+    req.extensions_mut().insert(ClientAddr(client.clone()));
+    if !limiter.settings.enabled {
+        return next.run(req).await;
+    }
+    let session = req.extensions().get::<AuthContext>().map(|a| a.session_id);
+    let Some(class) = limiter.class(req.method(), req.uri().path(), session.is_some()) else {
+        return next.run(req).await;
+    };
+    let now = Instant::now();
+    let taken = match (class, session) {
+        // Audit M-4: per session, then per client address (both must have a token).
+        (Class::Session, Some(sid)) => limiter
+            .take(Class::Session, sid.to_string(), now)
+            .map_err(|r| (Class::Session, r))
+            .and_then(|()| {
+                limiter
+                    .take(Class::SessionIp, client.clone(), now)
+                    .map_err(|r| (Class::SessionIp, r))
+            }),
+        _ => limiter
+            .take(class, client.clone(), now)
+            .map_err(|r| (class, r)),
+    };
+    match taken {
         Ok(()) => next.run(req).await,
-        Err(retry) => {
+        Err((class, retry)) => {
             tracing::warn!(class = class.name(), client = %client, path = %req.uri().path(), "rate limited");
             let mut res = Problem::new(
                 StatusCode::TOO_MANY_REQUESTS,
@@ -264,6 +310,8 @@ pub async fn rate_limit(
             if let Ok(v) = HeaderValue::from_str(&retry.to_string()) {
                 res.headers_mut().insert(header::RETRY_AFTER, v);
             }
+            res.headers_mut()
+                .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
             res
         }
     }
@@ -292,6 +340,14 @@ mod tests {
             public: Limit {
                 per_minute: 60,
                 burst: 4,
+            },
+            session: Limit {
+                per_minute: 60,
+                burst: 3,
+            },
+            session_ip: Limit {
+                per_minute: 60,
+                burst: 5,
             },
             trusted_proxy_hops: 1,
             max_clients: 1000,
@@ -371,6 +427,87 @@ mod tests {
         assert!(s.iter().all(|c| *c == 200), "separate class: {s:?}");
         let s = statuses(&app, "GET", "/health/live", "192.0.2.1", 50).await;
         assert!(s.iter().all(|c| *c == 200));
+    }
+
+    fn session_req(path: &str, ip: &str, session_id: uuid::Uuid) -> Request {
+        use sutra_kernel::auth::{MfaLevel, Role};
+        use sutra_kernel::scope::{ExecutionScope, InstitutionId, TenantId};
+        let mut r = req("GET", path, ip);
+        r.extensions_mut().insert(AuthContext {
+            session_id,
+            subject: "dev|a".into(),
+            login_id: "a".into(),
+            display_name: "A".into(),
+            roles: vec![Role::Administrator],
+            scope: ExecutionScope::institution(TenantId::new(), InstitutionId::new()),
+            csrf_token: "c".into(),
+            expires_at: chrono::Utc::now(),
+            idle_expires_at: chrono::Utc::now(),
+            mfa_level: MfaLevel::None,
+            amr: vec![],
+            step_up_enforced: false,
+            privileged_mfa_enforced: false,
+        });
+        r
+    }
+
+    /// Audit M-4: authenticated API traffic is limited per session and per client address.
+    #[tokio::test]
+    async fn authenticated_requests_are_limited_per_session_and_per_ip() {
+        let app = Router::new()
+            .route("/api/v1/student/students", get(|| async { "ok" }))
+            .route("/health/ready", get(|| async { "ok" }))
+            .layer(axum::middleware::from_fn_with_state(
+                Arc::new(RateLimiter::new(settings())),
+                rate_limit,
+            ));
+        let path = "/api/v1/student/students";
+        let mut codes = vec![];
+        let a = uuid::Uuid::now_v7();
+        for _ in 0..4 {
+            let res = app
+                .clone()
+                .oneshot(session_req(path, "192.0.2.10", a))
+                .await
+                .unwrap();
+            codes.push(res.status().as_u16());
+            if res.status() == StatusCode::TOO_MANY_REQUESTS {
+                assert!(res.headers().contains_key("retry-after"));
+                assert_eq!(
+                    res.headers()["content-type"],
+                    crate::problem::PROBLEM_CONTENT_TYPE
+                );
+            }
+        }
+        assert_eq!(codes, vec![200, 200, 200, 429], "session burst of 3");
+        // A second session from the same address gets its own session bucket, but the address
+        // bucket (burst 5; 3 used, the refused request took none) runs out after 2 more.
+        let b = uuid::Uuid::now_v7();
+        let mut codes = vec![];
+        for _ in 0..3 {
+            let res = app
+                .clone()
+                .oneshot(session_req(path, "192.0.2.10", b))
+                .await
+                .unwrap();
+            codes.push(res.status().as_u16());
+        }
+        assert_eq!(codes, vec![200, 200, 429], "per-address bucket");
+        // Another address with a fresh session is unaffected; health checks are never limited.
+        let res = app
+            .clone()
+            .oneshot(session_req(path, "198.51.100.20", uuid::Uuid::now_v7()))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        for _ in 0..20 {
+            let res = app
+                .clone()
+                .oneshot(session_req("/health/ready", "192.0.2.10", a))
+                .await
+                .unwrap();
+            assert_eq!(res.status(), StatusCode::OK);
+        }
     }
 
     #[tokio::test]

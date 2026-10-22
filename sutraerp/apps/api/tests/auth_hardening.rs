@@ -610,3 +610,99 @@ async fn every_route_requires_a_session_and_a_permission() {
         probes.len()
     );
 }
+
+// ---------------------------------------------------------------------------------------------
+// Audit H-3: sign-in lockout scoped to (client address, account) + administrative unlock
+// ---------------------------------------------------------------------------------------------
+
+/// One password sign-in from `ip` (behind one trusted proxy); returns the status.
+async fn sign_in_from(app: &Router, ip: &str, login_id: &str, password: &str) -> StatusCode {
+    let (s, h, body) = send(
+        app,
+        Request::get("/api/v1/auth/csrf")
+            .header("x-forwarded-for", ip)
+            .body(Body::empty())
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, _, _) = send(
+        app,
+        Request::post("/api/v1/auth/login")
+            .header("content-type", "application/json")
+            .header("x-forwarded-for", ip)
+            .header("cookie", first_cookie(&h))
+            .header("x-csrf-token", body["csrfToken"].as_str().unwrap())
+            .body(Body::from(
+                json!({"loginId": login_id, "password": password}).to_string(),
+            ))
+            .unwrap(),
+    )
+    .await;
+    s
+}
+
+fn unlock(who: &Login, login_id: &str) -> Request<Body> {
+    Request::post("/api/v1/auth/lockouts/unlock")
+        .header("content-type", "application/json")
+        .header("cookie", &who.cookie)
+        .header("x-csrf-token", &who.csrf)
+        .body(Body::from(
+            json!({"loginId": login_id, "reason": "owner reported lockout"}).to_string(),
+        ))
+        .unwrap()
+}
+
+/// Attack: a stranger who knows the administrator's login id spams failed sign-ins to keep the
+/// account locked. The lockout now holds only for the stranger's address; the owner signs in from
+/// their own address, and an administrator can clear the lockout (faculty cannot).
+#[tokio::test]
+async fn failed_sign_ins_lock_only_the_attacking_address_and_admin_can_unlock() {
+    let app = router(context(&[
+        ("SUTRA_TRUSTED_PROXY_HOPS", "1"),
+        ("SUTRA_AUTH_MAX_FAILURES", "3"),
+        ("SUTRA_PRIVILEGED_MFA", "false"),
+        ("SUTRA_MFA_STEP_UP", "false"),
+    ]));
+    let pw = sutra_api::app::SPEC_DEV_PASSWORD;
+    let attacker = "203.0.113.66";
+    for _ in 0..3 {
+        let s = sign_in_from(&app, attacker, "admin@sutra.dev", "wrong-password").await;
+        assert_eq!(s, StatusCode::UNAUTHORIZED);
+    }
+    assert_eq!(
+        sign_in_from(&app, attacker, "admin@sutra.dev", pw).await,
+        StatusCode::TOO_MANY_REQUESTS,
+        "attacker's address is locked out, even with the right password"
+    );
+    assert_eq!(
+        sign_in_from(&app, "198.51.100.7", "admin@sutra.dev", pw).await,
+        StatusCode::OK,
+        "the owner's address is not locked"
+    );
+
+    let (faculty, _) = login(&app, "meera.shah@sutra.dev").await;
+    let (s, _, b) = send(&app, unlock(&faculty, "admin@sutra.dev")).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
+    let (s, _, _) = send(
+        &app,
+        Request::post("/api/v1/auth/lockouts/unlock")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                json!({"loginId": "admin@sutra.dev", "reason": "x"}).to_string(),
+            ))
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+
+    let (admin, _) = login(&app, "admin@sutra.dev").await;
+    let (s, _, b) = send(&app, unlock(&admin, "Admin@Sutra.dev")).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert!(b["cleared"].as_u64().unwrap() >= 1, "{b}");
+    assert_eq!(
+        sign_in_from(&app, attacker, "admin@sutra.dev", pw).await,
+        StatusCode::OK,
+        "unlocked"
+    );
+}

@@ -7,7 +7,7 @@
 # 9D: security (SEC-9D-015) — Debian 13 build + runtime: distroless cc-debian12 still ships
 # libssl3 3.0.20-1~deb12u2 (1 Critical + 3 High OpenSSL CVEs fixed in bookworm-security
 # 3.0.22-1~deb12u1, found by Grype); cc-debian13 tracks the fixed trixie OpenSSL.
-FROM rust:1-trixie AS build
+FROM rust:1.99.1-trixie@sha256:a5ab4292e80567dc92f642e2a7d63773ebd695b82b56e8f06dc8d6ecc5600b76 AS build
 WORKDIR /src
 # CARGO_PROFILE=release for production images; the default `docker` profile keeps local builds
 # within Docker Desktop memory. CARGO_BUILD_JOBS caps parallel rustc (set 1 on 8 GB machines).
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 # ---- runtime ----
 # 9D: security (SEC-9D-015)
-FROM gcr.io/distroless/cc-debian13:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:83b9b50586253821cf63ffcec87d3d94265a093ad30da232039af962dd8f4edf
 # 9B: git sha of the build (sutra_build_info{git_sha}, docs/batch9-contracts.md §3.3 / §10.2).
 ARG SUTRA_GIT_SHA=unknown
 LABEL org.opencontainers.image.source="https://github.com/Varad1614/ERP_hark_2" \

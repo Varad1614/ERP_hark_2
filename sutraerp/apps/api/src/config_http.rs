@@ -109,6 +109,17 @@ impl HttpSecurityConfig {
                 "SUTRA_RATE_LIMIT_PUBLIC_BURST",
                 d.public,
             )?,
+            // Audit M-4: authenticated API traffic, per session and per client address.
+            session: limit(
+                "SUTRA_RATE_LIMIT_SESSION_PER_MIN",
+                "SUTRA_RATE_LIMIT_SESSION_BURST",
+                d.session,
+            )?,
+            session_ip: limit(
+                "SUTRA_RATE_LIMIT_SESSION_IP_PER_MIN",
+                "SUTRA_RATE_LIMIT_SESSION_IP_BURST",
+                d.session_ip,
+            )?,
             // Production sits behind one TLS-terminating proxy (ingress / nginx) by default.
             trusted_proxy_hops: parse(src, "SUTRA_TRUSTED_PROXY_HOPS", usize::from(prod))?,
             max_clients: parse(src, "SUTRA_RATE_LIMIT_MAX_CLIENTS", d.max_clients)?,
@@ -226,6 +237,8 @@ pub fn validate(cfg: &Config) -> Result<(), ConfigError> {
         ("SUTRA_RATE_LIMIT_CREDENTIALS_PER_MIN", rl.credentials),
         ("SUTRA_RATE_LIMIT_AUTH_PER_MIN", rl.auth),
         ("SUTRA_RATE_LIMIT_PUBLIC_PER_MIN", rl.public),
+        ("SUTRA_RATE_LIMIT_SESSION_PER_MIN", rl.session),
+        ("SUTRA_RATE_LIMIT_SESSION_IP_PER_MIN", rl.session_ip),
     ] {
         if l.per_minute == 0 || l.burst == 0 {
             return Err(ConfigError::Invalid {

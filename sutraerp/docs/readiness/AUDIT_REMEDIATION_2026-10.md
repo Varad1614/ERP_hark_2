@@ -431,3 +431,33 @@ the range's summaries, report and CSVs. The expense golden matches exactly.
   connects as the runtime role and proves a foreign tenant (and no context) sees 0 unit-type rows of
   the blueprint by id with no tenant predicate and no other tenant's restructure moves, while the
   owning tenant sees its 2 rows.
+
+## Phase E — platform hardening (M-4, H-3, base images / toolchain)
+
+- **M-4 general API rate limiting** (`crates/web/src/rate_limit.rs`): the existing per-client
+  limiter (credentials / auth / public classes) now also limits authenticated `/api/*` traffic:
+  each request takes a token from its session's bucket **and** from its client address's bucket;
+  an empty bucket answers `429` problem+json (`rate-limited`) with `Retry-After` and
+  `Cache-Control: no-store`. `/health/*` is never limited. New env (defaults):
+  `SUTRA_RATE_LIMIT_SESSION_PER_MIN=600`, `SUTRA_RATE_LIMIT_SESSION_BURST=120`,
+  `SUTRA_RATE_LIMIT_SESSION_IP_PER_MIN=3000`, `SUTRA_RATE_LIMIT_SESSION_IP_BURST=600` (0 refused;
+  the whole limiter stays behind `SUTRA_RATE_LIMIT`, default on in production, refused off there).
+  The capacity compose lifts the per-address limit (one load-generator address).
+  Test: `rate_limit::tests::authenticated_requests_are_limited_per_session_and_per_ip`.
+- **H-3 lockout DoS** (`modules/platform/src/auth/throttle.rs`, `auth/http.rs`): the sign-in
+  lockout key is now (normalised login id, client address) — the address resolved by the rate
+  limiter (`ClientAddr`, peer or outermost trusted proxy), so failures from one address no longer
+  lock the account everywhere. New `POST /api/v1/auth/lockouts/unlock` (`{loginId, reason}`)
+  clears every address's lockout of a login id on the replica; it checks
+  `platform.identity.lifecycle` (administrator, step-up) before anything else, validates, and is
+  audited as `platform.auth.lockout.unlock` (target login, cleared count, reason). Not a governed
+  maker/checker decision (no approval request), so not in `APPROVAL_CONTROL_MATRIX.md`.
+  Tests: `throttle::tests::lockout_is_scoped_to_client_and_account_and_can_be_unlocked`,
+  `auth_hardening::failed_sign_ins_lock_only_the_attacking_address_and_admin_can_unlock`, and the
+  route authz sweep (401 anonymous / 403 roleless).
+- **Supply chain (Low)**: every `FROM` in `deploy/**/Dockerfile*` and
+  `tools/ocr-sidecar/Dockerfile` is digest-pinned (`tag@sha256:…`, digests resolved 2026-10-22);
+  `rust-toolchain.toml` pins `1.99.1` (CI runs cargo in `sutraerp/`, so rustup honours it) and the
+  API build image is `rust:1.99.1-trixie@sha256:…`. Test:
+  `architecture::base_images_are_digest_pinned_and_the_rust_toolchain_is_pinned`.
+  Not pinned: `image:` references in compose / on-prem bundle files (runtime pulls).

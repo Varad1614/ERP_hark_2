@@ -465,6 +465,7 @@ pub async fn csrf(State(state): State<AuthState>) -> ApiResult<Response> {
 )]
 pub async fn login(
     State(state): State<AuthState>,
+    client: Option<axum::Extension<sutra_web::rate_limit::ClientAddr>>,
     headers: HeaderMap,
     Json(req): Json<LoginRequest>,
 ) -> ApiResult<Response> {
@@ -487,9 +488,11 @@ pub async fn login(
         return Err(KernelError::Validation(violations).into());
     }
     let login_hint = req.login_id.clone();
-    let throttle_key = AuthThrottle::login_key(&req.login_id);
+    // Audit H-3: the lockout is scoped to (client address, account), never the account globally.
+    let client = client.map_or_else(|| "unknown".to_owned(), |c| c.0 .0);
+    let throttle_key = AuthThrottle::login_key(&client, &req.login_id);
     if let Err(retry_after) = state.throttle.check(&throttle_key) {
-        tracing::warn!(login = %login_hint, "login refused: account temporarily locked");
+        tracing::warn!(login = %login_hint, client = %client, "login refused: temporarily locked for this client");
         signal::security(SecurityEvent::LoginThrottled);
         return Ok(too_many_attempts(retry_after));
     }

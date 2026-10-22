@@ -4,7 +4,7 @@
 # deploy/onprem/images/bin/sutra-api by the on-prem workflow. Distroless, non-root, no shell.
 # The CA bundle the operator mounts at /etc/sutraerp/tls/trust.pem is trusted for outbound HTTPS
 # through SSL_CERT_FILE (rustls-tls-native-roots, releases from 2026.10.1).
-FROM gcr.io/distroless/cc-debian13:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:83b9b50586253821cf63ffcec87d3d94265a093ad30da232039af962dd8f4edf
 ARG SUTRA_GIT_SHA=unknown
 ARG SUTRA_VERSION=unknown
 LABEL org.opencontainers.image.source="https://github.com/Varad1614/ERP_hark_2" \

@@ -1,4 +1,8 @@
+# Audit (Low): pinned toolchain instead of the floating `stable` channel. CI's
+# `dtolnay/rust-toolchain@stable` step runs cargo inside sutraerp/, where rustup honours this file,
+# so CI, local builds and the `rust:1.99.1-trixie` build image (deploy/docker/api.Dockerfile) all
+# compile with the same rustc. Bump all three together.
 [toolchain]
-channel = "stable"
+channel = "1.99.1"
 components = ["rustfmt", "clippy"]
 profile = "minimal"

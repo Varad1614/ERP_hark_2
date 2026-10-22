@@ -1,7 +1,10 @@
 //! Failed-attempt throttling for the credential and second-factor checks SutraERP performs
 //! itself (Part 1 S3, SEC-9D-005 / SEC-P1-AUTH-003).
 //!
-//! Every failed password sign-in (keyed by the normalised login id) and every failed TOTP check
+//! Every failed password sign-in (keyed by the client address **and** the normalised login id —
+//! audit H-3: a stranger spamming failures locks only their own address out of that account, never
+//! the account everywhere; an administrator can clear an account's lockouts with
+//! `POST /api/v1/auth/lockouts/unlock`) and every failed TOTP check
 //! (pending-MFA verification, step-up, enrolment confirmation — keyed by the subject) counts
 //! against a fixed window. Once `max_failures` failures fall inside the window the key is locked
 //! for `lockout`: further attempts are refused with `429 too-many-attempts` and a `Retry-After`
@@ -145,9 +148,27 @@ impl AuthThrottle {
         self.lock().remove(key);
     }
 
-    /// Throttle key of a password sign-in attempt.
-    pub fn login_key(login_id: &str) -> String {
-        format!("login:{}", login_id.trim().to_lowercase())
+    /// Throttle key of a password sign-in attempt from `client` (audit H-3: IP + account).
+    pub fn login_key(client: &str, login_id: &str) -> String {
+        format!(
+            "login:{}|{}",
+            Self::normalise_login(login_id),
+            client.trim()
+        )
+    }
+
+    fn normalise_login(login_id: &str) -> String {
+        login_id.trim().to_lowercase()
+    }
+
+    /// Clears every sign-in lockout / failure count of `login_id`, from any client address
+    /// (administrative unlock, audit H-3). Returns how many client keys were cleared.
+    pub fn unlock_login(&self, login_id: &str) -> usize {
+        let prefix = format!("login:{}|", Self::normalise_login(login_id));
+        let mut map = self.lock();
+        let before = map.len();
+        map.retain(|k, _| !k.starts_with(&prefix));
+        before - map.len()
     }
 
     /// Throttle key of a second-factor check for `subject`.
@@ -163,7 +184,7 @@ pub fn too_many_attempts(retry_after_secs: i64) -> Response {
         "too-many-attempts",
         "Too many failed attempts",
     )
-    .detail("too many failed attempts for this account; wait before trying again")
+    .detail("too many failed attempts for this account from this client; wait before trying again")
     .into_response();
     if let Ok(v) = HeaderValue::from_str(&retry_after_secs.max(1).to_string()) {
         res.headers_mut().insert(header::RETRY_AFTER, v);
@@ -196,8 +217,8 @@ mod tests {
     #[test]
     fn locks_after_max_failures_and_unlocks_after_lockout() {
         let (th, clock) = clocked(3, 60, 120);
-        let k = AuthThrottle::login_key(" Admin@Sutra.dev ");
-        assert_eq!(k, "login:admin@sutra.dev");
+        let k = AuthThrottle::login_key("192.0.2.1", " Admin@Sutra.dev ");
+        assert_eq!(k, "login:admin@sutra.dev|192.0.2.1");
         assert!(th.check(&k).is_ok());
         assert_eq!(th.failure(&k), None);
         assert_eq!(th.failure(&k), None);
@@ -241,5 +262,30 @@ mod tests {
         let r = too_many_attempts(42);
         assert_eq!(r.status(), StatusCode::TOO_MANY_REQUESTS);
         assert_eq!(r.headers()[header::RETRY_AFTER], "42");
+    }
+
+    /// Audit H-3: failures from one address lock only that address out of the account; the
+    /// owner signing in from elsewhere is unaffected, and an administrative unlock clears all.
+    #[test]
+    fn lockout_is_scoped_to_client_and_account_and_can_be_unlocked() {
+        let (th, _) = clocked(3, 60, 300);
+        let attacker = AuthThrottle::login_key("203.0.113.66", "admin@sutra.dev");
+        let owner = AuthThrottle::login_key("198.51.100.7", "Admin@Sutra.dev");
+        for _ in 0..3 {
+            th.failure(&attacker);
+        }
+        assert!(th.check(&attacker).is_err(), "attacker address locked");
+        assert!(th.check(&owner).is_ok(), "owner's address not locked");
+        th.failure(&owner);
+        let other = AuthThrottle::login_key("203.0.113.66", "dean@sutra.dev");
+        th.failure(&other);
+        assert_eq!(th.unlock_login(" ADMIN@sutra.dev "), 2);
+        assert!(th.check(&attacker).is_ok(), "unlocked");
+        assert_eq!(th.unlock_login("admin@sutra.dev"), 0);
+        assert_eq!(
+            th.unlock_login("dean@sutra.dev"),
+            1,
+            "other accounts untouched"
+        );
     }
 }

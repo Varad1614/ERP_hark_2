@@ -6,12 +6,12 @@
 # Production: any S3-compatible service the college trusts (AWS S3, a self-built MinIO, SeaweedFS,
 # Garage, Ceph RGW …) — see .env.example "Document storage".
 ARG MINIO_TAG=RELEASE.2025-10-15T17-29-55Z
-FROM golang:1.24-trixie AS build
+FROM golang:1.24-trixie@sha256:5835f052b784aa39f2fe9070def3568605c8bc3fcd810f10402066348b61e716 AS build
 ARG MINIO_TAG
 COPY deploy/minio/build-from-source.sh /build-from-source.sh
 RUN MINIO_TAG="$MINIO_TAG" OUT=/out/minio bash /build-from-source.sh
 
-FROM debian:13-slim
+FROM debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
 ARG MINIO_TAG
 LABEL org.opencontainers.image.title="sutraerp-minio (built from source ${MINIO_TAG})" \
       org.opencontainers.image.source="https://github.com/minio/minio" \

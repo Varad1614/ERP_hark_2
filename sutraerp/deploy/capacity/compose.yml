@@ -43,6 +43,10 @@ x-api-env: &api-env
   SUTRA_MFA_ENCRYPTION_KEY: ${SUTRA_MFA_ENCRYPTION_KEY}
   SUTRA_AUDIT_ANCHOR_KEY: ${SUTRA_AUDIT_ANCHOR_KEY}
   SUTRA_TRUSTED_PROXY_HOPS: "2"
+  # Audit M-4: the load generator drives every virtual user from one address; keep the per-session
+  # limit at its default but lift the per-address one so the run measures capacity, not the limiter.
+  SUTRA_RATE_LIMIT_SESSION_IP_PER_MIN: "1000000"
+  SUTRA_RATE_LIMIT_SESSION_IP_BURST: "100000"
   SUTRA_OUTBOX_RELAY: nats
   SUTRA_NATS_URL: nats://nats:4222
   SUTRA_NATS_STREAM: SUTRA_EVENTS

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # ---- build (static SPA artifact, ADR-L5-0015) ----
-FROM node:22-bookworm-slim AS build
+FROM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS build
 WORKDIR /src
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc tsconfig.base.json ./
@@ -27,7 +27,7 @@ RUN node deploy/docker/csp-hashes.mjs apps/web/build/client /src/sutra-csp.conf
 # ---- runtime: unprivileged nginx, SPA fallback + /api reverse proxy ----
 # 9D: security (SEC-9D-013) — 1.27-alpine stopped receiving rebuilds in 2025-06 (stale
 # Alpine packages); 1.30 is the maintained nginx stable branch.
-FROM nginxinc/nginx-unprivileged:1.30-alpine
+FROM nginxinc/nginx-unprivileged:1.30-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
 # 9D: security (SEC-9D-016) — pick up Alpine security fixes released after the base image was
 # built (zlib 1.3.2-r1, found by Grype); the base runs as UID 101, so upgrade as root and drop back.
 USER root
