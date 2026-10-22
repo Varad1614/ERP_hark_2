@@ -22626,6 +22626,74 @@
         }
       }
     },
+    "/api/v1/auth/lockouts/unlock": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Clear the sign-in lockouts of an account (audit H-3).",
+        "description": "Failed sign-ins lock a login id only for the client address they came from; an administrator\nholding `platform.identity.lifecycle` (step-up) clears every address's lockout of that login id\nhere, e.g. after a lockout reported by its owner. The counter is per API replica: call once per\nreplica or wait for the lockout to expire. Audited as `platform.auth.lockout.unlock`.",
+        "operationId": "unlock_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthLockoutUnlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Lockouts cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLockoutUnlockResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission or step-up",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrf_token": [],
+            "session_cookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -154597,6 +154665,38 @@
               "null"
             ],
             "format": "double"
+          }
+        }
+      },
+      "AuthLockoutUnlockRequest": {
+        "type": "object",
+        "description": "Body of `POST /api/v1/auth/lockouts/unlock`.",
+        "required": [
+          "loginId",
+          "reason"
+        ],
+        "properties": {
+          "loginId": {
+            "type": "string",
+            "description": "Login id whose sign-in lockouts (from every client address) are cleared."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the account is being unlocked (recorded in the audit trail)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthLockoutUnlockResult": {
+        "type": "object",
+        "required": [
+          "cleared"
+        ],
+        "properties": {
+          "cleared": {
+            "type": "integer",
+            "description": "Client-address lockouts / failure counters cleared on this API replica.",
+            "minimum": 0
           }
         }
       },

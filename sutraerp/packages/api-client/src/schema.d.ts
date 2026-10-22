@@ -4313,6 +4313,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/lockouts/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear the sign-in lockouts of an account (audit H-3).
+         * @description Failed sign-ins lock a login id only for the client address they came from; an administrator
+         *     holding `platform.identity.lifecycle` (step-up) clears every address's lockout of that login id
+         *     here, e.g. after a lockout reported by its owner. The counter is per API replica: call once per
+         *     replica or wait for the lockout to expire. Audited as `platform.auth.lockout.unlock`.
+         */
+        post: operations["unlock_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -33368,6 +33391,17 @@ export interface components {
             passed: boolean;
             /** Format: double */
             requiredCredits?: number | null;
+        };
+        /** @description Body of `POST /api/v1/auth/lockouts/unlock`. */
+        AuthLockoutUnlockRequest: {
+            /** @description Login id whose sign-in lockouts (from every client address) are cleared. */
+            loginId: string;
+            /** @description Why the account is being unlocked (recorded in the audit trail). */
+            reason: string;
+        };
+        AuthLockoutUnlockResult: {
+            /** @description Client-address lockouts / failure counters cleared on this API replica. */
+            cleared: number;
         };
         /** @description Authorisation of a subsequent attempt. */
         AuthoriseBody: {
@@ -68437,6 +68471,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CsrfTokenResponse"];
+                };
+            };
+        };
+    };
+    unlock_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthLockoutUnlockRequest"];
+            };
+        };
+        responses: {
+            /** @description Lockouts cleared */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthLockoutUnlockResult"];
+                };
+            };
+            /** @description No session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing permission or step-up */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
