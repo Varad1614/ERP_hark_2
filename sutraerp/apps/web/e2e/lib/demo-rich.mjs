@@ -641,8 +641,10 @@ async function seedFees(ctx) {
       { feeHeadId: head("TUITION"), description: "Tuition fee — 2026-27", amount: "152000.00" },
       { feeHeadId: head("EXAM"), description: "Examination fee — 2026-27", amount: "3500.00" },
     ]);
-  // Hostel residents (GST 12% on the hostel line when the GST profile is set).
-  const hostel = [aarav, term1[0], term1[2], term1[4], term4[0], term4[2], term4[5]];
+  // Hostel fee with GST (12% on the hostel line when the GST profile is set), raised by hand only
+  // for a resident who does NOT get a bed in the campus slice: bed allocation already raises its own
+  // HOSTEL-FEE charge through the campus charge port, so charging bed holders here would bill twice.
+  const hostel = [term4[5]];
   for (const sid of hostel)
     await part("hostel charge", () => manual(sid, "Hostel fee — July to December 2026", "2026-07-31", [{ feeHeadId: head("HOSTEL"), description: "Hostel rent — July to December 2026", amount: "42000.00" }]));
   const account = (sid) => psql(`SELECT id FROM finance.student_account WHERE institution_id = ${q(inst)} AND student_id = ${q(sid)} LIMIT 1`);
@@ -650,7 +652,6 @@ async function seedFees(ctx) {
   // Payments: [student, amount or 'all', received on, channel]
   const plan = [
     [aarav, "150500.00", "2026-07-10", "bank_transfer"],
-    [aarav, "25000.00", "2026-08-12", "cash"],
     [isha, "all", "2026-07-08", "bank_transfer"],
     [term1[0], "all", "2026-07-14", "bank_transfer"],
     [term1[1], "75000.00", "2026-07-21", "bank_transfer"],
