@@ -33290,6 +33290,19 @@ export interface components {
          * @enum {string}
          */
         AttendanceMark: "present" | "absent" | "late" | "excused";
+        /**
+         * @description The single definition of a student's overall attendance across sections (Phase F / DATA-2):
+         *     sum of attended over sum of counted sessions, rounded to two decimals; `None` when nothing
+         *     has been counted yet (never a fake 100 %). Every surface (Home, Timetable, Courses) shows this.
+         */
+        AttendanceOverall: {
+            /** Format: int32 */
+            attended: number;
+            /** Format: double */
+            percent?: number | null;
+            /** Format: int32 */
+            total: number;
+        };
         /** @description Attendance policy version (threshold rules). */
         AttendancePolicy: {
             /** Format: date-time */
@@ -45126,6 +45139,8 @@ export interface components {
         };
         MyAttendance: {
             items: components["schemas"]["MyAttendanceLine"][];
+            /** @description Overall attendance across all lines — the one figure Home and Timetable both show. */
+            overall: components["schemas"]["AttendanceOverall"];
         };
         /** @description The student's own attendance per seated section. */
         MyAttendanceLine: {

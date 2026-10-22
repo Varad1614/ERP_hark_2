@@ -154355,6 +154355,31 @@
           "excused"
         ]
       },
+      "AttendanceOverall": {
+        "type": "object",
+        "description": "The single definition of a student's overall attendance across sections (Phase F / DATA-2):\nsum of attended over sum of counted sessions, rounded to two decimals; `None` when nothing\nhas been counted yet (never a fake 100 %). Every surface (Home, Timetable, Courses) shows this.",
+        "required": [
+          "attended",
+          "total"
+        ],
+        "properties": {
+          "attended": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AttendancePolicy": {
         "type": "object",
         "description": "Attendance policy version (threshold rules).",
@@ -191122,7 +191147,8 @@
       "MyAttendance": {
         "type": "object",
         "required": [
-          "items"
+          "items",
+          "overall"
         ],
         "properties": {
           "items": {
@@ -191130,6 +191156,10 @@
             "items": {
               "$ref": "#/components/schemas/MyAttendanceLine"
             }
+          },
+          "overall": {
+            "$ref": "#/components/schemas/AttendanceOverall",
+            "description": "Overall attendance across all lines — the one figure Home and Timetable both show."
           }
         }
       },
