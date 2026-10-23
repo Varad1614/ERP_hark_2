@@ -56,7 +56,7 @@ html.easy .sb-kbd { font-family: inherit; }
 /* ================================================================ dark mode */
 html.dk {
   --sb-bg: #111015; --sb-surface: #1b1a21; --sb-pop: #25242c; --sb-line: #2b2a33; --sb-line-strong: #4a4855;
-  --sb-ink: #eceaf2; --sb-ink-2: #2a2933; --sb-mute: #a6a3b3; --sb-mute-2: #8e8b9b; --sb-body: #a6a3b3;
+  --sb-ink: #eceaf2; --sb-ink-2: #2a2933; --sb-mute: #a6a3b3; --sb-mute-2: #a6a3b3; --sb-body: #a6a3b3;
   --sb-attention-bg: #ff6e5a24; --sb-attention-fg: #ff9c8a;
   --sb-review-bg: #f0be4624; --sb-review-fg: #f2c766;
   --sb-neutral-bg: #ffffff12; --sb-neutral-fg: #b5b2c0;
@@ -84,6 +84,7 @@ html.dk .sb-tile--interactive:hover, html.dk .sb-shortcut:hover {
 html.dk :focus-visible { outline-color: var(--ac); box-shadow: 0 0 0 5px color-mix(in srgb, var(--ac) 22%, transparent); }
 html.dk .sb-pills, html.dk .sb-icon-btn, html.dk .sb-filter { background: var(--sb-surface); box-shadow: inset 0 1px #ffffff0d, 0 1px 2px #0006; }
 html.dk .sb-pills .on, html.dk .sb-pills [aria-current="page"], html.dk .sb-filter.on { background: var(--sb-ink); color: #141318; }
+html.dk .sb-filter.on em { color: #4a4855; } /* audit contrast: #a9a6b5 on the light chip was 2.25:1 */
 html.dk .sb-avatar { background: color-mix(in srgb, var(--ac) 22%, var(--sb-surface)); color: var(--act); }
 html.dk .sb-tile--accent { background: radial-gradient(90% 130% at 100% 0%, color-mix(in srgb, var(--ac) 40%, transparent) 0%, transparent 60%), linear-gradient(140deg, color-mix(in srgb, var(--ac) 14%, var(--sb-surface)) 0%, var(--sb-surface) 70%); }
 html.dk .sb-hero::after { opacity: 0.28; filter: blur(40px); }
@@ -116,7 +117,7 @@ html.hc .sb-tile, html.hc .sb-filter, html.hc .sb-icon-btn, html.hc .sb-btn--gho
 html.hc .sb-tile a, html.hc .sb-page-head a { text-decoration: underline; text-underline-offset: 3px; }
 html.hc :focus-visible { outline: 3px solid #000 !important; outline-offset: 3px !important; box-shadow: 0 0 0 6px #ffd43b !important; }
 html.hc .sb-badge { border: 1.5px solid currentColor; }
-html.hc.dk { --sb-mute: #e4e2ec; --sb-mute-2: #c9c6d3; --sb-body: #e4e2ec; --sb-line: #9a97a6; }
+html.hc.dk { --sb-mute: #e4e2ec; --sb-mute-2: #c9c6d3; --sb-body: #e4e2ec; --sb-line: #b5b2c0; }
 html.hc.dk .sb-tile, html.hc.dk .sb-filter, html.hc.dk .sb-icon-btn, html.hc.dk .sb-btn--ghost, html.hc.dk .sb-pills { border-color: #f4f3f8 !important; }
 html.hc.dk :focus-visible { outline-color: #fff !important; }
 .sb-popover--menu { width: 300px; }

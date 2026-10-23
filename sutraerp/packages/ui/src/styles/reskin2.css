@@ -190,6 +190,12 @@ button.sb-week-blk:hover { transform: translateY(-2px); }
 .sb-date > .sb-date-text.is-empty { color: var(--sb-mute-2); }
 .sb-date > input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; }
 .sb-date > input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+/* A11Y-1 (audit 2026-10): while the field has focus the native date input is shown in place of the
+ * formatted text, so keyboard users see the segment they are typing in and Tab/Shift+Tab move
+ * visibly through the segments and on to the next field (no invisible-overlay trap). */
+.sb-date:focus-within > .sb-date-text { display: none; }
+.sb-date:focus-within > input { position: static; opacity: 1; flex: 1; width: auto; height: auto; min-width: 0; background: transparent; color: var(--sb-ink); font: inherit; font-size: 14px; font-weight: 500; }
+.sb-date:focus-within > input::-webkit-calendar-picker-indicator { position: static; width: auto; height: auto; }
 .sb-date[aria-invalid="true"], .sb-tags[aria-invalid="true"] { border-color: var(--tint-rose-fg); }
 .sb-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: var(--touch); border: 1px solid var(--sb-line); border-radius: 16px; background: var(--sb-bg); padding: 6px 8px; }
 .sb-tags > input { flex: 1; min-width: 120px; border: 0; outline: none; background: none; font-size: 14px; padding: 6px; color: var(--sb-ink); font-weight: 500; }

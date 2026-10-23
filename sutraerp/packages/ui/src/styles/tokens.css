@@ -36,7 +36,7 @@
   --sb-info-fg: #2f64c0;
 
   /* tints: [background, foreground] */
-  --tint-orange-bg: #ffe9dc; --tint-orange-fg: #e8743b;
+  --tint-orange-bg: #ffe9dc; --tint-orange-fg: #a84a18; /* audit contrast: #e8743b was 2.83:1 as text */
   --tint-green-bg: #dff3e8;  --tint-green-fg: #2e8b57;
   --tint-violet-bg: #e7e1ff; --tint-violet-fg: #7254e6;
   --tint-blue-bg: #dcebff;   --tint-blue-fg: #3b7be8;

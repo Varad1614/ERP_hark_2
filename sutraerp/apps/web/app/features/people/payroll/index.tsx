@@ -270,7 +270,7 @@ function Disbursements({ institutionId, runs }: { institutionId: string; runs: P
     <>
       <BentoTile span={12} title="Disbursements" data-slice="7C" action={<Acts disabled={busy} actions={header} />}>
         <p className="sb-muted" data-bank-submission="BLOCKED_EXTERNAL">
-          Bank submission: BLOCKED_EXTERNAL — no bank connection. Download the NEFT file, upload it to the bank portal, then mark the batch paid with the bank reference.
+          No direct bank connection yet. Download the NEFT file, upload it to the bank portal, then mark the batch paid with the bank reference.
         </p>
         <DataTable caption="Disbursement batches" rows={batches} rowKey={(d) => d.id}
           empty={<EmptyState icon={Landmark} title="No disbursements" compact>Create a batch once a run is posted to Finance.</EmptyState>}
